@@ -6,8 +6,10 @@ import Svg, { Path } from 'react-native-svg';
 import { Animated, View, ViewStyle } from 'react-native';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
+import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Holdable from '@/components/presentation/foundation/holdable';
 import { Jiggler } from '@/components/presentation/foundation/jiggler';
+import clickSound from '../../../../assets/click.wav';
 
 interface RestTimerProps {
   rest: Rest;
@@ -18,24 +20,48 @@ interface RestTimerProps {
 }
 
 export default function RestTimer({
-  rest,
+  rest: restProp,
   startTime,
   failed,
   style,
   resetTimer,
 }: RestTimerProps) {
   const { colors } = useAppTheme();
+  const rest = Rest.orDefault(restProp);
   const isSameMinMaxRest = rest.minRest.equals(rest.maxRest);
   const [jiggled, setJiggled] = useState([] as string[]);
+  const clickPlayer = useAudioPlayer(clickSound);
 
   useEffect(() => {
     setJiggled([]);
   }, [startTime]);
 
+  useEffect(() => {
+    // Play in silent mode and mix with (rather than pause) the user's music.
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: 'mixWithOthers',
+      interruptionModeAndroid: 'duckOthers',
+    }).catch(console.log);
+  }, []);
+
   const getTimerState = useCallback(() => {
     const now = OffsetDateTime.now();
     const diffMs = Duration.between(startTime, now);
-    const timeSinceStart = formatTimeSpan(diffMs);
+    // Count down to the next rest milestone (min rest, then max rest, or
+    // failure rest after a failed set), then count up overtime with a +.
+    const finalMilestone = failed
+      ? rest.failureRest
+      : isSameMinMaxRest
+        ? rest.minRest
+        : rest.maxRest;
+    const milestones = failed
+      ? [rest.failureRest]
+      : [rest.minRest, rest.maxRest];
+    const nextMilestone = milestones.find((m) => diffMs.compareTo(m) < 0);
+    const displayTime = nextMilestone
+      ? formatTimeSpan(nextMilestone.minus(diffMs), 'ceil')
+      : `+${formatTimeSpan(diffMs.minus(finalMilestone))}`;
     const firstProgressBarProgress = failed
       ? Math.min(diffMs.toMillis() / rest.failureRest.toMillis(), 1)
       : Math.min(diffMs.toMillis() / rest.minRest.toMillis(), 1);
@@ -54,7 +80,7 @@ export default function RestTimer({
           ? ['onGreen', 'green']
           : ['onErrorContainer', 'errorContainer'];
     return {
-      timeSinceStart,
+      displayTime,
       firstProgressBarProgress,
       secondProgressBarProgress,
       textColor,
@@ -69,11 +95,15 @@ export default function RestTimer({
     (milestone: string) => {
       if (jiggled.includes(milestone)) return;
       impactAsync(ImpactFeedbackStyle.Heavy).catch(console.log);
+      clickPlayer
+        .seekTo(0)
+        .then(() => clickPlayer.play())
+        .catch(console.log);
       setJiggling(true);
       setTimeout(() => setJiggling(false), 10);
       setJiggled((j) => [...j, milestone]);
     },
-    [jiggled],
+    [jiggled, clickPlayer],
   );
 
   const pillHeight = spacing[14];
@@ -155,15 +185,18 @@ export default function RestTimer({
           weight="bold"
           color={timerState.textColor}
         >
-          {timerState.timeSinceStart}
+          {timerState.displayTime}
         </SurfaceText>
       </Jiggler>
     </Holdable>
   );
 }
 
-function formatTimeSpan(ms: Duration): string {
-  const totalSeconds = Math.floor(ms.toMillis() / 1000);
+function formatTimeSpan(
+  ms: Duration,
+  round: 'floor' | 'ceil' = 'floor',
+): string {
+  const totalSeconds = Math[round](ms.toMillis() / 1000);
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
   return `${minutes}:${seconds.toString().padStart(2, '0')}`;

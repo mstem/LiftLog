@@ -11,14 +11,7 @@ export interface AiChatMessageResponse {
   message: string;
 }
 
-interface AiChatPurchaseProResponse {
-  type: 'purchasePro';
-}
-
-export type AiChatResponse =
-  | AiChatMessageResponse
-  | AiChatPlanResponse
-  | AiChatPurchaseProResponse;
+export type AiChatResponse = AiChatMessageResponse | AiChatPlanResponse;
 
 interface AiSessionBlueprint {
   name: string;

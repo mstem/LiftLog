@@ -19,5 +19,6 @@ export interface FeedBackupData {
 export interface BackupData {
   workouts: Session[];
   programs: Record<string, ProgramBlueprint>;
+  exerciseNotes?: Record<string, string>;
   feed?: FeedBackupData;
 }

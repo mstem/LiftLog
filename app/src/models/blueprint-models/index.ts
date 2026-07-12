@@ -741,6 +741,20 @@ export const Rest = {
     maxRest: Duration.ofMinutes(5),
     failureRest: Duration.ofMinutes(8),
   },
+  default: {
+    minRest: Duration.ofSeconds(90),
+    maxRest: Duration.ofSeconds(90),
+    failureRest: Duration.ofSeconds(90),
+  },
+
+  // Exercises with no timer configured (all durations zero) fall back to the default
+  orDefault(value: Rest): Rest {
+    return value.minRest.isZero() &&
+      value.maxRest.isZero() &&
+      value.failureRest.isZero()
+      ? Rest.default
+      : value;
+  },
 
   fromJSON(json: RestJSON): Rest {
     return {

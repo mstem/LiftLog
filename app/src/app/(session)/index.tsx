@@ -20,13 +20,17 @@ import {
   setCurrentSession,
 } from '@/store/current-session';
 import { encryptAndShare, publishUnpublishedSessions } from '@/store/feed';
-import { fetchUpcomingSessions, selectActiveProgram } from '@/store/program';
+import {
+  fetchUpcomingSessions,
+  selectActiveProgram,
+  setAutoLoadNext,
+} from '@/store/program';
 import { setEditingSession } from '@/store/session-editor';
 import { executeRemoteBackup } from '@/store/settings';
 import { LocalDate } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Card, FAB, Text, Tooltip } from 'react-native-paper';
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
@@ -231,6 +235,10 @@ function SessionCardContent({ session }: { session: Session }) {
 
 export default function Index() {
   const upcomingSessions = useAppSelector((s) => s.program.upcomingSessions);
+  const autoLoadNext = useAppSelector((s) => s.program.autoLoadNext);
+  const hasCurrentSession = useAppSelector(
+    (s) => !!s.currentSession.workoutSession,
+  );
   const dispatch = useDispatch();
   const { t } = useTranslate();
   const currentBodyweight = upcomingSessions
@@ -244,6 +252,14 @@ export default function Index() {
     dispatch(publishUnpublishedSessions());
     dispatch(executeRemoteBackup({}));
   });
+
+  useEffect(() => {
+    if (!autoLoadNext || hasCurrentSession) return;
+    const sessions = upcomingSessions.unwrapOr([]);
+    if (sessions.length === 0) return;
+    dispatch(setCurrentSession({ target: 'workoutSession', session: sessions[0]! }));
+    dispatch(setAutoLoadNext(false));
+  }, [autoLoadNext, hasCurrentSession, upcomingSessions, dispatch]);
 
   const createFreeformSession = () => {
     const newSession = Session.freeformSession(

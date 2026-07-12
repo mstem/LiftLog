@@ -27,7 +27,10 @@ import FullScreenDialog from '@/components/presentation/foundation/full-screen-d
 import { ExerciseEditor } from '@/components/presentation/workout-editor/exercise-editor';
 import { LocalTime, OffsetDateTime, ZoneId } from '@js-joda/core';
 import { useAppSelector, useAppSelectorWithArg } from '@/store';
-import { selectRecentlyCompletedExercises } from '@/store/stored-sessions';
+import {
+  selectRecentlyCompletedExercises,
+  selectWeightedExercisePersonalBests,
+} from '@/store/stored-sessions';
 import FloatingBottomContainer from '@/components/presentation/foundation/floating-bottom-container';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { match, P } from 'ts-pattern';
@@ -50,6 +53,10 @@ export default function SessionComponent(props: {
   const recentlyCompletedExercises = useAppSelectorWithArg(
     selectRecentlyCompletedExercises,
     10,
+  );
+  const weightedExercisePersonalBests = useAppSelectorWithArg(
+    selectWeightedExercisePersonalBests,
+    session?.id,
   );
   const resetTimer = (time: OffsetDateTime | undefined) => {
     updateSession((s) => s.with({ restTimerStartTime: time }));
@@ -176,6 +183,11 @@ export default function SessionComponent(props: {
             recentlyCompletedExercises(
               item.blueprint,
             ) as RecordedWeightedExercise[]
+          }
+          personalBests={
+            props.target === 'workoutSession'
+              ? weightedExercisePersonalBests(item.blueprint)
+              : undefined
           }
         />
       ))

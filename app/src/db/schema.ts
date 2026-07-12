@@ -103,6 +103,12 @@ export const feedUnpublishedSessionsSchema = sqliteTable(
   },
 );
 
+// Notes which persist across workouts, keyed by normalized exercise name
+export const exerciseNotesSchema = sqliteTable('exercise_notes', {
+  id: text().primaryKey(),
+  notes: text().notNull(),
+});
+
 // Just a table we can use to keep track of which data migrations have been run
 export const dataMigrationsSchema = sqliteTable('data_migration', {
   id: text().primaryKey(),

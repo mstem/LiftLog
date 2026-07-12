@@ -6,7 +6,12 @@ import {
   YearMonth,
 } from '@js-joda/core';
 import { v4 as uuid } from 'uuid';
-import { selectSessionsInMonth } from '@/store/stored-sessions';
+import {
+  selectExerciseNotes,
+  selectSessionsInMonth,
+  setExerciseNotes,
+  storedSessionsReducer,
+} from '@/store/stored-sessions';
 import {
   NoProgressiveOverload,
   Rest,
@@ -93,5 +98,36 @@ describe('stored sessions sorting', () => {
       'Evening',
       'Morning',
     ]);
+  });
+});
+
+describe('exercise notes', () => {
+  it('stores notes keyed by normalized exercise name so they match across workouts', () => {
+    const state = storedSessionsReducer(
+      undefined,
+      setExerciseNotes({ exerciseName: 'Bicep Curls', notes: 'Elbows in' }),
+    );
+
+    expect(selectExerciseNotes({ storedSessions: state }, 'bicep curl')).toBe(
+      'Elbows in',
+    );
+    expect(
+      selectExerciseNotes({ storedSessions: state }, 'Lat Pulldown'),
+    ).toBeUndefined();
+  });
+
+  it('removes notes when they are set to empty text', () => {
+    let state = storedSessionsReducer(
+      undefined,
+      setExerciseNotes({ exerciseName: 'Bicep Curls', notes: 'Elbows in' }),
+    );
+    state = storedSessionsReducer(
+      state,
+      setExerciseNotes({ exerciseName: 'bicep curl', notes: '  ' }),
+    );
+
+    expect(
+      selectExerciseNotes({ storedSessions: state }, 'Bicep Curls'),
+    ).toBeUndefined();
   });
 });

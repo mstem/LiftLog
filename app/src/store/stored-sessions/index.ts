@@ -1,4 +1,8 @@
-import { RecordedExercise, Session } from '@/models/session-models';
+import {
+  RecordedExercise,
+  RecordedWeightedExercise,
+  Session,
+} from '@/models/session-models';
 import {
   NormalizedName,
   NormalizedNameKey,
@@ -14,7 +18,7 @@ import {
   WritableDraft,
 } from '@reduxjs/toolkit';
 import Enumerable from 'linq';
-import { WeightUnit } from '@/models/weight';
+import { Weight, WeightUnit } from '@/models/weight';
 import { TemporalComparer } from '@/models/comparers';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 
@@ -31,6 +35,7 @@ interface StoredSessionState {
   filteredExerciseIds: string[];
   exercisesRequiringWeightMigration: WeightMigrateableExercise[];
   earliestSession: Session | undefined;
+  exerciseNotes: Record<NormalizedNameKey, string>;
 }
 
 const initialState: StoredSessionState = {
@@ -41,6 +46,7 @@ const initialState: StoredSessionState = {
   filteredExerciseIds: [],
   exercisesRequiringWeightMigration: [],
   earliestSession: undefined,
+  exerciseNotes: {},
 };
 
 const storedSessionsSlice = createSlice({
@@ -127,6 +133,29 @@ const storedSessionsSlice = createSlice({
       );
       if (val) val.unit = action.payload.unit;
     },
+    setAllExerciseNotes(
+      state,
+      action: PayloadAction<Record<NormalizedNameKey, string>>,
+    ) {
+      state.exerciseNotes = action.payload;
+    },
+    upsertExerciseNotes(
+      state,
+      action: PayloadAction<Record<NormalizedNameKey, string>>,
+    ) {
+      Object.assign(state.exerciseNotes, action.payload);
+    },
+    setExerciseNotes(
+      state,
+      action: PayloadAction<{ exerciseName: string; notes: string }>,
+    ) {
+      const key = new NormalizedName(action.payload.exerciseName).toString();
+      if (action.payload.notes.trim()) {
+        state.exerciseNotes[key] = action.payload.notes;
+      } else {
+        delete state.exerciseNotes[key];
+      }
+    },
   },
 
   selectors: {
@@ -172,6 +201,16 @@ const storedSessionsSlice = createSlice({
 
     selectExerciseIds: (state: StoredSessionState) =>
       Object.keys(state.savedExercises),
+
+    selectAllExerciseNotes: (state: StoredSessionState) => state.exerciseNotes,
+    selectExerciseNotes: createSelector(
+      [
+        (state: StoredSessionState) => state.exerciseNotes,
+        (_, exerciseName: string) => exerciseName,
+      ],
+      (exerciseNotes, exerciseName) =>
+        exerciseNotes[new NormalizedName(exerciseName).toString()],
+    ),
   },
 });
 
@@ -236,6 +275,9 @@ export const {
   setFilteredExerciseIds,
   setExercisesRequiringWeightMigration,
   updateExerciseRequiringWeightMigration,
+  setAllExerciseNotes,
+  upsertExerciseNotes,
+  setExerciseNotes,
 } = storedSessionsSlice.actions;
 
 export const {
@@ -244,6 +286,8 @@ export const {
   selectExercises,
   selectLatestExercises,
   selectExerciseById,
+  selectAllExerciseNotes,
+  selectExerciseNotes,
 } = storedSessionsSlice.selectors;
 
 const selectLatestOrderedRecordedExercises = createSelector(
@@ -278,6 +322,63 @@ export const selectRecentlyCompletedExercises = createSelector(
       recentlyCompletedExercises[
         NormalizedName.fromExerciseBlueprint(blueprint).toString()
       ] ?? [],
+);
+
+export interface WeightedExercisePersonalBests {
+  maxWeight: Weight | undefined;
+  maxReps: number | undefined;
+}
+
+const selectAllTimeWeightedExerciseBests = createSelector(
+  [
+    storedSessionsSlice.selectors.selectSessions,
+    (_, excludeSessionId: string | undefined) => excludeSessionId,
+  ],
+  (sessions, excludeSessionId) => {
+    const bests: Record<NormalizedNameKey, WeightedExercisePersonalBests> = {};
+    for (const session of sessions) {
+      if (session.id === excludeSessionId) {
+        continue;
+      }
+      for (const exercise of session.recordedExercises) {
+        if (!(exercise instanceof RecordedWeightedExercise)) {
+          continue;
+        }
+        const key = NormalizedName.fromExerciseBlueprint(
+          exercise.blueprint,
+        ).toString();
+        const best = (bests[key] ??= {
+          maxWeight: undefined,
+          maxReps: undefined,
+        });
+        for (const potentialSet of exercise.potentialSets) {
+          const reps = potentialSet.set?.repsCompleted;
+          if (!reps) {
+            continue;
+          }
+          if (
+            !best.maxWeight ||
+            potentialSet.weight.isGreaterThan(best.maxWeight)
+          ) {
+            best.maxWeight = potentialSet.weight;
+          }
+          if (!best.maxReps || reps > best.maxReps) {
+            best.maxReps = reps;
+          }
+        }
+      }
+    }
+    return bests;
+  },
+);
+
+export const selectWeightedExercisePersonalBests = createSelector(
+  [selectAllTimeWeightedExerciseBests],
+  (bests) =>
+    (
+      blueprint: ExerciseBlueprint,
+    ): WeightedExercisePersonalBests | undefined =>
+      bests[NormalizedName.fromExerciseBlueprint(blueprint).toString()],
 );
 
 export const selectPreviousComparableSession = createSelector(

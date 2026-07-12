@@ -1,6 +1,7 @@
 import {
   CardioExerciseBlueprint,
   ExerciseBlueprint,
+  Rest,
   SessionBlueprint,
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
@@ -528,7 +529,9 @@ export class Session {
       exercise instanceof RecordedWeightedExercise
     ) {
       const repsPerSet = exercise.blueprint.repsPerSet;
-      const { minRest, failureRest } = exercise.blueprint.restBetweenSets;
+      const { minRest, failureRest } = Rest.orDefault(
+        exercise.blueprint.restBetweenSets,
+      );
 
       const rest = match(exercise.lastRecordedSet)
         .with(

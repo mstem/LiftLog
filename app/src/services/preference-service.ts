@@ -24,18 +24,6 @@ function fromBooleanString(
 export class PreferenceService {
   constructor(private keyValueStore: KeyValueStore) {}
 
-  async getProToken(): Promise<string | undefined> {
-    const token = await this.keyValueStore.getItem('proToken');
-    return token;
-  }
-
-  async setProToken(token?: string): Promise<void> {
-    if (__DEV__) {
-      return;
-    }
-    if (token) await this.keyValueStore.setItem('proToken', token);
-  }
-
   async getUseImperialUnits(): Promise<boolean> {
     const value = await this.keyValueStore.getItem('useImperialUnits');
     return fromBooleanString(value, false);

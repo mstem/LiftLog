@@ -15,7 +15,11 @@ import {
   setIsHydrated,
 } from '@/store/current-session';
 import { AddEffectFn, RootState } from '@/store/store';
-import { fetchUpcomingSessions, selectActiveProgram } from '@/store/program';
+import {
+  fetchUpcomingSessions,
+  selectActiveProgram,
+  setAutoLoadNext,
+} from '@/store/program';
 import {
   addStoredSession,
   selectLatestExercises,
@@ -175,6 +179,7 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
     }
     dispatch(setCurrentSession({ target: a.payload, session: undefined }));
     dispatch(fetchUpcomingSessions());
+    dispatch(setAutoLoadNext(true));
   });
 
   addEffect(currentWorkoutSessionUpdated, (action, { dispatch }) => {

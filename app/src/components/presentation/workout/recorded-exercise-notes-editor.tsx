@@ -1,5 +1,6 @@
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import { T } from '@tolgee/react';
+import { TranslationKey } from '@tolgee/web';
 import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
@@ -9,10 +10,12 @@ export default function RecordedExerciseNotesEditor(props: {
   exerciseName: string;
   open: boolean;
   notes: string | undefined;
+  titleKeyName?: TranslationKey;
   onUpdateNotes: (n: string) => void;
   onDismiss: () => void;
 }) {
   const { open, notes, onUpdateNotes, onDismiss, exerciseName } = props;
+  const titleKeyName = props.titleKeyName ?? 'workout.notes_for.title';
   const [editorNotes, setEditorNotes] = useState(notes ?? '');
 
   useEffect(() => {
@@ -30,10 +33,7 @@ export default function RecordedExerciseNotesEditor(props: {
         >
           <Dialog visible={open} onDismiss={onDismiss}>
             <Dialog.Title>
-              <T
-                keyName="workout.notes_for.title"
-                params={{ name: exerciseName }}
-              />
+              <T keyName={titleKeyName} params={{ name: exerciseName }} />
             </Dialog.Title>
             <Dialog.Content>
               <TextInput

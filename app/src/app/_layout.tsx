@@ -51,7 +51,6 @@ function Layout() {
   const { t } = useTranslate();
   const { colors } = useAppTheme();
   const followRequestCount = useAppSelector(selectFollowRequestCount);
-  const showFeed = useAppSelector((x) => x.settings.showFeed);
   return (
     <NativeTabs
       indicatorColor={colors.secondaryContainer}
@@ -69,8 +68,7 @@ function Layout() {
           md={{ default: 'fitness_center', selected: 'fitness_center' }}
         />
       </NativeTabs.Trigger>
-      (
-      <NativeTabs.Trigger name="feed" hidden={!showFeed}>
+      <NativeTabs.Trigger name="feed" hidden={true}>
         <NativeTabs.Trigger.Icon
           sf={{
             default: 'bubble.left.and.bubble.right',
@@ -87,7 +85,6 @@ function Layout() {
           </NativeTabs.Trigger.Badge>
         )}
       </NativeTabs.Trigger>
-      )
       <NativeTabs.Trigger name="stats">
         <NativeTabs.Trigger.Icon
           sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }}

@@ -1,5 +1,5 @@
 import ItemTitle from '@/components/presentation/foundation/item-title';
-import { spacing } from '@/hooks/useAppTheme';
+import { spacing, useAppTheme } from '@/hooks/useAppTheme';
 import {
   RecordedExercise,
   RecordedWeightedExercise,
@@ -11,6 +11,7 @@ import { useTranslate } from '@tolgee/react';
 import PreviousExerciseViewer from '@/components/presentation/workout/weighted/previous-exercise-viewer';
 import ConfirmationDialog from '@/components/presentation/foundation/confirmation-dialog';
 import ExerciseNotesDisplay from '@/components/presentation/workout/exercise-notes-display';
+import ExerciseNotesField from '@/components/presentation/workout/exercise-notes-field';
 import RecordedExerciseNotesEditor from '@/components/presentation/workout/recorded-exercise-notes-editor';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import { useRouter } from 'expo-router';
@@ -37,6 +38,7 @@ export default function ExerciseSection<T extends RecordedExercise>(
     void Linking.canOpenURL(url).then(() => Linking.openURL(url));
   };
   const { t } = useTranslate();
+  const { colors } = useAppTheme();
   const { push } = useRouter();
   const { recordedExercise } = props;
   const [menuVisible, setMenuVisible] = useState(false);
@@ -162,12 +164,16 @@ export default function ExerciseSection<T extends RecordedExercise>(
         >
           <ItemTitle
             testID="weighted-exercise-title"
-            style={{ marginVertical: spacing[2] }}
+            style={{ marginVertical: spacing[2], color: colors.primary }}
             title={recordedExercise.blueprint.name}
           />
           {interactiveButtons}
         </View>
         {props.children}
+        <ExerciseNotesField
+          exerciseName={recordedExercise.blueprint.name}
+          isReadonly={props.isReadonly}
+        />
         <ExerciseNotesDisplay
           exercise={props.recordedExercise}
           previousExercise={props.previousRecordedExercises.at(0)}

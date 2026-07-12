@@ -9,6 +9,9 @@ import Button from '@/components/presentation/foundation/gesture-wrappers/button
 import * as Application from 'expo-application';
 import { useDispatch } from 'react-redux';
 import { copyLogs } from '@/store/app';
+import * as DocumentPicker from 'expo-document-picker';
+import { parseHevyCsvFile } from '@/services/hevy-import-service';
+import { upsertStoredSessions } from '@/store/stored-sessions';
 
 export default function Settings() {
   const { t } = useTranslate();
@@ -22,6 +25,27 @@ export default function Settings() {
   };
   const doCopyLogs = () => {
     dispatch(copyLogs());
+  };
+
+  const [importState, setImportState] = useState<
+    'idle' | 'importing' | { count: number } | 'error'
+  >('idle');
+
+  const doImportHevy = async () => {
+    const result = await DocumentPicker.getDocumentAsync({
+      type: ['text/csv', 'text/comma-separated-values', 'text/plain', '*/*'],
+      copyToCacheDirectory: true,
+    });
+    if (result.canceled || !result.assets?.[0]) return;
+    const uri = result.assets[0].uri;
+    setImportState('importing');
+    try {
+      const sessions = await parseHevyCsvFile(uri);
+      dispatch(upsertStoredSessions(sessions));
+      setImportState({ count: sessions.length });
+    } catch {
+      setImportState('error');
+    }
   };
 
   const appVersion =
@@ -76,6 +100,21 @@ export default function Settings() {
           left={(props) => (
             <List.Icon icon={'settingsBackupRestore'} {...props} />
           )}
+        ></List.Item>
+        <List.Item
+          onPress={() => void doImportHevy()}
+          disabled={importState === 'importing'}
+          title="Import from Hevy"
+          description={
+            importState === 'importing'
+              ? 'Importing…'
+              : typeof importState === 'object'
+                ? `Imported ${importState.count} sessions`
+                : importState === 'error'
+                  ? 'Import failed — check the file and try again'
+                  : 'Import workout history from a Hevy CSV export'
+          }
+          left={(props) => <List.Icon icon={'fileUpload'} {...props} />}
         ></List.Item>
       </List.Section>
 

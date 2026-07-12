@@ -12,7 +12,6 @@ import {
   setLastBackup,
   setNotesExpandedByDefault,
   setPreferredLanguage,
-  setProToken,
   setRemoteBackupSettings,
   setRestNotifications,
   setShowBodyweight,
@@ -28,8 +27,7 @@ import { addExportBackupEffects } from '@/store/settings/export-backup-effects';
 import { addExportPlaintextEffects } from '@/store/settings/export-plaintext-effects';
 import { addImportBackupEffects } from '@/store/settings/import-backup-effects';
 import { addRemoteBackupEffects } from '@/store/settings/remote-backup-effects';
-import Purchases from 'react-native-purchases';
-import { I18nManager, Platform } from 'react-native';
+import { I18nManager } from 'react-native';
 import { detectLanguageFromDateLocale } from '@/utils/language-detector';
 import { supportedLanguages } from '@/services/tolgee';
 import { initializeStoredSessionsStateSlice } from '@/store/stored-sessions';
@@ -60,7 +58,6 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
         backupReminder,
         firstDayOfWeek,
         colorSchemeSeed,
-        proToken,
         notesExpandedByDefault,
         keepScreenAwakeDuringWorkout,
         exportToHealthAggregator,
@@ -81,7 +78,6 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
         preferenceService.getBackupReminder(),
         preferenceService.getFirstDayOfWeek(),
         preferenceService.getColorSchemeSeed(),
-        preferenceService.getProToken(),
         preferenceService.getNotesExpandedByDefault(),
         preferenceService.getKeepScreenAwakeDuringWorkout(),
         preferenceService.getExportToHealthAggregator(),
@@ -112,33 +108,12 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
       );
       dispatch(setBackupReminder(backupReminder));
       dispatch(setFirstDayOfWeek(firstDayOfWeek));
-      dispatch(setProToken(proToken));
       dispatch(setNotesExpandedByDefault(notesExpandedByDefault));
       dispatch(setKeepScreenAwakeDuringWorkout(keepScreenAwakeDuringWorkout));
       dispatch(setExportToHealthAggregator(exportToHealthAggregator));
       dispatch(setShowPostWorkoutSummary(showPostWorkoutSummary));
       dispatch(setTrueBlackDarkTheme(trueBlackDarkTheme));
 
-      if (Platform.OS === 'ios') {
-        Purchases.configure({
-          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_APPLE_API_KEY!,
-        });
-      } else if (Platform.OS === 'android') {
-        Purchases.configure({
-          apiKey: process.env.EXPO_PUBLIC_REVENUECAT_GOOGLE_API_KEY!,
-        });
-      }
-      // migrate pro token to a revenuecat
-      if (proToken && !proToken.startsWith('$RCAnonymousID')) {
-        try {
-          const customerInfo = await Purchases.getCustomerInfo();
-          await Purchases.syncPurchases();
-          dispatch(setProToken(customerInfo.originalAppUserId));
-          await preferenceService.setProToken(customerInfo.originalAppUserId);
-        } catch (err) {
-          logger.error('Failed to migrate user', err);
-        }
-      }
       dispatch(setIsHydrated(true));
       dispatch(initializeStoredSessionsStateSlice());
       dispatch(initializeCurrentSessionStateSlice());
@@ -278,14 +253,6 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
     async (action, { stateAfterReduce, extra: { preferenceService } }) => {
       if (stateAfterReduce.settings.isHydrated) {
         await preferenceService.setRemoteBackupSettings(action.payload);
-      }
-    },
-  );
-  addEffect(
-    setProToken,
-    async (action, { stateAfterReduce, extra: { preferenceService } }) => {
-      if (stateAfterReduce.settings.isHydrated) {
-        await preferenceService.setProToken(action.payload);
       }
     },
   );

@@ -106,6 +106,14 @@ class WorkoutWorkerService : Service() {
         Log.d("WorkoutWorker", "Service destroyed")
         scope.cancel()
         handlers.forEach { it.onDestroy() }
+        // The WorkoutEndedEvent is handled asynchronously, so it may never reach
+        // WorkoutEndedHandler before the scope is cancelled. A timer tick can also
+        // re-post the (ongoing, undismissable) notification after the system has
+        // already removed it as part of stopping the foreground service. Clearing
+        // here, after the timer is destroyed, guarantees nothing is left behind.
+        ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
+        notificationManager.clearPersistentNotification()
+        notificationManager.clearRestNotification()
         super.onDestroy()
     }
 }

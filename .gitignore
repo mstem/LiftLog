@@ -390,3 +390,6 @@ LiftLog.Ui/wwwroot/app-utils.js
 tests/LiftLog.Tests.Api/appsettings.Development.json
 
 temp/
+
+# Local Hevy import scratch DB
+scripts/liftlog-import.db

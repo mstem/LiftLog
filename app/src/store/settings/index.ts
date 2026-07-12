@@ -17,7 +17,6 @@ type LastBackup = {
 interface SettingsState {
   firstDayOfWeek: DayOfWeek;
   isHydrated: boolean;
-  proToken: string | undefined;
   useImperialUnits: boolean;
   showBodyweight: boolean;
   showTips: boolean;
@@ -57,7 +56,6 @@ const initialState: SettingsState = {
   showPostWorkoutSummary: false,
   trueBlackDarkTheme: false,
   welcomeWizardCompleted: false,
-  proToken: undefined,
   remoteBackupSettings: {
     endpoint: '',
     apiKey: '',
@@ -120,9 +118,6 @@ const settingsSlice = createSlice({
       action: PayloadAction<RemoteBackupSettings>,
     ) {
       state.remoteBackupSettings = action.payload;
-    },
-    setProToken(state, action: PayloadAction<string | undefined>) {
-      state.proToken = action.payload;
     },
     setLastBackup(
       state,
@@ -193,7 +188,6 @@ export const {
   setBackupReminder,
   setColorSchemeSeed,
   setFirstDayOfWeek,
-  setProToken,
   setPreferredLanguage,
   setNotesExpandedByDefault,
   setKeepScreenAwakeDuringWorkout,

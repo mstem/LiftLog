@@ -10,7 +10,7 @@ import { useDispatch } from 'react-redux';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import { Appbar, TextInput, Tooltip } from 'react-native-paper';
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useState } from 'react';
 import { useAppSelector } from '@/store';
 import {
   addMessage,
@@ -31,15 +31,8 @@ import {
 } from '@/models/ai-models';
 import { savePlan } from '@/store/program';
 import { match } from 'ts-pattern';
-import LimitedHtml from '@/components/presentation/foundation/limited-html';
 import { useMountEffect } from '@/hooks/useMountEffect';
 
-import RevenueCatUI, { PAYWALL_RESULT } from 'react-native-purchases-ui';
-import Purchases, {
-  PRODUCT_CATEGORY,
-  PurchasesStoreProduct,
-} from 'react-native-purchases';
-import { setProToken } from '@/store/settings';
 import { Session } from '@/models/session-models';
 import { usePreferredWeightUnit } from '@/hooks/usePreferredWeightUnit';
 import { Loader } from '@/components/presentation/foundation/loader';
@@ -51,7 +44,6 @@ import {
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
 import { LocalDate } from '@js-joda/core';
-import { IndeterminateProgress } from '@/components/presentation/foundation/indeterminate-progress';
 
 export default function AiPlanner() {
   const { t } = useTranslate();
@@ -212,7 +204,6 @@ function ChatBubble(props: {
           .with({ type: 'chatPlan' }, (message) => (
             <PlanMessage isUser={isUser} message={message} />
           ))
-          .with({ type: 'purchasePro' }, () => <ProPrompt />)
           .exhaustive()}
         {message.isLoading && <ChatLoader />}
       </View>
@@ -294,88 +285,6 @@ function PlanMessage({
       )}
     </View>
   );
-}
-
-function ProPrompt() {
-  const dispatch = useDispatch();
-  const { t } = useTranslate();
-  const upgrade = () => {
-    const run = async () => {
-      const owned = await presentPaywall();
-      if (owned) {
-        const info = await Purchases.getCustomerInfo();
-        dispatch(setProToken(info.originalAppUserId));
-        dispatch(restartChat());
-      }
-    };
-    run().catch(console.error);
-  };
-  return (
-    <View style={{ gap: spacing[2] }}>
-      <SurfaceText>{t('ai.upgrade_to_pro.button')}</SurfaceText>
-      <SurfaceText>
-        <LimitedHtml value={t('ai.upgrade_to_pro.explanation')} />
-      </SurfaceText>
-      <ProPrice />
-      <Button
-        style={{ alignSelf: 'flex-end' }}
-        mode="contained"
-        onPress={upgrade}
-      >
-        {t('generic.upgrade.button')}
-      </Button>
-    </View>
-  );
-}
-
-function ProPrice() {
-  const [product, setProduct] = useState<PurchasesStoreProduct>();
-
-  useEffect(() => {
-    Purchases.getProducts(['pro'], PRODUCT_CATEGORY.NON_SUBSCRIPTION)
-      .then((v) => {
-        setProduct(v[0]);
-      })
-      .catch(console.error);
-  }, []);
-  if (!product) {
-    return (
-      <View style={{ alignItems: 'center' }}>
-        <IndeterminateProgress />
-      </View>
-    );
-  }
-
-  return <SurfaceText>{product.priceString}</SurfaceText>;
-}
-
-async function presentPaywall(): Promise<boolean> {
-  const customer = await Purchases.getCustomerInfo();
-  if (customer.entitlements.active['pro']) {
-    return true;
-  }
-  try {
-    const restore = await Purchases.restorePurchases();
-    if (restore.entitlements.active['pro']) {
-      return true;
-    }
-  } catch (err) {
-    console.log('Failed to restore purchases', err, customer.originalAppUserId);
-  }
-  // Present paywall for current offering:
-  const paywallResult: PAYWALL_RESULT = await RevenueCatUI.presentPaywall();
-
-  switch (paywallResult) {
-    case PAYWALL_RESULT.NOT_PRESENTED:
-    case PAYWALL_RESULT.ERROR:
-    case PAYWALL_RESULT.CANCELLED:
-      return false;
-    case PAYWALL_RESULT.PURCHASED:
-    case PAYWALL_RESULT.RESTORED:
-      return true;
-    default:
-      return false;
-  }
 }
 
 function mapAiPlanToProgramBlueprint(plan: AiWorkoutPlan): ProgramBlueprint {
