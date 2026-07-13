@@ -49,7 +49,11 @@ export default function PotentialSetCounter(props: PotentialSetCounterProps) {
   const weightNotYetIncreased = props.previousSet
     ? !props.set.weight.isGreaterThan(props.previousSet.weight)
     : false;
+  // Bodyweight / band movements (Inverted Row, Pull Up, band work) are tracked
+  // at 0kg - "add weight" isn't how you progress them, so never suggest it.
+  const isWeighted = !props.set.weight.value.isZero();
   const isIncreaseCandidate =
+    isWeighted &&
     hitRepTargetLastTime &&
     weightNotYetIncreased &&
     !isComplete &&
