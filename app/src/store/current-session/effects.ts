@@ -19,6 +19,7 @@ import {
   fetchUpcomingSessions,
   selectActiveProgram,
   setAutoLoadNext,
+  setUpcomingSessions,
 } from '@/store/program';
 import {
   addStoredSession,
@@ -140,46 +141,84 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
     dispatch(setStatsIsDirty(true));
   });
 
-  addEffect(persistCurrentSession, async (a, { dispatch, getState }) => {
-    dispatch(clearSetTimerNotification());
-    const session = selectCurrentSession(getState(), a.payload);
-    const program = selectActiveProgram(getState());
-    if (session) {
-      dispatch(addStoredSession(session));
-      const sessionInPlan = program.sessions.some((x) =>
-        x.equals(session.blueprint),
-      );
-      if (!sessionInPlan) {
-        const sessionWithSameNameInPlan = program.sessions.find(
-          (x) => x.name === session.blueprint.name,
-        );
-        dispatch(
-          setCurrentPlanDiff(
-            sessionWithSameNameInPlan
-              ? {
-                  type: 'diff',
-                  diff: diffSessionBlueprints(
-                    sessionWithSameNameInPlan,
-                    session.blueprint,
-                  ),
-                  sessionIndex: program.sessions.indexOf(
-                    sessionWithSameNameInPlan,
-                  ),
-                }
-              : {
-                  type: 'add',
-                  diff: diffSessionBlueprints(
-                    EmptySession.blueprint,
-                    session.blueprint,
-                  ),
-                },
-          ),
-        );
+  addEffect(
+    persistCurrentSession,
+    async (a, { dispatch, getState, extra: { logger } }) => {
+      dispatch(clearSetTimerNotification());
+      const session = selectCurrentSession(getState(), a.payload);
+      const program = selectActiveProgram(getState());
+      if (session) {
+        dispatch(addStoredSession(session));
+        // The plan diff is best-effort bookkeeping: if it throws, the session
+        // must still be cleared below, or the workout gets stuck as current
+        // (its stored copy already exists) with the notification running.
+        try {
+          const sessionInPlan = program.sessions.some((x) =>
+            x.equals(session.blueprint),
+          );
+          if (!sessionInPlan) {
+            const sessionWithSameNameInPlan = program.sessions.find(
+              (x) => x.name === session.blueprint.name,
+            );
+            dispatch(
+              setCurrentPlanDiff(
+                sessionWithSameNameInPlan
+                  ? {
+                      type: 'diff',
+                      diff: diffSessionBlueprints(
+                        sessionWithSameNameInPlan,
+                        session.blueprint,
+                      ),
+                      sessionIndex: program.sessions.indexOf(
+                        sessionWithSameNameInPlan,
+                      ),
+                    }
+                  : {
+                      type: 'add',
+                      diff: diffSessionBlueprints(
+                        EmptySession.blueprint,
+                        session.blueprint,
+                      ),
+                    },
+              ),
+            );
+          }
+        } catch (e) {
+          logger.error(
+            'Failed to compute plan diff while finishing workout',
+            e,
+          );
+        }
       }
+      dispatch(setCurrentSession({ target: a.payload, session: undefined }));
+      dispatch(fetchUpcomingSessions());
+      dispatch(setAutoLoadNext(true));
+    },
+  );
+
+  // After finishing a workout, persistCurrentSession sets autoLoadNext(true) and
+  // kicks off a fresh fetchUpcomingSessions. We advance to the next session only
+  // once that fresh list lands (setUpcomingSessions) - reading the upcoming slice
+  // directly from a component would race against the in-flight fetch and pick up
+  // the stale pre-workout list, whose first entry is the session just finished,
+  // making it look like the save never concluded the workout.
+  addEffect(setUpcomingSessions, (_, { dispatch, getState }) => {
+    const state = getState();
+    if (!state.program.autoLoadNext) {
+      return;
     }
-    dispatch(setCurrentSession({ target: a.payload, session: undefined }));
-    dispatch(fetchUpcomingSessions());
-    dispatch(setAutoLoadNext(true));
+    if (state.currentSession.workoutSession) {
+      return;
+    }
+    const sessions = state.program.upcomingSessions.unwrapOr(
+      [] as readonly Session[],
+    );
+    const next = sessions[0];
+    if (!next) {
+      return;
+    }
+    dispatch(setCurrentSession({ target: 'workoutSession', session: next }));
+    dispatch(setAutoLoadNext(false));
   });
 
   addEffect(currentWorkoutSessionUpdated, (action, { dispatch }) => {

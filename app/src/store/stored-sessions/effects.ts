@@ -280,6 +280,9 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     upsertStoredSessions,
     async (action, { cancelActiveListeners, extra: { db, logger } }) => {
       cancelActiveListeners();
+      if (action.payload.length === 0) {
+        return;
+      }
       await logger.time('upsertStoredSessions', async () => {
         const toUpsert = action.payload.map((x) => ({
           id: x.id,
