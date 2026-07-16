@@ -307,6 +307,16 @@ function SharedFieldsEditor({
           onChangeText={(link) => updateExercise({ link })}
         />
       </FormRow>
+      <FormRow>
+        <TextInput
+          mode="outlined"
+          testID="exercise-group"
+          label={t('plan.exercise_group.label')}
+          style={{ marginBottom: spacing[2] }}
+          value={exercise.group ?? ''}
+          onChangeText={(group) => updateExercise({ group })}
+        />
+      </FormRow>
     </>
   );
 }

@@ -43,6 +43,11 @@ export const sessionUserEventMigrations =
       version: 2,
       session: sessionMigrations.migrateUntil(x.session, 2),
     }))
+    .add((x) => ({
+      ...x,
+      version: 3,
+      session: sessionMigrations.migrateUntil(x.session, 3),
+    }))
     .build();
 
 export const removedSessionUserEventMigrations =
@@ -81,6 +86,14 @@ export const sharedProgramBlueprintMigrations =
         2,
       ),
     }))
+    .add((x) => ({
+      ...x,
+      version: 3,
+      programBlueprint: programBlueprintMigrations.migrateUntil(
+        x.programBlueprint,
+        3,
+      ),
+    }))
     .build();
 
 export const sharedSessionMigrations = createMigrations<SharedSessionJSON>()
@@ -88,6 +101,11 @@ export const sharedSessionMigrations = createMigrations<SharedSessionJSON>()
     ...x,
     version: 2,
     session: sessionMigrations.migrateUntil(x.session, 2),
+  }))
+  .add((x) => ({
+    ...x,
+    version: 3,
+    session: sessionMigrations.migrateUntil(x.session, 3),
   }))
   .build();
 
@@ -99,6 +117,13 @@ export const followedFeedUserMigrations =
       currentPlan:
         x.currentPlan &&
         programBlueprintMigrations.migrateUntil(x.currentPlan, 2),
+    }))
+    .add((x) => ({
+      ...x,
+      version: 3,
+      currentPlan:
+        x.currentPlan &&
+        programBlueprintMigrations.migrateUntil(x.currentPlan, 3),
     }))
     .build();
 

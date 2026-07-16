@@ -20,6 +20,9 @@
     },
     "link": {
       "type": "string"
+    },
+    "group": {
+      "type": "string"
     }
   },
   "required": [

@@ -4,6 +4,7 @@ import {
 } from '@/models/storage/versions/v1';
 import { createMigrations } from './migrator';
 import { addProgressiveOverloadToExercise } from '@/models/storage/versions/migrations/steps/add-progressive-overload';
+import { addGroupToExercise } from '@/models/storage/versions/migrations/steps/add-exercise-group';
 
 export const sessionBlueprintMigrations =
   createMigrations<SessionBlueprintJSON>()
@@ -17,6 +18,12 @@ export const sessionBlueprintMigrations =
       name: value.name,
       notes: value.notes,
     }))
+    .add((value) => ({
+      version: 3 as const,
+      exercises: value.exercises.map(addGroupToExercise),
+      name: value.name,
+      notes: value.notes,
+    }))
     .build();
 
 export const programBlueprintMigrations =
@@ -27,6 +34,14 @@ export const programBlueprintMigrations =
       name: value.name,
       sessions: value.sessions.map((session) =>
         sessionBlueprintMigrations.migrateUntil(session, 2),
+      ),
+    }))
+    .add((value) => ({
+      version: 3,
+      lastEdited: value.lastEdited,
+      name: value.name,
+      sessions: value.sessions.map((session) =>
+        sessionBlueprintMigrations.migrateUntil(session, 3),
       ),
     }))
     .build();

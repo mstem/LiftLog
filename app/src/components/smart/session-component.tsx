@@ -35,6 +35,8 @@ import FloatingBottomContainer from '@/components/presentation/foundation/floati
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { match, P } from 'ts-pattern';
 import { CardioExercise } from '@/components/presentation/workout/cardio/cardio-exercise';
+import ExerciseGroupSection from '@/components/presentation/workout/exercise-group-section';
+import { groupExercises } from '@/components/smart/group-exercises';
 import WeightFormat from '../presentation/foundation/weight-format';
 import { formatDuration } from '@/utils/format-date';
 
@@ -358,7 +360,26 @@ export default function SessionComponent(props: {
       {props.header}
       {notesComponent}
       {emptyInfo}
-      <ItemList items={session.recordedExercises} renderItem={renderItem} />
+      {groupExercises(session.recordedExercises).map((segment) =>
+        segment.group === undefined ? (
+          <ItemList
+            key={segment.key}
+            items={segment.entries}
+            renderItem={({ exercise, index }) => renderItem(exercise, index)}
+          />
+        ) : (
+          <ExerciseGroupSection
+            key={segment.key}
+            name={segment.group}
+            exerciseCount={segment.entries.length}
+          >
+            <ItemList
+              items={segment.entries}
+              renderItem={({ exercise, index }) => renderItem(exercise, index)}
+            />
+          </ExerciseGroupSection>
+        ),
+      )}
       {bodyweight}
       {workoutSummary}
       <FullScreenDialog

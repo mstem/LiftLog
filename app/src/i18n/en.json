@@ -298,6 +298,7 @@
   "plan.no_other_available.message": "No other plans available",
   "plan.no_other_sessions_available.message": "No other sessions available",
   "plan.not_created_yet.message": "No plan created yet!",
+  "plan.exercise_group.label": "Group",
   "plan.notes.label": "Plan Notes",
   "plan.plans.title": "Plans",
   "plan.save_new.button": "Save new plan",
