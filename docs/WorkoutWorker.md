@@ -79,9 +79,9 @@ When the app broadcasts an event:
 
 ### External representation (cross-platform)
 
-For cross-platform communication (JS ↔ native, and parity with iOS), workout messages are serialized using **json** via the json schema we generate.
-JSON schemas are generated from our types via (in ./app dir) `npm run json-schema`. This will generate schemas in the docs directory.
-_Note this is currently broken, but may work in a future world_. Manually edit json schemas in the mean time.
+For cross-platform communication (JS ↔ native, and parity with iOS), workout messages are serialized using **json** via the json schemas in `docs/schemas/workout-worker/`.
+
+Those schemas are **hand-maintained, and are the source of truth** for the JS ↔ native boundary — both sides conform to them rather than either side generating them. Edit them by hand when you change a message shape. See `docs/schemas/README.md` for why, and for what checks catch you if you forget.
 
 ---
 

@@ -13,7 +13,6 @@
     "dev": "expo start --dev-client",
     "lint": "eslint .",
     "postinstall": "npm run patch-package",
-    "json-schema": "node ./scripts/generate-json-schemas.js",
     "test": "vitest",
     "typecheck": "tsgo --noEmit"
   },
@@ -113,7 +112,6 @@
     "jsdom": "^28.1.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.8.1",
-    "ts-json-schema-generator": "^2.9.0",
     "typescript": "~6.0.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"
