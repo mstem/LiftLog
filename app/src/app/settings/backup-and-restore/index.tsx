@@ -36,7 +36,6 @@ export default function BackupAndRestorePage() {
   const backupReminders = useAppSelector((s) => s.settings.backupReminder);
   const { push } = useRouter();
   const [feedImportDialogOpen, setFeedImportDialogOpen] = useState(false);
-  const [feedExportDialogOpen, setFeedExportDialogOpen] = useState(false);
   return (
     <FullHeightScrollView>
       <Stack.Screen
@@ -47,7 +46,7 @@ export default function BackupAndRestorePage() {
           title={t('backup.backup_data.title')}
           description={t('backup.backup_data.subtitle')}
           left={(props) => <List.Icon icon={'backup'} {...props} />}
-          onPress={() => setFeedExportDialogOpen(true)}
+          onPress={() => dispatch(exportData({ includeFeed: false }))}
         />
         <List.Item
           title={t('backup.restore_data.title')}
@@ -81,10 +80,6 @@ export default function BackupAndRestorePage() {
       <ImportFeedDialog
         open={feedImportDialogOpen}
         setOpen={setFeedImportDialogOpen}
-      />
-      <ExportFeedDialog
-        open={feedExportDialogOpen}
-        setOpen={setFeedExportDialogOpen}
       />
     </FullHeightScrollView>
   );
@@ -137,38 +132,6 @@ function ImportFeedDialog({ open, setOpen }: DialogProps) {
       okText={t('generic.import.button')}
       onCancel={() => setOpen(false)}
       cancelText={t('feed.dont_import.button')}
-      open={open}
-    />
-  );
-}
-
-function ExportFeedDialog({ open, setOpen }: DialogProps) {
-  const { t } = useTranslate();
-  const { colors } = useAppTheme();
-  const dispatch = useDispatch();
-  const exportWithFeed = () => {
-    dispatch(exportData({ includeFeed: true }));
-    setOpen(false);
-  };
-  const exportWithoutFeed = () => {
-    dispatch(exportData({ includeFeed: false }));
-    setOpen(false);
-  };
-  return (
-    <ConfirmationDialog
-      headline={t('feed.backup_account.title')}
-      textContent={
-        <LimitedHtml
-          value={t('feed.backup_account.confirm.body')}
-          emStyles={{ color: colors.error, fontWeight: 'bold' }}
-        />
-      }
-      okText={t('feed.include_feed.label')}
-      onOk={exportWithFeed}
-      additionalActionText={t('backup.just_my_data.button')}
-      onAdditionalAction={exportWithoutFeed}
-      cancelText={t('generic.cancel.button')}
-      onCancel={() => setOpen(false)}
       open={open}
     />
   );
