@@ -140,7 +140,11 @@ export default function History() {
             <Card.Content>
               <SplitCardControl
                 titleContent={
-                  <SessionSummaryTitle isFilled session={session} />
+                  <SessionSummaryTitle
+                    isFilled
+                    showDuration
+                    session={session}
+                  />
                 }
                 mainContent={
                   <SessionSummary isFilled showWeight session={session} />

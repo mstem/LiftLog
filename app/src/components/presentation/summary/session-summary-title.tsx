@@ -4,14 +4,17 @@ import { Session } from '@/models/session-models';
 import { LocalDate } from '@js-joda/core';
 import { View } from 'react-native';
 import { useFormatDate } from '@/hooks/useFormatDate';
+import { formatDuration } from '@/utils/format-date';
 
 interface SessionSummaryTitleProps {
   session: Session;
   isFilled?: boolean;
+  showDuration?: boolean;
 }
 export default function SessionSummaryTitle({
   session,
   isFilled,
+  showDuration,
 }: SessionSummaryTitleProps) {
   const formatDate = useFormatDate();
   const formattedDate = formatDate(session.date, {
@@ -21,6 +24,7 @@ export default function SessionSummaryTitle({
     weekday: 'long',
     month: 'long',
   });
+  const duration = showDuration ? session.duration : undefined;
   return (
     <View
       style={{ flexShrink: 1, alignItems: 'flex-start', overflow: 'hidden' }}
@@ -28,7 +32,10 @@ export default function SessionSummaryTitle({
     >
       <ItemTitle title={session.blueprint.name} />
       {isFilled ? (
-        <SurfaceText font="text-sm">{formattedDate}</SurfaceText>
+        <SurfaceText font="text-sm">
+          {formattedDate}
+          {duration ? ` · ${formatDuration(duration, 'hours-mins')}` : ''}
+        </SurfaceText>
       ) : undefined}
     </View>
   );
