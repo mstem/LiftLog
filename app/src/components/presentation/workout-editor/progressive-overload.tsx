@@ -257,7 +257,9 @@ function DummySet(props: { maxReps: number; set: PotentialSet }) {
       isBarbell={false}
       weightAbove={undefined}
       maxReps={props.maxReps}
-      onTap={() => {}}
+      pendingReps={undefined}
+      onComplete={() => {}}
+      onUncheck={() => {}}
       onUpdateReps={() => {}}
       onUpdateWeight={() => {}}
       previousSet={undefined}

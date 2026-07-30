@@ -28,8 +28,12 @@ interface PotentialSetCounterProps {
   // Weight of the set directly above this one in the exercise, if any. Used to
   // only repeat the barbell plate breakdown when the weight changes.
   weightAbove: Weight | undefined;
+  // Reps the user entered for this set while it is unchecked (e.g. edited then
+  // unchecked). Displayed in place of the placeholder and logged on complete.
+  pendingReps: number | undefined;
 
-  onTap: () => void;
+  onComplete: (reps: number) => void;
+  onUncheck: () => void;
   onUpdateWeight: (weight: Weight, applyTo: WeightAppliesTo) => void;
   onUpdateReps: (reps: number | undefined) => void;
 }
@@ -40,6 +44,15 @@ export default function PotentialSetCounter(props: PotentialSetCounterProps) {
   const [isRepsDialogOpen, setIsRepsDialogOpen] = useState(false);
   const repCountValue = props.set?.set?.repsCompleted;
   const isComplete = repCountValue !== undefined;
+  // What the REPS cell shows, and what the checkmark logs: a recorded value,
+  // else the user's pending edit, else a placeholder (last time's reps or the
+  // target). The checkmark must complete at exactly the displayed number -
+  // completing at anything else reads as the app rewriting the user's edit.
+  const placeholderReps =
+    props.previousSet?.set?.repsCompleted ?? props.maxReps;
+  const displayReps = repCountValue ?? props.pendingReps ?? placeholderReps;
+  const isRepsPlaceholder =
+    repCountValue === undefined && props.pendingReps === undefined;
 
   // If last time this set hit (or beat) the rep target, the weight is a
   // candidate for increasing - unless it has already been bumped since then.
@@ -86,9 +99,9 @@ export default function PotentialSetCounter(props: PotentialSetCounterProps) {
 
   const handleCheckmark = () => {
     if (isComplete) {
-      props.onUpdateReps(undefined);
+      props.onUncheck();
     } else {
-      props.onTap();
+      props.onComplete(displayReps);
     }
   };
 
@@ -211,13 +224,16 @@ export default function PotentialSetCounter(props: PotentialSetCounterProps) {
       >
         <Text
           style={{
-            color: isComplete ? colors.primary : colors.onSurface,
-            fontWeight: '600',
+            color: isComplete
+              ? colors.primary
+              : isRepsPlaceholder
+              ? colors.onSurfaceVariant
+              : colors.onSurface,
+            fontWeight: isRepsPlaceholder ? '400' : '600',
             ...font['text-base'],
           }}
         >
-          {repCountValue ??
-            (props.previousSet?.set?.repsCompleted ?? props.maxReps)}
+          {displayReps}
         </Text>
       </TouchableRipple>
 
@@ -281,6 +297,7 @@ export default function PotentialSetCounter(props: PotentialSetCounterProps) {
         open={isRepsDialogOpen}
         repTarget={props.maxReps}
         set={props.set}
+        pendingReps={props.pendingReps}
         updateRepCount={(reps) => props.onUpdateReps(reps)}
         close={() => setIsRepsDialogOpen(false)}
       />

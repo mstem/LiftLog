@@ -43,6 +43,17 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
   const [prFlash, setPrFlash] = useState<PersonalRecordFlashState | undefined>(
     undefined,
   );
+  // Reps the user entered for sets that are currently unchecked, keyed by set
+  // index. Lets an uncheck/recheck restore the entered value instead of
+  // resetting to the blueprint target, which would discard the user's edit.
+  const [pendingReps, setPendingReps] = useState<
+    Partial<Record<number, number>>
+  >({});
+  const clearPendingReps = (setIndex: number) =>
+    setPendingReps((pending) => {
+      const { [setIndex]: _cleared, ...rest } = pending;
+      return rest;
+    });
   const prFlashTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
@@ -160,20 +171,31 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
               }
               setIndex={index}
               maxReps={recordedExercise.blueprint.repsPerSet}
-              onTap={() => {
-                const previousSet = set.set;
-                const newExercise = recordedExercise.withCycledRepCount(
+              pendingReps={pendingReps[index]}
+              onComplete={(reps) => {
+                const newExercise = recordedExercise.withRepCount(
                   index,
+                  reps,
                   timeProvider(),
                 );
-                const newSet = newExercise.getSet(index).set;
+                clearPendingReps(index);
                 updateExercise(newExercise);
-                if (!previousSet && newSet) {
-                  checkForPersonalRecord(newExercise, index);
+                checkForPersonalRecord(newExercise, index);
+                resetSetTimer();
+              }}
+              onUncheck={() => {
+                const reps = set.set?.repsCompleted;
+                if (reps !== undefined) {
+                  setPendingReps((pending) => ({ ...pending, [index]: reps }));
                 }
-                if (!previousSet || !newSet) {
-                  resetSetTimer();
-                }
+                updateExercise(
+                  recordedExercise.withRepCount(
+                    index,
+                    undefined,
+                    timeProvider(),
+                  ),
+                );
+                resetSetTimer();
               }}
               previousSet={
                 props.previousRecordedExercises.at(0)?.potentialSets[index]
@@ -185,6 +207,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                   reps,
                   timeProvider(),
                 );
+                clearPendingReps(index);
                 updateExercise(newExercise);
                 if (
                   reps !== undefined &&
