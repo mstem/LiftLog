@@ -133,7 +133,10 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
 
   addEffect(finishCurrentWorkout, (a, { dispatch, getState }) => {
     const session = selectCurrentSession(getState(), a.payload);
-    if (session) {
+    // An unstarted session has nothing recorded - finishing it must not create
+    // a stored workout (that produced empty duplicate sessions in history), nor
+    // queue it for feed publish.
+    if (session?.isStarted) {
       dispatch(addUnpublishedSessionId(session.id));
     }
 
@@ -146,8 +149,11 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
     async (a, { dispatch, getState, extra: { logger } }) => {
       dispatch(clearSetTimerNotification());
       const session = selectCurrentSession(getState(), a.payload);
-      const program = selectActiveProgram(getState());
-      if (session) {
+      // Only persist a session that was actually started. Auto-loading the next
+      // session (below) can install an unstarted session as current; a stray
+      // finish on that would otherwise store an empty duplicate in history.
+      if (session?.isStarted) {
+        const program = selectActiveProgram(getState());
         dispatch(addStoredSession(session));
         // The plan diff is best-effort bookkeeping: if it throws, the session
         // must still be cleared below, or the workout gets stuck as current
@@ -202,23 +208,27 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
   // directly from a component would race against the in-flight fetch and pick up
   // the stale pre-workout list, whose first entry is the session just finished,
   // making it look like the save never concluded the workout.
-  addEffect(setUpcomingSessions, (_, { dispatch, getState }) => {
+  addEffect(setUpcomingSessions, (action, { dispatch, getState }) => {
     const state = getState();
     if (!state.program.autoLoadNext) {
+      return;
+    }
+    // Only a resolved list consumes the one-shot flag; a loading/error
+    // placeholder must leave it armed for the real list to land.
+    if (!action.payload.isSuccess()) {
       return;
     }
     if (state.currentSession.workoutSession) {
       return;
     }
-    const sessions = state.program.upcomingSessions.unwrapOr(
-      [] as readonly Session[],
-    );
-    const next = sessions[0];
-    if (!next) {
-      return;
-    }
-    dispatch(setCurrentSession({ target: 'workoutSession', session: next }));
+    // Disarm as soon as we see a resolved list while eligible, even when it's
+    // empty. Leaving the flag armed let a later unrelated refetch silently
+    // install a workout the user never asked to start.
     dispatch(setAutoLoadNext(false));
+    const next = action.payload.unwrapOr([] as readonly Session[])[0];
+    if (next) {
+      dispatch(setCurrentSession({ target: 'workoutSession', session: next }));
+    }
   });
 
   addEffect(currentWorkoutSessionUpdated, (action, { dispatch }) => {
