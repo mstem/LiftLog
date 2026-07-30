@@ -2,7 +2,6 @@ package expo.modules.workoutworker.handlers
 
 
 import android.annotation.SuppressLint
-import android.app.Notification
 import android.util.Log
 import com.limajuice.liftlog.DistanceCardioTarget
 import com.limajuice.liftlog.RecordedCardioExercise
@@ -15,10 +14,9 @@ import com.limajuice.liftlog.WeightUnit
 import com.limajuice.liftlog.WorkoutMessage
 import com.limajuice.liftlog.WorkoutUpdatedEvent
 import expo.modules.workoutworker.utils.RepeatingTimerAction
+import expo.modules.workoutworker.utils.RestAlarmScheduler
 import expo.modules.workoutworker.utils.WorkoutNotificationManager
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.DurationUnit.SECONDS
@@ -27,7 +25,8 @@ import kotlin.time.toDuration
 
 
 class WorkoutUpdatedHandler(
-    private val notificationManager: WorkoutNotificationManager
+    private val notificationManager: WorkoutNotificationManager,
+    private val restAlarmScheduler: RestAlarmScheduler,
 ) : WorkoutMessageHandler {
     override fun canHandle(event: WorkoutMessage): Boolean {
         return event.payload is WorkoutUpdatedEvent && event.appConfiguration.notificationsEnabled
@@ -60,6 +59,7 @@ class WorkoutUpdatedHandler(
     private fun showFinishedNotification(translations: Translations, event: WorkoutUpdatedEvent) {
         // We should not be in a timer anymore
         timer.stop()
+        restAlarmScheduler.cancelAll()
 
         val messageTemplate: String =
             translations.workoutPersistentNotificationFinishedMessage
@@ -77,6 +77,7 @@ class WorkoutUpdatedHandler(
     private fun showCurrentExerciseNotification(translations: Translations, event: WorkoutUpdatedEvent) {
         // We should not be in a timer anymore
         timer.stop()
+        restAlarmScheduler.cancelAll()
 
         val notifBuilder = notificationManager.createWorkoutNotificationBuilder()
             .setContentText("${getCurrentExerciseMessage(translations, event)}\n${translations.workoutPersistentNotificationStartNowMessage}")
@@ -97,43 +98,42 @@ class WorkoutUpdatedHandler(
         }
 
         val currentExerciseMessage = getCurrentExerciseMessage(translations, workoutUpdatedEvent)
-        var previousProgress = getProgress()
+
+        // Ding at each rest milestone via an exact alarm rather than the polling
+        // timer below: the timer freezes when the screen sleeps, so it can't be
+        // trusted to fire the "rest over" notification. Alarms wake the CPU on time
+        // even in Doze. Re-scheduling on every update is idempotent (same request
+        // codes replace the pending alarm). Skip the max ding when it coincides with
+        // min (no range), matching the previous single-notification behaviour.
+        if (restTimerInfo.partiallyEndAt.epochSeconds != restTimerInfo.startedAt.epochSeconds) {
+            restAlarmScheduler.schedule(
+                restTimerInfo.partiallyEndAt.toEpochMilliseconds(),
+                RestAlarmScheduler.REQUEST_CODE_MIN,
+                translations.workoutPersistentNotificationMinRestOverMessage,
+            )
+        }
+        if (restTimerInfo.endAt.epochSeconds > restTimerInfo.partiallyEndAt.epochSeconds) {
+            restAlarmScheduler.schedule(
+                restTimerInfo.endAt.toEpochMilliseconds(),
+                RestAlarmScheduler.REQUEST_CODE_MAX,
+                translations.workoutPersistentNotificationMaxRestOverMessage,
+            )
+        } else {
+            restAlarmScheduler.cancel(RestAlarmScheduler.REQUEST_CODE_MAX)
+        }
+
         timer.updateCallback {
-            val timeStartSecs = restTimerInfo.startedAt.epochSeconds
             val timePartiallyEndSecs = restTimerInfo.partiallyEndAt.epochSeconds
             val timeEndSecs = restTimerInfo.endAt.epochSeconds
             val progress = getProgress()
             val now = Clock.System.now().epochSeconds
-            val partialProgressMax = timePartiallyEndSecs - timeStartSecs
-            val fullProgressMax = timeEndSecs - timeStartSecs
+            val partialProgressMax = timePartiallyEndSecs - restTimerInfo.startedAt.epochSeconds
+            val fullProgressMax = timeEndSecs - restTimerInfo.startedAt.epochSeconds
 
             // max
             val progressMax = if (now < timePartiallyEndSecs)
                 partialProgressMax else
                 fullProgressMax
-
-
-            val restNotif: Notification? = when {
-                partialProgressMax in (previousProgress + 1)..progress && partialProgressMax != 0L -> notificationManager.createRestNotificationBuilder()
-                    .setContentTitle(translations.workoutPersistentNotificationMinRestOverMessage)
-                    .build()
-
-                fullProgressMax in (previousProgress + 1)..progress && fullProgressMax != 0L -> notificationManager.createRestNotificationBuilder()
-                    .setContentTitle(translations.workoutPersistentNotificationMaxRestOverMessage)
-                    .build()
-
-                else -> null
-            }
-            if (restNotif != null) {
-                notificationManager.notifyRest(restNotif)
-
-                MainScope().launch {
-                    delay(10_000)
-                    notificationManager.clearRestNotification()
-                }
-            }
-            @Suppress("AssignedValueIsNeverRead")
-            previousProgress = progress
 
             val message = when {
                 now < timePartiallyEndSecs -> translations.workoutPersistentNotificationRestBreakMessage
@@ -266,5 +266,6 @@ class WorkoutUpdatedHandler(
 
     override fun onDestroy() {
         timer.destroy()
+        restAlarmScheduler.cancelAll()
     }
 }

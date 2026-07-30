@@ -6,10 +6,18 @@ import Svg, { Path } from 'react-native-svg';
 import { Animated, View, ViewStyle } from 'react-native';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
-import { setAudioModeAsync, useAudioPlayer } from 'expo-audio';
+import { AudioPlayer, setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Holdable from '@/components/presentation/foundation/holdable';
 import { Jiggler } from '@/components/presentation/foundation/jiggler';
 import clickSound from '../../../../assets/click.wav';
+
+// expo-audio exposes volume only as a settable property on the player object,
+// so a plain assignment in the component body trips the "don't mutate a hook's
+// return value" lint. Doing it here keeps that one legitimate mutation in a
+// single, named place.
+function setPlayerVolume(player: AudioPlayer, volume: number) {
+  player.volume = volume;
+}
 
 interface RestTimerProps {
   rest: Rest;
@@ -44,6 +52,15 @@ export default function RestTimer({
       interruptionModeAndroid: 'duckOthers',
     }).catch(console.log);
   }, []);
+
+  useEffect(() => {
+    // Prime the player with a muted play-through: media3 swallows the first
+    // play of a fully pre-buffered short clip (the 60ms click never reaches
+    // the AudioTrack), so burn that first play silently here. Subsequent
+    // plays (after ENDED -> seekTo flush) are audible.
+    setPlayerVolume(clickPlayer, 0);
+    clickPlayer.play();
+  }, [clickPlayer]);
 
   const getTimerState = useCallback(() => {
     const now = OffsetDateTime.now();
@@ -95,6 +112,7 @@ export default function RestTimer({
     (milestone: string) => {
       if (jiggled.includes(milestone)) return;
       impactAsync(ImpactFeedbackStyle.Heavy).catch(console.log);
+      setPlayerVolume(clickPlayer, 1);
       clickPlayer
         .seekTo(0)
         .then(() => clickPlayer.play())

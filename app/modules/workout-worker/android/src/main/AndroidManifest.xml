@@ -4,6 +4,11 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Wake the CPU to ding exactly when a rest is over, even with the screen off /
+         the device in Doze. USE_EXACT_ALARM (API 33+) is auto-granted and not
+         user-revocable; SCHEDULE_EXACT_ALARM covers Android 12 (auto-granted there). -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
 
     <application>
         <service
@@ -15,6 +20,10 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Workout tracking from a persistent notification but we don't need to read any sensors so the type HEALTH can not apply" />
         </service>
+        <receiver
+            android:name=".RestAlarmReceiver"
+            android:enabled="true"
+            android:exported="false" />
     </application>
 
 </manifest>

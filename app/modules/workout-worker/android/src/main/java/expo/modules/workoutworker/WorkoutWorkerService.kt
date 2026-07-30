@@ -13,6 +13,7 @@ import expo.modules.workoutworker.handlers.WorkoutEndedHandler
 import expo.modules.workoutworker.handlers.WorkoutMessageHandler
 import expo.modules.workoutworker.handlers.WorkoutStartedHandler
 import expo.modules.workoutworker.handlers.WorkoutUpdatedHandler
+import expo.modules.workoutworker.utils.RestAlarmScheduler
 import expo.modules.workoutworker.utils.WorkoutNotificationManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -32,6 +33,8 @@ class WorkoutWorkerService : Service() {
 
     private lateinit var notificationManager: WorkoutNotificationManager
 
+    private lateinit var restAlarmScheduler: RestAlarmScheduler
+
     private var eventDispatch: ((type: String, event: WorkoutMessage) -> Unit) =
         { _: String, _: WorkoutMessage -> }
 
@@ -46,8 +49,8 @@ class WorkoutWorkerService : Service() {
     private val handlers: List<WorkoutMessageHandler> by lazy {
         listOf(
             WorkoutStartedHandler(notificationManager),
-            WorkoutUpdatedHandler(notificationManager),
-            WorkoutEndedHandler(notificationManager),
+            WorkoutUpdatedHandler(notificationManager, restAlarmScheduler),
+            WorkoutEndedHandler(notificationManager, restAlarmScheduler),
         )
     }
 
@@ -56,6 +59,7 @@ class WorkoutWorkerService : Service() {
         Log.d("WorkoutWorker", "Service created")
 
         notificationManager = WorkoutNotificationManager(this)
+        restAlarmScheduler = RestAlarmScheduler(this)
 
         scope.launch {
             events.collect { event ->
@@ -114,6 +118,7 @@ class WorkoutWorkerService : Service() {
         ServiceCompat.stopForeground(this, ServiceCompat.STOP_FOREGROUND_REMOVE)
         notificationManager.clearPersistentNotification()
         notificationManager.clearRestNotification()
+        restAlarmScheduler.cancelAll()
         super.onDestroy()
     }
 }
