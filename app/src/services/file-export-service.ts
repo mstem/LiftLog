@@ -9,18 +9,13 @@ export class FileExportService {
     bytes: Uint8Array,
     contentType: string,
   ): Promise<void> {
-    // On Android, use the Storage Access Framework so the user gets a real
-    // document picker (Files/Downloads/Drive) and chooses where the file lands.
-    // If they decline the folder prompt we fall back to the share sheet.
+    // On Android the Storage Access Framework picker *is* the export: the user
+    // chooses where the file lands (Files/Downloads/Drive) and it is written
+    // there. Dismissing that picker means "cancel", so we stop - chaining the
+    // share sheet onto it made one export ask twice.
     if (Platform.OS === 'android') {
-      const saved = await saveWithStorageAccessFramework(
-        filename,
-        bytes,
-        contentType,
-      );
-      if (saved) {
-        return;
-      }
+      await saveWithStorageAccessFramework(filename, bytes, contentType);
+      return;
     }
 
     await shareFromCache(filename, bytes, contentType);
@@ -31,11 +26,11 @@ async function saveWithStorageAccessFramework(
   filename: string,
   bytes: Uint8Array,
   contentType: string,
-): Promise<boolean> {
+): Promise<void> {
   const permissions =
     await StorageAccessFramework.requestDirectoryPermissionsAsync();
   if (!permissions.granted) {
-    return false;
+    return;
   }
 
   // Our filenames already carry the correct extension (.sqlite.gz/.csv/.json)
@@ -50,7 +45,6 @@ async function saveWithStorageAccessFramework(
     Buffer.from(bytes).toString('base64'),
     { encoding: 'base64' },
   );
-  return true;
 }
 
 async function shareFromCache(
