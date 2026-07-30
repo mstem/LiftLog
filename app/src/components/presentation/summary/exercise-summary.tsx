@@ -77,7 +77,7 @@ function FilledChips(props: {
   if (props.exercise instanceof RecordedWeightedExercise) {
     return getWeightAndRepsChips(props.exercise).map((chip, index) => (
       <Chip key={index}>
-        <SurfaceText>{chip.repsCompleted?.toString() ?? '-'}</SurfaceText>
+        <SurfaceText>{chip.repsCompleted.toString()}</SurfaceText>
         {props.showWeight ? (
           <>
             <SurfaceText font="text-2xs" color="onSurface">
@@ -191,7 +191,7 @@ export default function ExerciseSummary({
 }
 
 interface WeightAndRepsChipData {
-  repsCompleted: number | undefined;
+  repsCompleted: number;
   repTarget: number;
   weight: Weight;
 }
@@ -205,11 +205,13 @@ interface PotentialSetChipData {
 function getWeightAndRepsChips(
   exercise: RecordedWeightedExercise,
 ): WeightAndRepsChipData[] {
-  return exercise.potentialSets.map((set) => ({
-    repsCompleted: set.set?.repsCompleted,
-    repTarget: exercise.blueprint.repsPerSet,
-    weight: set.weight,
-  }));
+  return exercise.potentialSets
+    .filter((set) => set.set !== undefined)
+    .map((set) => ({
+      repsCompleted: set.set!.repsCompleted,
+      repTarget: exercise.blueprint.repsPerSet,
+      weight: set.weight,
+    }));
 }
 
 function getPlannedChipData(

@@ -15,7 +15,12 @@ import {
   setIsHydrated,
 } from '@/store/current-session';
 import { AddEffectFn, RootState } from '@/store/store';
-import { fetchUpcomingSessions, selectActiveProgram } from '@/store/program';
+import {
+  fetchUpcomingSessions,
+  selectActiveProgram,
+  setAutoLoadNext,
+  setUpcomingSessions,
+} from '@/store/program';
 import {
   addStoredSession,
   selectLatestExercises,
@@ -128,7 +133,10 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
 
   addEffect(finishCurrentWorkout, (a, { dispatch, getState }) => {
     const session = selectCurrentSession(getState(), a.payload);
-    if (session) {
+    // An unstarted session has nothing recorded - finishing it must not create
+    // a stored workout (that produced empty duplicate sessions in history), nor
+    // queue it for feed publish.
+    if (session?.isStarted) {
       dispatch(addUnpublishedSessionId(session.id));
     }
 
@@ -136,45 +144,91 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
     dispatch(setStatsIsDirty(true));
   });
 
-  addEffect(persistCurrentSession, async (a, { dispatch, getState }) => {
-    dispatch(clearSetTimerNotification());
-    const session = selectCurrentSession(getState(), a.payload);
-    const program = selectActiveProgram(getState());
-    if (session) {
-      dispatch(addStoredSession(session));
-      const sessionInPlan = program.sessions.some((x) =>
-        x.equals(session.blueprint),
-      );
-      if (!sessionInPlan) {
-        const sessionWithSameNameInPlan = program.sessions.find(
-          (x) => x.name === session.blueprint.name,
-        );
-        dispatch(
-          setCurrentPlanDiff(
-            sessionWithSameNameInPlan
-              ? {
-                  type: 'diff',
-                  diff: diffSessionBlueprints(
-                    sessionWithSameNameInPlan,
-                    session.blueprint,
-                  ),
-                  sessionIndex: program.sessions.indexOf(
-                    sessionWithSameNameInPlan,
-                  ),
-                }
-              : {
-                  type: 'add',
-                  diff: diffSessionBlueprints(
-                    EmptySession.blueprint,
-                    session.blueprint,
-                  ),
-                },
-          ),
-        );
+  addEffect(
+    persistCurrentSession,
+    async (a, { dispatch, getState, extra: { logger } }) => {
+      dispatch(clearSetTimerNotification());
+      const session = selectCurrentSession(getState(), a.payload);
+      // Only persist a session that was actually started. Auto-loading the next
+      // session (below) can install an unstarted session as current; a stray
+      // finish on that would otherwise store an empty duplicate in history.
+      if (session?.isStarted) {
+        const program = selectActiveProgram(getState());
+        dispatch(addStoredSession(session));
+        // The plan diff is best-effort bookkeeping: if it throws, the session
+        // must still be cleared below, or the workout gets stuck as current
+        // (its stored copy already exists) with the notification running.
+        try {
+          const sessionInPlan = program.sessions.some((x) =>
+            x.equals(session.blueprint),
+          );
+          if (!sessionInPlan) {
+            const sessionWithSameNameInPlan = program.sessions.find(
+              (x) => x.name === session.blueprint.name,
+            );
+            dispatch(
+              setCurrentPlanDiff(
+                sessionWithSameNameInPlan
+                  ? {
+                      type: 'diff',
+                      diff: diffSessionBlueprints(
+                        sessionWithSameNameInPlan,
+                        session.blueprint,
+                      ),
+                      sessionIndex: program.sessions.indexOf(
+                        sessionWithSameNameInPlan,
+                      ),
+                    }
+                  : {
+                      type: 'add',
+                      diff: diffSessionBlueprints(
+                        EmptySession.blueprint,
+                        session.blueprint,
+                      ),
+                    },
+              ),
+            );
+          }
+        } catch (e) {
+          logger.error(
+            'Failed to compute plan diff while finishing workout',
+            e,
+          );
+        }
       }
+      dispatch(setCurrentSession({ target: a.payload, session: undefined }));
+      dispatch(fetchUpcomingSessions());
+      dispatch(setAutoLoadNext(true));
+    },
+  );
+
+  // After finishing a workout, persistCurrentSession sets autoLoadNext(true) and
+  // kicks off a fresh fetchUpcomingSessions. We advance to the next session only
+  // once that fresh list lands (setUpcomingSessions) - reading the upcoming slice
+  // directly from a component would race against the in-flight fetch and pick up
+  // the stale pre-workout list, whose first entry is the session just finished,
+  // making it look like the save never concluded the workout.
+  addEffect(setUpcomingSessions, (action, { dispatch, getState }) => {
+    const state = getState();
+    if (!state.program.autoLoadNext) {
+      return;
     }
-    dispatch(setCurrentSession({ target: a.payload, session: undefined }));
-    dispatch(fetchUpcomingSessions());
+    // Only a resolved list consumes the one-shot flag; a loading/error
+    // placeholder must leave it armed for the real list to land.
+    if (!action.payload.isSuccess()) {
+      return;
+    }
+    if (state.currentSession.workoutSession) {
+      return;
+    }
+    // Disarm as soon as we see a resolved list while eligible, even when it's
+    // empty. Leaving the flag armed let a later unrelated refetch silently
+    // install a workout the user never asked to start.
+    dispatch(setAutoLoadNext(false));
+    const next = action.payload.unwrapOr([] as readonly Session[])[0];
+    if (next) {
+      dispatch(setCurrentSession({ target: 'workoutSession', session: next }));
+    }
   });
 
   addEffect(currentWorkoutSessionUpdated, (action, { dispatch }) => {

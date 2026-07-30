@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start",
     "prebuild": "expo prebuild",
-    "build:android:release": "./android/gradlew assembleRelease",
+    "build:android:release": "cd android && ./gradlew assembleRelease",
     "android": "expo run:android  --variant debugOptimized",
     "patch-package": "patch-package",
     "android:release": "expo run:android --variant release",
@@ -13,7 +13,6 @@
     "dev": "expo start --dev-client",
     "lint": "eslint .",
     "postinstall": "npm run patch-package",
-    "json-schema": "node ./scripts/generate-json-schemas.js",
     "test": "vitest",
     "typecheck": "tsgo --noEmit"
   },
@@ -40,6 +39,7 @@
     "drizzle-orm": "^0.45.2",
     "eslint-plugin-react-compiler": "^19.0.0-beta-bafa41b-20250307",
     "expo": "~56.0.12",
+    "expo-audio": "~56.0.12",
     "expo-clipboard": "^56.0.4",
     "expo-constants": "~56.0.16",
     "expo-dev-client": "~56.0.20",
@@ -112,7 +112,6 @@
     "jsdom": "^28.1.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.8.1",
-    "ts-json-schema-generator": "^2.9.0",
     "typescript": "~6.0.3",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"

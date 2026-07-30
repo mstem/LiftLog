@@ -27,11 +27,16 @@ import FullScreenDialog from '@/components/presentation/foundation/full-screen-d
 import { ExerciseEditor } from '@/components/presentation/workout-editor/exercise-editor';
 import { LocalTime, OffsetDateTime, ZoneId } from '@js-joda/core';
 import { useAppSelector, useAppSelectorWithArg } from '@/store';
-import { selectRecentlyCompletedExercises } from '@/store/stored-sessions';
+import {
+  selectRecentlyCompletedExercises,
+  selectWeightedExercisePersonalBests,
+} from '@/store/stored-sessions';
 import FloatingBottomContainer from '@/components/presentation/foundation/floating-bottom-container';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { match, P } from 'ts-pattern';
 import { CardioExercise } from '@/components/presentation/workout/cardio/cardio-exercise';
+import ExerciseGroupSection from '@/components/presentation/workout/exercise-group-section';
+import { groupExercises } from '@/components/smart/group-exercises';
 import WeightFormat from '../presentation/foundation/weight-format';
 import { formatDuration } from '@/utils/format-date';
 
@@ -50,6 +55,10 @@ export default function SessionComponent(props: {
   const recentlyCompletedExercises = useAppSelectorWithArg(
     selectRecentlyCompletedExercises,
     10,
+  );
+  const weightedExercisePersonalBests = useAppSelectorWithArg(
+    selectWeightedExercisePersonalBests,
+    session?.id,
   );
   const resetTimer = (time: OffsetDateTime | undefined) => {
     updateSession((s) => s.with({ restTimerStartTime: time }));
@@ -176,6 +185,11 @@ export default function SessionComponent(props: {
             recentlyCompletedExercises(
               item.blueprint,
             ) as RecordedWeightedExercise[]
+          }
+          personalBests={
+            props.target === 'workoutSession'
+              ? weightedExercisePersonalBests(item.blueprint)
+              : undefined
           }
         />
       ))
@@ -346,7 +360,26 @@ export default function SessionComponent(props: {
       {props.header}
       {notesComponent}
       {emptyInfo}
-      <ItemList items={session.recordedExercises} renderItem={renderItem} />
+      {groupExercises(session.recordedExercises).map((segment) =>
+        segment.group === undefined ? (
+          <ItemList
+            key={segment.key}
+            items={segment.entries}
+            renderItem={({ exercise, index }) => renderItem(exercise, index)}
+          />
+        ) : (
+          <ExerciseGroupSection
+            key={segment.key}
+            name={segment.group}
+            exerciseCount={segment.entries.length}
+          >
+            <ItemList
+              items={segment.entries}
+              renderItem={({ exercise, index }) => renderItem(exercise, index)}
+            />
+          </ExerciseGroupSection>
+        ),
+      )}
       {bodyweight}
       {workoutSummary}
       <FullScreenDialog

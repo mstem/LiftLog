@@ -192,7 +192,7 @@ function getEmptyInitialProgram(): typeof programsSchema.$inferSelect {
     id: uuid(),
     active: true,
     payload: {
-      version: 2,
+      version: 3,
       lastEdited: toLocalDateJSON(LocalDate.now()),
       name: 'My Plan',
       sessions: [],

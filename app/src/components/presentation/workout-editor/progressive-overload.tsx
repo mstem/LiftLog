@@ -254,11 +254,16 @@ function DummySet(props: { maxReps: number; set: PotentialSet }) {
   return (
     <PotentialSetCounter
       isReadonly
+      isBarbell={false}
+      weightAbove={undefined}
       maxReps={props.maxReps}
-      onTap={() => {}}
+      pendingReps={undefined}
+      onComplete={() => {}}
+      onUncheck={() => {}}
       onUpdateReps={() => {}}
       onUpdateWeight={() => {}}
-      previousRepCount={undefined}
+      previousSet={undefined}
+      setIndex={0}
       set={props.set}
       toStartNext={false}
       weightIncrement={BigNumber(0)}

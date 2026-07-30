@@ -160,7 +160,7 @@ function ListUpcomingWorkouts({
             </Card.Content>
           );
         }}
-        renderItemActions={(session) => {
+        renderItemTitle={(session) => {
           const sessionPlanIndex = plan.sessions.findIndex((x) =>
             x.equals(session.blueprint),
           );
@@ -172,7 +172,7 @@ function ListUpcomingWorkouts({
             );
           };
           return (
-            <CardActions style={{ marginTop: spacing[2] }}>
+            <CardActions style={{ marginBottom: -spacing[2] }}>
               <IconButton
                 icon={'share'}
                 mode="contained"
@@ -223,7 +223,12 @@ function SessionCardContent({ session }: { session: Session }) {
         <SessionSummaryTitle isFilled={session.isStarted} session={session} />
       }
       mainContent={
-        <SessionSummary session={session} isFilled={false} showWeight />
+        <SessionSummary
+          session={session}
+          isFilled={false}
+          showWeight
+          collapseGroups
+        />
       }
     />
   );

@@ -5,31 +5,26 @@ import {
 } from '@/models/ai-models';
 
 import { Duration } from '@js-joda/core';
-import { HubConnection, HubConnectionState } from '@microsoft/signalr';
 import { AsyncIterableSubject } from 'data-async-iterators';
 import { match, P } from 'ts-pattern';
 import BigNumber from 'bignumber.js';
 import { parseDuration } from '@/utils/format-date';
-import { HubConnectionFactory } from '@/services/hub-connection-factory';
+import {
+  HubConnectionFactory,
+  HubConnectionState,
+  SimpleHubConnection,
+} from '@/services/hub-connection-factory';
 import { RootState } from '@/store';
-import Purchases from 'react-native-purchases';
 
 export class AiChatService {
-  private connection: HubConnection | undefined;
+  private connection: SimpleHubConnection | undefined;
   constructor(
     private hubConnectionFactory: HubConnectionFactory,
     private getState: () => RootState,
   ) {}
 
   async *introduce(): AsyncIterableIterator<AiChatResponse> {
-    const proToken = this.getState().settings.proToken;
-    if (!proToken) {
-      yield {
-        type: 'purchasePro',
-      };
-      return;
-    }
-    const subject = await this.setupResponseListening(proToken);
+    const subject = await this.setupResponseListening();
     void this.connection
       ?.invoke('Introduce', Intl.DateTimeFormat().resolvedOptions().locale)
       .finally(() => subject.end());
@@ -38,14 +33,7 @@ export class AiChatService {
   }
 
   async *sendMessage(message: string): AsyncIterableIterator<AiChatResponse> {
-    const proToken = this.getState().settings.proToken;
-    if (!proToken) {
-      yield {
-        type: 'purchasePro',
-      };
-      return;
-    }
-    const subject = await this.setupResponseListening(proToken);
+    const subject = await this.setupResponseListening();
     void this.connection
       ?.invoke('SendMessage', message)
       .finally(() => subject.end());
@@ -70,10 +58,10 @@ export class AiChatService {
     }
   }
 
-  private async setupResponseListening(proToken: string) {
+  private async setupResponseListening() {
     const subject = new AsyncIterableSubject<AiChatResponse>();
     if (!this.connection) {
-      this.connection = this.hubConnectionFactory.create(proToken);
+      this.connection = this.hubConnectionFactory.create();
 
       this.connection.onclose((e) => {
         this.connection = undefined;
@@ -82,11 +70,10 @@ export class AiChatService {
         }
       });
 
-      await this.connection.start().catch(async (e) => {
+      await this.connection.start().catch((e) => {
         this.connection = undefined;
         if (e) {
           console.error(e);
-          await Purchases.syncPurchases().catch(console.error);
         }
       });
     }
@@ -107,7 +94,7 @@ export class AiChatService {
             match(m)
               .returnType<AiChatResponse>()
               .with(
-                { type: P.union('messageResponse', 'purchasePro') },
+                { type: 'messageResponse' },
                 (chatMessage) => chatMessage,
               )
               .with({ type: 'chatPlan' }, ({ plan }) => ({

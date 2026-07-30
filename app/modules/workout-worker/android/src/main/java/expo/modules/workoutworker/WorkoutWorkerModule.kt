@@ -31,6 +31,7 @@ class WorkoutWorkerModule : Module() {
     }
 
     private var service: WorkoutWorkerService? = null
+    private var isBound = false
     private var pendingEvent: WorkoutMessage? = null
 
     // The observer for this instance of the module, used only for removing it when app stops listening
@@ -105,7 +106,10 @@ class WorkoutWorkerModule : Module() {
                         // Start and bind to the service
                         val intent = Intent(context, WorkoutWorkerService::class.java)
                         ContextCompat.startForegroundService(context, intent)
-                        context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                        if (!isBound) {
+                            context.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+                            isBound = true
+                        }
 
                         // Store event to send once service is connected
                         pendingEvent = event
@@ -114,6 +118,7 @@ class WorkoutWorkerModule : Module() {
 
                 event.payload is WorkoutEndedEvent -> {
                     // Forward the event, unbind, then stop the service
+                    pendingEvent = null
                     service?.enqueue(event)
                     unbindIfNeeded()
                     val intent = Intent(context, WorkoutWorkerService::class.java)
@@ -129,13 +134,18 @@ class WorkoutWorkerModule : Module() {
     }
 
     private fun unbindIfNeeded() {
-        if (service != null) {
+        // Track the bind request rather than the connection: if the workout ends
+        // before onServiceConnected fires, service is still null but the
+        // BIND_AUTO_CREATE binding would keep the service (and its notification)
+        // alive through stopService.
+        if (isBound) {
             try {
                 appContext.reactContext?.unbindService(connection)
             } catch (e: IllegalArgumentException) {
                 // Service not bound, ignore
             }
-            service = null
+            isBound = false
         }
+        service = null
     }
 }

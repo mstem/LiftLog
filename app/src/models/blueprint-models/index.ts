@@ -80,7 +80,7 @@ export class ProgramBlueprint {
 
   toJSON(): ProgramBlueprintJSON {
     return {
-      version: 2,
+      version: 3,
       name: this.name,
       sessions: this.sessions.map((session) => session.toJSON()),
       lastEdited: toLocalDateJSON(this.lastEdited),
@@ -131,7 +131,7 @@ export class SessionBlueprint {
 
   toJSON(): SessionBlueprintJSON {
     return {
-      version: 2,
+      version: 3,
       name: this.name,
       exercises: this.exercises.map((exercise) => exercise.toJSON()),
       notes: this.notes,
@@ -279,6 +279,7 @@ export class CardioExerciseBlueprint {
     readonly sets: CardioExerciseSetBlueprint[],
     readonly notes: string,
     readonly link: string,
+    readonly group: string | undefined = undefined,
   ) {
     if (!sets.length) {
       throw new Error('Must have at least one set in cardio exercise');
@@ -300,6 +301,7 @@ export class CardioExerciseBlueprint {
       json.sets.map((x) => CardioExerciseSetBlueprint.fromJSON(x)),
       json.notes,
       json.link,
+      json.group,
     );
   }
   equals(other: ExerciseBlueprint | undefined) {
@@ -317,7 +319,8 @@ export class CardioExerciseBlueprint {
       this.sets.length === other.sets.length &&
       this.sets.every((set, index) => set.equals(other.sets[index])) &&
       this.notes === other.notes &&
-      this.link === other.link
+      this.link === other.link &&
+      this.group === other.group
     );
   }
 
@@ -328,6 +331,7 @@ export class CardioExerciseBlueprint {
       sets: this.sets.map((x) => x.toJSON()),
       notes: this.notes,
       link: this.link,
+      group: this.group,
     };
   }
 
@@ -337,6 +341,7 @@ export class CardioExerciseBlueprint {
       other.sets ?? this.sets,
       other.notes ?? this.notes,
       other.link ?? this.link,
+      other.group ?? this.group,
     );
   }
 }
@@ -572,6 +577,7 @@ export class WeightedExerciseBlueprint {
     readonly supersetWithNext: boolean,
     readonly notes: string,
     readonly link: string,
+    readonly group: string | undefined = undefined,
   ) {}
 
   static empty() {
@@ -599,6 +605,7 @@ export class WeightedExerciseBlueprint {
       json.supersetWithNext,
       json.notes,
       json.link,
+      json.group,
     );
   }
 
@@ -625,7 +632,8 @@ export class WeightedExerciseBlueprint {
       ) &&
       this.supersetWithNext === other.supersetWithNext &&
       this.notes === other.notes &&
-      this.link === other.link
+      this.link === other.link &&
+      this.group === other.group
     );
   }
 
@@ -640,6 +648,7 @@ export class WeightedExerciseBlueprint {
       supersetWithNext: this.supersetWithNext,
       notes: this.notes,
       link: this.link,
+      group: this.group,
     };
   }
 
@@ -653,6 +662,7 @@ export class WeightedExerciseBlueprint {
       other.supersetWithNext ?? this.supersetWithNext,
       other.notes ?? this.notes,
       other.link ?? this.link,
+      other.group ?? this.group,
     );
   }
 }
@@ -740,6 +750,20 @@ export const Rest = {
     minRest: Duration.ofMinutes(3),
     maxRest: Duration.ofMinutes(5),
     failureRest: Duration.ofMinutes(8),
+  },
+  default: {
+    minRest: Duration.ofSeconds(90),
+    maxRest: Duration.ofSeconds(90),
+    failureRest: Duration.ofSeconds(90),
+  },
+
+  // Exercises with no timer configured (all durations zero) fall back to the default
+  orDefault(value: Rest): Rest {
+    return value.minRest.isZero() &&
+      value.maxRest.isZero() &&
+      value.failureRest.isZero()
+      ? Rest.default
+      : value;
   },
 
   fromJSON(json: RestJSON): Rest {

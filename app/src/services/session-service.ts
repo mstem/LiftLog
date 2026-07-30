@@ -1,5 +1,6 @@
 import {
   KeyedExerciseBlueprint,
+  NormalizedName,
   SessionBlueprint,
   ExerciseBlueprint,
   CardioExerciseBlueprint,
@@ -18,7 +19,6 @@ import { ProgressRepository } from '@/services/progress-repository';
 import type { RootState } from '@/store';
 import { uuid } from '@/utils/uuid';
 import { LocalDate } from '@js-joda/core';
-import { match } from 'ts-pattern';
 
 export class SessionService {
   constructor(
@@ -103,6 +103,29 @@ export class SessionService {
   ): Session {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const $this = this;
+
+    // Fallback lookup so the previous weight carries forward by *movement* even
+    // when the rep scheme (sets/reps) changed - the strict key above is
+    // `name_sets_reps`, so changing the reps of an exercise would otherwise
+    // reset its weight to 0. We derive this from the same map the strict lookup
+    // uses (its values are the most-recent recording per strict key), grouping
+    // by normalized exercise name and keeping the most recently recorded one.
+    const latestWeightedByName = new Map<string, RecordedWeightedExercise>();
+    for (const ex of Object.values(latestRecordedExercises)) {
+      if (!(ex instanceof RecordedWeightedExercise)) {
+        continue;
+      }
+      const nameKey = NormalizedName.fromExerciseBlueprint(ex.blueprint).toString();
+      const existing = latestWeightedByName.get(nameKey);
+      const existingTime = existing?.latestTime;
+      if (
+        !existing ||
+        (ex.latestTime && (!existingTime || existingTime.isBefore(ex.latestTime)))
+      ) {
+        latestWeightedByName.set(nameKey, ex);
+      }
+    }
+
     function getNextExercise(e: ExerciseBlueprint): RecordedExercise {
       const lastExercise =
         latestRecordedExercises[
@@ -122,31 +145,43 @@ export class SessionService {
           ),
         });
       }
-      const weightedLastExercise =
+      // Prefer an exact match (same name + sets + reps, preserving per-set
+      // weights); otherwise fall back to the latest recording of this movement.
+      const exactMatch =
         lastExercise instanceof RecordedWeightedExercise
           ? lastExercise
           : undefined;
-      const potentialSets: PotentialSet[] = match(weightedLastExercise)
-        .returnType<PotentialSet[]>()
-        .with(undefined, () =>
-          Array.from(
+      const weightSource =
+        exactMatch ??
+        latestWeightedByName.get(
+          NormalizedName.fromExerciseBlueprint(e).toString(),
+        );
+      const sourceSets = weightSource?.potentialSets ?? [];
+      const potentialSets: PotentialSet[] = sourceSets.length
+        ? Array.from(
+            { length: e.sets },
+            (_, i) =>
+              new PotentialSet(
+                undefined,
+                (sourceSets[i] ?? sourceSets[sourceSets.length - 1]!).weight,
+              ),
+          )
+        : Array.from(
             { length: e.sets },
             () =>
               new PotentialSet(
                 undefined,
                 new Weight(0, $this.getDefaultWeightUnit()),
               ),
-          ),
-        )
-        .otherwise((x) =>
-          x.potentialSets.map((x) => new PotentialSet(undefined, x.weight)),
-        );
+          );
       let newExercise = new RecordedWeightedExercise(
         e,
         potentialSets,
         undefined,
       );
-      if (weightedLastExercise?.isSuccessForProgressiveOverload) {
+      // Only auto-apply progressive overload for an exact-scheme match, so a
+      // renamed/re-repped fallback just seeds the weight without bumping it.
+      if (exactMatch?.isSuccessForProgressiveOverload) {
         newExercise =
           newExercise.blueprint.progressiveOverload.applyProgressiveOverload(
             newExercise,

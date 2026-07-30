@@ -115,6 +115,8 @@ import { msSteps } from '@material-symbols-react-native/outlined-400/msSteps';
 import { msElevation } from '@material-symbols-react-native/outlined-400/msElevation';
 import { msAssignmentTurnedIn } from '@material-symbols-react-native/outlined-400/msAssignmentTurnedIn';
 import { msTerminal } from '@material-symbols-react-native/outlined-400/msTerminal';
+import { msCheckBox } from '@material-symbols-react-native/outlined-400/msCheckBox';
+import { msCheckBoxOutlineBlank } from '@material-symbols-react-native/outlined-400/msCheckBoxOutlineBlank';
 import { msTrendingUp } from '@material-symbols-react-native/outlined-400/msTrendingUp';
 
 // Importing these icons using the below methods causes android app to crash
@@ -155,6 +157,8 @@ const MaterialSymbols = {
   notesFill: msNotesFill,
   notifications: msNotifications,
   assignmentTurnedIn: msAssignmentTurnedIn,
+  checkBox: msCheckBox,
+  checkBoxOutlineBlank: msCheckBoxOutlineBlank,
   plus: msAdd,
   star: msStar,
   terminal: msTerminal,

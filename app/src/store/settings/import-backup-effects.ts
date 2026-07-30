@@ -12,6 +12,7 @@ import {
 } from '@/store/settings';
 import {
   checkIfWeightMigrationRequired,
+  upsertExerciseNotes,
   upsertStoredSessions,
 } from '@/store/stored-sessions';
 import { streamToUint8Array } from '@/utils/stream';
@@ -31,6 +32,7 @@ import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { DatabaseMigrationService } from '@/services/database-migration-service';
 import { FeedBackupData } from '@/models/backup';
 import {
+  exerciseNotesSchema,
   feedFollowedUsersSchema,
   feedFollowerUsersSchema,
   feedFollowRequestsSchema,
@@ -94,6 +96,9 @@ export function addImportBackupEffects(addEffect: AddEffectFn) {
     async ({ payload: dao }, { dispatch, extra: { tolgee } }) => {
       dispatch(upsertStoredSessions(dao.workouts));
       dispatch(upsertSavedPlans(dao.programs));
+      if (dao.exerciseNotes) {
+        dispatch(upsertExerciseNotes(dao.exerciseNotes));
+      }
       dispatch(
         showSnackbar({
           text: tolgee.t('Restore complete!'),
@@ -129,6 +134,15 @@ export function addImportBackupEffects(addEffect: AddEffectFn) {
         ),
         {},
       );
+      const exerciseNotes = (
+        await drizzleBackupDb.select().from(exerciseNotesSchema)
+      ).reduce(
+        toRecord(
+          (x) => x.id,
+          (x) => x.notes,
+        ),
+        {},
+      );
       const feedIdentityDb = (
         await drizzleBackupDb.select().from(feedIdentitySchema)
       ).at(0);
@@ -160,6 +174,7 @@ export function addImportBackupEffects(addEffect: AddEffectFn) {
         importBackupData({
           programs,
           workouts,
+          exerciseNotes,
           feed,
         }),
       );

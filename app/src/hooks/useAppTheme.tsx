@@ -1,6 +1,7 @@
 import { useAppSelector } from '@/store';
 import {
   Material3Scheme,
+  Material3Theme,
   useMaterial3Theme,
 } from '@pchmn/expo-material3-theme';
 import React, { createContext, ReactNode, useContext, useEffect } from 'react';
@@ -20,9 +21,114 @@ import {
 } from '@material/material-color-utilities';
 
 export const rounding = {
-  roundedRectangleRadius: 10,
-  roundedRectangleFocusRingRadius: 15,
+  roundedRectangleRadius: 14,
+  roundedRectangleFocusRingRadius: 19,
   segmentedBetweenRadius: 2,
+};
+
+// Hevy-inspired scheme: flat white cards on a cool off-white background,
+// saturated blue accents, near-black text. Used when no custom seed is set.
+const hevyTheme: Material3Theme = {
+  light: {
+    primary: '#2f80ed',
+    onPrimary: '#ffffff',
+    primaryContainer: '#e0edfd',
+    onPrimaryContainer: '#14539f',
+    secondary: '#526070',
+    onSecondary: '#ffffff',
+    secondaryContainer: '#e8f1fd',
+    onSecondaryContainer: '#1c5cb0',
+    tertiary: '#2e9e63',
+    onTertiary: '#ffffff',
+    tertiaryContainer: '#d9f4e4',
+    onTertiaryContainer: '#0e6a3c',
+    error: '#e5484d',
+    onError: '#ffffff',
+    errorContainer: '#fdebec',
+    onErrorContainer: '#8c1d22',
+    background: '#f4f5f7',
+    onBackground: '#101828',
+    surface: '#ffffff',
+    onSurface: '#101828',
+    surfaceVariant: '#eef1f4',
+    onSurfaceVariant: '#667085',
+    outline: '#98a2b3',
+    outlineVariant: '#e4e7ec',
+    inverseSurface: '#1d2939',
+    inverseOnSurface: '#f2f4f7',
+    inversePrimary: '#8ab9f5',
+    shadow: '#000000',
+    scrim: '#000000',
+    surfaceDisabled: 'rgba(16, 24, 40, 0.12)',
+    onSurfaceDisabled: 'rgba(16, 24, 40, 0.38)',
+    backdrop: 'rgba(16, 24, 40, 0.4)',
+    surfaceContainerLowest: '#ffffff',
+    surfaceContainerLow: '#ffffff',
+    surfaceContainer: '#ffffff',
+    surfaceContainerHigh: '#f2f4f7',
+    surfaceContainerHighest: '#e9edf1',
+    surfaceBright: '#ffffff',
+    surfaceDim: '#e9edf1',
+    surfaceTint: '#2f80ed',
+    elevation: {
+      level0: 'transparent',
+      level1: '#ffffff',
+      level2: '#fbfcfd',
+      level3: '#f6f8fa',
+      level4: '#f2f4f7',
+      level5: '#eef1f4',
+    },
+  },
+  dark: {
+    primary: '#4c96f0',
+    onPrimary: '#ffffff',
+    primaryContainer: '#1b4a85',
+    onPrimaryContainer: '#d4e5fc',
+    secondary: '#9aa6b4',
+    onSecondary: '#1a2027',
+    secondaryContainer: '#243b58',
+    onSecondaryContainer: '#cfe2fa',
+    tertiary: '#4fd68a',
+    onTertiary: '#04361c',
+    tertiaryContainer: '#14532d',
+    onTertiaryContainer: '#c9f3da',
+    error: '#f2555a',
+    onError: '#ffffff',
+    errorContainer: '#5c1a1e',
+    onErrorContainer: '#fdd8d9',
+    background: '#101213',
+    onBackground: '#f0f2f4',
+    surface: '#101213',
+    onSurface: '#f0f2f4',
+    surfaceVariant: '#23272b',
+    onSurfaceVariant: '#9aa4ae',
+    outline: '#5c6670',
+    outlineVariant: '#2c3238',
+    inverseSurface: '#f0f2f4',
+    inverseOnSurface: '#1a1d1f',
+    inversePrimary: '#2f80ed',
+    shadow: '#000000',
+    scrim: '#000000',
+    surfaceDisabled: 'rgba(240, 242, 244, 0.12)',
+    onSurfaceDisabled: 'rgba(240, 242, 244, 0.38)',
+    backdrop: 'rgba(0, 0, 0, 0.5)',
+    surfaceContainerLowest: '#0b0d0e',
+    surfaceContainerLow: '#17191b',
+    surfaceContainer: '#1b1e20',
+    surfaceContainerHigh: '#22262a',
+    surfaceContainerHighest: '#2a2f34',
+    surfaceBright: '#33383d',
+    surfaceDim: '#101213',
+    surfaceTint: '#4c96f0',
+    elevation: {
+      level0: 'transparent',
+      level1: '#17191b',
+      level2: '#1b1e20',
+      level3: '#22262a',
+      level4: '#262b2f',
+      level5: '#2a2f34',
+    },
+  },
 };
 
 export const spacing = {
@@ -172,11 +278,12 @@ export const AppThemeProvider: React.FC<AppThemeProviderProps> = ({
     fallbackSourceColor: '0x005500',
     sourceColor: colorSchemeSeed === 'default' ? undefined! : colorSchemeSeed,
   });
-  let newTheme = theme;
+  const isHevyDefault = colorSchemeSeed === 'default';
+  let newTheme = isHevyDefault ? hevyTheme : theme;
   if (trueBlack) {
     newTheme = {
       ...newTheme,
-      dark: { ...theme.dark, background: '#000000', surface: '#000000' },
+      dark: { ...newTheme.dark, background: '#000000', surface: '#000000' },
     };
   }
   useEffect(() => {
@@ -209,6 +316,14 @@ export const AppThemeProvider: React.FC<AppThemeProviderProps> = ({
       ...colorPair('indigo', 'ff4b0082', schemedTheme.primary, isDark),
       ...colorPair('lime', 'ffcddc39', schemedTheme.primary, isDark),
       ...colorPair('amber', 'ffffc107', schemedTheme.primary, isDark),
+      ...(isHevyDefault
+        ? {
+            blue: schemedTheme.primary,
+            onBlue: '#ffffff',
+            green: isDark ? '#3ecf7e' : '#3dbd77',
+            onGreen: '#ffffff',
+          }
+        : {}),
     } satisfies AppThemeColors,
     colorScheme: colorScheme === 'unspecified' ? 'light' : colorScheme,
   };

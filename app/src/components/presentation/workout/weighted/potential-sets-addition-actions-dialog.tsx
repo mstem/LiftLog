@@ -12,6 +12,7 @@ interface PotentialSetAdditionalActionsDialogProps {
   open: boolean;
   set: PotentialSet;
   repTarget: number;
+  pendingReps: number | undefined;
   updateRepCount: (reps: number | undefined) => void;
   close: () => void;
 }
@@ -20,11 +21,12 @@ export default function PotentialSetAdditionalActionsDialog({
   close,
   open,
   set,
+  pendingReps,
   updateRepCount,
   repTarget,
 }: PotentialSetAdditionalActionsDialogProps) {
   const { colors } = useAppTheme();
-  const originalReps = set?.set?.repsCompleted;
+  const originalReps = set?.set?.repsCompleted ?? pendingReps;
 
   const [repCountText, setRepCountText] = useState<string>(
     originalReps?.toString() ?? '',
@@ -44,6 +46,15 @@ export default function PotentialSetAdditionalActionsDialog({
     updateRepCount(repCountText ? parsedRepCount : undefined);
     close();
   };
+  // Tapping outside (or the keyboard's done key) must not silently discard a
+  // typed value - commit any valid change, exactly like Save. Cancel stays the
+  // explicit discard. An emptied field is only cleared via the ✗ button.
+  const dismiss = () => {
+    if (isValid && repCountText && parsedRepCount !== originalReps) {
+      updateRepCount(parsedRepCount);
+    }
+    close();
+  };
   return (
     open && (
       <Portal>
@@ -51,7 +62,7 @@ export default function PotentialSetAdditionalActionsDialog({
           behavior={'height'}
           style={{ flex: 1, pointerEvents: open ? 'box-none' : 'none' }}
         >
-          <Dialog visible={open} onDismiss={close}>
+          <Dialog visible={open} onDismiss={dismiss}>
             <Dialog.Title>
               <T keyName="exercise.select_reps.title" />
             </Dialog.Title>
@@ -63,6 +74,7 @@ export default function PotentialSetAdditionalActionsDialog({
                 selectTextOnFocus
                 error={!isValid}
                 onChangeText={setRepCountText}
+                onSubmitEditing={save}
                 autoFocus
               />
 

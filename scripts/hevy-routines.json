@@ -1,0 +1,770 @@
+{
+  "routines": [
+    {
+      "name": "Voice",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Hold S",
+          "sets": 4,
+          "durationSeconds": 30,
+          "notes": "Begin by taking in a full breath and exhaling for as long as you can on the sound of an /s/. Repeat this for three or four breaths to establish a connection to the pattern of airflow. Try to produce the sound with consistent pressure, volume, and quality throughout."
+        },
+        {
+          "type": "cardio",
+          "name": "Hold Z",
+          "sets": 4,
+          "durationSeconds": 30,
+          "notes": "Change to the sound of a /z/ and maintain all consistency, including pitch now. Repeat this for three or four breaths."
+        },
+        {
+          "type": "cardio",
+          "name": "Hold NG",
+          "sets": 4,
+          "durationSeconds": 30,
+          "notes": "Change to the sound of /ng/ and increase your volume. This will engage the vocal folds more actively to help develop and strengthen them. Repeat for two to four breaths."
+        },
+        {
+          "type": "cardio",
+          "name": "Hold M",
+          "sets": 2,
+          "durationSeconds": 30,
+          "notes": "Then move to the sound of /m/ (hum) maintaining all the consistency you have built and to increase the amount of vibration you feel in your mouth, on your lips, and in your face."
+        },
+        {
+          "type": "cardio",
+          "name": "M to Ah",
+          "sets": 1,
+          "durationSeconds": 30,
+          "notes": "On the second breath, transition from the /m/ to the vowel sound /ah/. Use the full breath and hold the /ah/ for as long as you can do so comfortably."
+        },
+        {
+          "type": "cardio",
+          "name": "Hello my name is Matthew",
+          "sets": 1,
+          "durationSeconds": 5
+        },
+        {
+          "type": "cardio",
+          "name": "Opening the Throat",
+          "sets": 1,
+          "durationSeconds": 30
+        },
+        {
+          "type": "cardio",
+          "name": "ho ho ho",
+          "sets": 1,
+          "durationSeconds": 10
+        }
+      ]
+    },
+    {
+      "name": "Mobility",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Cycling",
+          "sets": 1,
+          "durationSeconds": 300
+        },
+        {
+          "type": "weighted",
+          "name": "High Knee Skips",
+          "sets": 2,
+          "reps": 20,
+          "restSeconds": 20
+        },
+        {
+          "type": "weighted",
+          "name": "High Kicks",
+          "sets": 1,
+          "reps": 15,
+          "notes": "15 each side, 1 straight 1 crossover"
+        },
+        {
+          "type": "weighted",
+          "name": "90 90s",
+          "sets": 2,
+          "reps": 24,
+          "restSeconds": 30
+        },
+        {
+          "type": "weighted",
+          "name": "Kickover",
+          "sets": 2,
+          "reps": 24,
+          "restSeconds": 30
+        },
+        {
+          "type": "weighted",
+          "name": "On Back Leg Crossover",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 30
+        },
+        {
+          "type": "weighted",
+          "name": "Hamstring Extension",
+          "sets": 2,
+          "reps": 15,
+          "restSeconds": 25
+        },
+        {
+          "type": "cardio",
+          "name": "Pigeon",
+          "sets": 2,
+          "durationSeconds": 60,
+          "notes": "Hold each side"
+        },
+        {
+          "type": "weighted",
+          "name": "Lizard Elbow Extensions",
+          "sets": 2,
+          "reps": 10,
+          "restSeconds": 40
+        },
+        {
+          "type": "weighted",
+          "name": "Squat Arrow Shoots",
+          "sets": 2,
+          "reps": 20,
+          "restSeconds": 60
+        },
+        {
+          "type": "weighted",
+          "name": "Side Lunges Low Hips",
+          "sets": 2,
+          "reps": 20,
+          "restSeconds": 30
+        },
+        {
+          "type": "weighted",
+          "name": "Seated Palms Up Wrist Curl",
+          "sets": 9,
+          "reps": 5,
+          "restSeconds": 10
+        },
+        {
+          "type": "weighted",
+          "name": "Ab Wheel",
+          "sets": 4,
+          "reps": 12,
+          "restSeconds": 60
+        },
+        {
+          "type": "cardio",
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 60,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Glute Bridge",
+          "sets": 3,
+          "reps": 10,
+          "supersetWithNext": true
+        },
+        {
+          "type": "cardio",
+          "name": "Side Plank",
+          "sets": 3,
+          "durationSeconds": 30,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Bird Dog",
+          "sets": 3,
+          "reps": 10,
+          "supersetWithNext": true
+        },
+        {
+          "type": "cardio",
+          "name": "Swimmer",
+          "sets": 3,
+          "durationSeconds": 30,
+          "restSeconds": 105
+        }
+      ]
+    },
+    {
+      "name": "YouTube Dumbbells",
+      "exercises": [
+        {
+          "type": "weighted",
+          "name": "Shoulder Press (Dumbbell)",
+          "sets": 2,
+          "reps": 20,
+          "restSeconds": 90,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Lateral Raise (Dumbbell)",
+          "sets": 2,
+          "reps": 12,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Rear Delt Reverse Fly (Dumbbell)",
+          "sets": 2,
+          "reps": 10,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Squat (Dumbbell)",
+          "sets": 3,
+          "reps": 15,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Sumo Squat (Dumbbell)",
+          "sets": 2,
+          "reps": 12,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Lunge (Dumbbell)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Toe Touch",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Toe Touch",
+          "sets": 2,
+          "reps": 4,
+          "notes": "L sit",
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Push Up",
+          "sets": 2,
+          "reps": 10,
+          "restSeconds": 75
+        },
+        {
+          "type": "weighted",
+          "name": "Floor Press (Dumbbell)",
+          "sets": 2,
+          "reps": 12,
+          "restSeconds": 90,
+          "notes": "Dumbbells"
+        },
+        {
+          "type": "weighted",
+          "name": "Chest Fly (Dumbbell)",
+          "sets": 2,
+          "reps": 15,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Bent Over Row (Dumbbell)",
+          "sets": 2,
+          "reps": 10,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Good Morning (Barbell)",
+          "sets": 2,
+          "reps": 8,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Renegade Row (Dumbbell)",
+          "sets": 2,
+          "reps": 5,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Burpee",
+          "sets": 2,
+          "reps": 7,
+          "restSeconds": 90
+        }
+      ]
+    }
+  ,
+    {
+      "name": "Pull",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Warm Up",
+          "sets": 1,
+          "durationSeconds": 300,
+          "notes": "Do a full-body warm-up consisting of dynamic exercises like leg swings, arm circles, jumping jacks, and high knees."
+        },
+        {
+          "type": "weighted",
+          "name": "Band Pullaparts",
+          "sets": 2,
+          "reps": 12,
+          "restSeconds": 60
+        },
+        {
+          "type": "weighted",
+          "name": "Rear Delt Reverse Fly (Cable)",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Pull Up",
+          "sets": 4,
+          "reps": 3,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Inverted Row",
+          "sets": 4,
+          "reps": 5,
+          "restSeconds": 90,
+          "notes": "You can perform these on a Smith machine. A more horizontal position makes it more challenging. You can even elevate your feet on a gym bench or plyo box to make it more difficult. Train to an RPE 8-9 (leaving one to two reps in the tank at the end of each set)."
+        },
+        {
+          "type": "weighted",
+          "name": "Lat Pulldown (Cable)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Pull the bar to your upper chest and slowly extend your arms. You should feel a stretch in your lats (upper back) as your arms extend."
+        },
+        {
+          "type": "weighted",
+          "name": "Bent Over Row (Barbell)",
+          "sets": 6,
+          "reps": 5,
+          "restSeconds": 120,
+          "notes": "Slowly lower the weight to feel a stretch in your upper back. Pull in one fluid motion."
+        },
+        {
+          "type": "weighted",
+          "name": "Seated Cable Row - Bar Grip",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Shoulder Press (Dumbbell)",
+          "sets": 5,
+          "reps": 6,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Shrug (Dumbbell)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 90,
+          "notes": "Shrug your shoulders high in one fluid motion and pause briefly at the top position."
+        },
+        {
+          "type": "weighted",
+          "name": "Bicep Curl (Dumbbell)",
+          "sets": 4,
+          "reps": 8,
+          "restSeconds": 105
+        },
+        {
+          "type": "weighted",
+          "name": "Face Pull",
+          "sets": 3,
+          "reps": 15,
+          "restSeconds": 90,
+          "notes": "Pull the rope in one fluid motion and spread it in front of your face, engaging your upper back muscles by holding the position for a moment."
+        }
+      ]
+    }
+  ,
+    {
+      "name": "Legs",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Warm Up",
+          "sets": 1,
+          "durationSeconds": 300,
+          "notes": "Do a full-body warm-up consisting of dynamic exercises like leg swings, arm circles, jumping jacks, and high knees."
+        },
+        {
+          "type": "weighted",
+          "name": "Ab Wheel",
+          "sets": 4,
+          "reps": 12,
+          "restSeconds": 60
+        },
+        {
+          "type": "cardio",
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 60,
+          "supersetWithNext": true
+        },
+        {
+          "type": "cardio",
+          "name": "Side Plank",
+          "sets": 2,
+          "durationSeconds": 30,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Bird Dog",
+          "sets": 3,
+          "reps": 10
+        },
+        {
+          "type": "weighted",
+          "name": "Hack Squat (Machine)",
+          "sets": 6,
+          "reps": 8,
+          "restSeconds": 150
+        },
+        {
+          "type": "weighted",
+          "name": "Leg Press (Machine)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Placing your feet close together and lower on the platform forces a greater knee range of motion, which leads to better quadriceps (front thigh muscle) activation."
+        },
+        {
+          "type": "weighted",
+          "name": "Hip Thrust (Machine)",
+          "sets": 4,
+          "reps": 11,
+          "restSeconds": 120
+        },
+        {
+          "type": "weighted",
+          "name": "Lying Leg Curl (Machine)",
+          "sets": 4,
+          "reps": 12,
+          "restSeconds": 120,
+          "notes": "Slowly extend your legs. You should feel an intense stretch in your hamstrings."
+        },
+        {
+          "type": "weighted",
+          "name": "Leg Extension (Machine)",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 90
+        },
+        {
+          "type": "weighted",
+          "name": "Bulgarian Split Squat",
+          "sets": 3,
+          "reps": 6,
+          "restSeconds": 120,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Standing Calf Raise (Machine)",
+          "sets": 4,
+          "reps": 12,
+          "restSeconds": 120,
+          "notes": "Slowly lower your heels to the floor for an intense calf stretch at the bottom and pause briefly instead of 'bouncing.'"
+        },
+        {
+          "type": "weighted",
+          "name": "Hanging Leg Raise",
+          "sets": 3,
+          "reps": 12
+        },
+        {
+          "type": "weighted",
+          "name": "Reverse Lunge (Dumbbell)",
+          "sets": 3,
+          "reps": 24,
+          "restSeconds": 90
+        }
+      ]
+    }
+  ,
+    {
+      "name": "Push",
+      "exercises": [
+        {
+          "type": "weighted",
+          "name": "Push Up",
+          "sets": 2,
+          "reps": 15,
+          "restSeconds": 60
+        },
+        {
+          "type": "weighted",
+          "name": "Incline Bench Press (Barbell)",
+          "sets": 4,
+          "reps": 7,
+          "restSeconds": 150
+        },
+        {
+          "type": "weighted",
+          "name": "Bench Press (Barbell)",
+          "sets": 6,
+          "reps": 6,
+          "restSeconds": 150
+        },
+        {
+          "type": "weighted",
+          "name": "Decline Bench Press (Barbell)",
+          "sets": 3,
+          "reps": 8,
+          "restSeconds": 150
+        },
+        {
+          "type": "weighted",
+          "name": "Cable Fly Crossovers",
+          "sets": 4,
+          "reps": 12,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Single Arm Cable Crossover",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 90,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Triceps Rope Pushdown",
+          "sets": 4,
+          "reps": 7,
+          "restSeconds": 90,
+          "notes": "Extend your arms fully on each rep and slowly bend them during the negative portion to keep tension on the triceps.",
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Triceps Kickback (Cable)",
+          "sets": 3,
+          "reps": 6,
+          "restSeconds": 60
+        }
+      ]
+    },
+    {
+      "name": "Full Body 3",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Warm Up",
+          "sets": 1,
+          "durationSeconds": 300,
+          "notes": "Do a full-body warm-up consisting of dynamic exercises like leg swings, arm circles, jumping jacks, and high knees."
+        },
+        {
+          "type": "weighted",
+          "name": "Shoulder Press (Dumbbell)",
+          "sets": 5,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Keep your abs engaged for stability, and press the dumbbells up and in. Lower the weights until your elbows are slightly below shoulder level."
+        },
+        {
+          "type": "weighted",
+          "name": "Hip Thrust (Machine)",
+          "sets": 5,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Doing hip thrusts on a machine reduces the need to balance all the time. However, you can also do these with a barbell if your gym doesn't have this machine."
+        },
+        {
+          "type": "weighted",
+          "name": "Shrug (Dumbbell)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Shrug your shoulders high in one fluid motion and pause briefly at the top position."
+        },
+        {
+          "type": "weighted",
+          "name": "Leg Extension (Machine)",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 105,
+          "notes": "Do reps slowly and with good control, especially as you bend your knees."
+        },
+        {
+          "type": "weighted",
+          "name": "Cable Fly Crossovers",
+          "sets": 3,
+          "reps": 15,
+          "restSeconds": 90,
+          "notes": "Do reps slowly and bring your arms to the sides enough to feel a stretch in your chest muscles on each rep."
+        },
+        {
+          "type": "weighted",
+          "name": "Face Pull",
+          "sets": 3,
+          "reps": 15,
+          "restSeconds": 90,
+          "notes": "Pull the rope in one fluid motion and spread it in front of your face, engaging your upper back muscles by holding the position for a moment."
+        }
+      ]
+    }
+  ,
+    {
+      "name": "Full Body 2",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Warm Up",
+          "sets": 1,
+          "durationSeconds": 300,
+          "notes": "Do a full-body warm-up consisting of dynamic exercises like leg swings, arm circles, jumping jacks, and high knees."
+        },
+        {
+          "type": "weighted",
+          "name": "Bent Over Row (Barbell)",
+          "sets": 6,
+          "reps": 5,
+          "restSeconds": 120,
+          "notes": "Slowly lower the weight until you feel a stretch in your upper back, and pull in one fluid motion."
+        },
+        {
+          "type": "weighted",
+          "name": "Leg Press (Machine)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Placing your feet close together and lower on the platform forces a greater knee range of motion, which leads to better quadriceps (front thigh muscle) activation. Bulgarian split squats are a good alternative."
+        },
+        {
+          "type": "weighted",
+          "name": "Chest Press (Machine)",
+          "sets": 4,
+          "reps": 10,
+          "restSeconds": 120,
+          "notes": "Set the bench height at the correct position for your elbows to remain close to your sides instead of flaring up."
+        },
+        {
+          "type": "weighted",
+          "name": "EZ Bar Biceps Curl",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 105,
+          "notes": "Slowly lower the bar until your arms are straight, and squeeze your biceps at the top."
+        },
+        {
+          "type": "weighted",
+          "name": "Standing Calf Raise (Machine)",
+          "sets": 3,
+          "reps": 15,
+          "restSeconds": 90,
+          "notes": "Slowly lower your heels to the floor for an intense calf stretch at the bottom and pause briefly instead of 'bouncing.'"
+        },
+        {
+          "type": "cardio",
+          "name": "Plank",
+          "sets": 3,
+          "durationSeconds": 60,
+          "restSeconds": 90,
+          "notes": "Keep your abs engaged, and draw your belly button toward your spine. Your lower back must not arch."
+        }
+      ]
+    }
+  ,
+    {
+      "name": "Full Body 1",
+      "exercises": [
+        {
+          "type": "cardio",
+          "name": "Warm Up",
+          "sets": 1,
+          "durationSeconds": 300,
+          "notes": "Do a full-body warm-up consisting of dynamic exercises like leg swings, arm circles, jumping jacks, and high knees."
+        },
+        {
+          "type": "weighted",
+          "name": "Squat (Barbell)",
+          "sets": 6,
+          "reps": 5,
+          "restSeconds": 150,
+          "notes": "Experiment with the stance to see what feels most comfortable. Aim to get your thighs parallel to the floor and pause briefly at the bottom to limit the assistance from the stretch reflex. Front squats and leg presses are good alternatives."
+        },
+        {
+          "type": "weighted",
+          "name": "Incline Bench Press (Barbell)",
+          "sets": 4,
+          "reps": 6,
+          "restSeconds": 120
+        },
+        {
+          "type": "weighted",
+          "name": "Deadlift (Barbell)",
+          "sets": 4,
+          "reps": 6,
+          "restSeconds": 120
+        },
+        {
+          "type": "weighted",
+          "name": "Lat Pulldown (Cable)",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 105,
+          "notes": "Pull the bar to your upper chest and slowly extend your arms. You should feel a stretch in your lats (upper back) as your arms extend. Dumbbell rows are a good alternative."
+        },
+        {
+          "type": "weighted",
+          "name": "Triceps Rope Pushdown",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 105,
+          "notes": "Extend your arms fully on each rep and slowly bend them during the negative portion to keep tension on the triceps. You can also perform overhead dumbbell tricep extensions."
+        },
+        {
+          "type": "weighted",
+          "name": "Cable Fly Crossovers",
+          "sets": 3,
+          "reps": 12,
+          "restSeconds": 105,
+          "supersetWithNext": true
+        },
+        {
+          "type": "weighted",
+          "name": "Chest Dip",
+          "sets": 3,
+          "reps": 2,
+          "restSeconds": 120
+        },
+        {
+          "type": "weighted",
+          "name": "Triceps Kickback (Cable)",
+          "sets": 3,
+          "reps": 1
+        },
+        {
+          "type": "weighted",
+          "name": "Straight Arm Lat Pulldown (Cable)",
+          "sets": 3,
+          "reps": 12
+        }
+      ]
+    }
+  ]
+}

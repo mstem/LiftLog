@@ -8,7 +8,22 @@ import {
 import { RootState } from '@/store/store';
 import { applyCurrentSessionEffects } from '@/store/current-session/effects';
 import { createAddEffectTestBed } from '@/utils/__test__/add-effect-testbed';
-import { EmptySession } from '@/models/session-models';
+import { EmptySession, Session } from '@/models/session-models';
+import { setAutoLoadNext, setUpcomingSessions } from '@/store/program';
+import { RemoteData } from '@/models/remote';
+import {
+  finishCurrentWorkout,
+  persistCurrentSession,
+} from '@/store/current-session';
+import { addStoredSession } from '@/store/stored-sessions';
+import { addUnpublishedSessionId } from '@/store/feed';
+import {
+  NoProgressiveOverload,
+  Rest,
+  SessionBlueprint,
+  WeightedExerciseBlueprint,
+} from '@/models/blueprint-models';
+import { LocalDate, OffsetDateTime } from '@js-joda/core';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -268,6 +283,214 @@ describe('current-session effects', () => {
       expect(testBed.mockServices.logger.error).toHaveBeenCalledWith(
         'Failed to persist current session state',
         expect.objectContaining({ message: 'disk full' }),
+      );
+    });
+  });
+
+  // ─── auto-load next (setUpcomingSessions) ─────────────────────────────────────
+
+  describe('applyCurrentSessionEffects — auto-load next session', () => {
+    const nextSession = EmptySession.with({ id: 'next-session' });
+
+    function bed(overrides: Partial<RootState>) {
+      const testBed = createAddEffectTestBed({
+        initialState: {
+          currentSession: {
+            isHydrated: true,
+            workoutSession: undefined,
+            historySession: undefined,
+          },
+          program: {
+            autoLoadNext: false,
+            upcomingSessions: RemoteData.notAsked(),
+          },
+          ...overrides,
+        },
+      });
+      applyCurrentSessionEffects(testBed.addEffect);
+      return testBed;
+    }
+
+    it('loads the freshly-fetched next session when autoLoadNext is set', async () => {
+      const testBed = bed({
+        program: {
+          autoLoadNext: true,
+          upcomingSessions: RemoteData.success([nextSession]),
+        },
+      } as unknown as Partial<RootState>);
+
+      await testBed.dispatchHandled(
+        setUpcomingSessions(RemoteData.success([nextSession])),
+      );
+
+      expect(testBed.getDispatchedAction(setCurrentSession).payload).toEqual({
+        target: 'workoutSession',
+        session: nextSession,
+      });
+      expect(testBed.getDispatchedAction(setAutoLoadNext).payload).toBe(false);
+    });
+
+    it('does nothing when autoLoadNext is not set', async () => {
+      const testBed = bed({
+        program: {
+          autoLoadNext: false,
+          upcomingSessions: RemoteData.success([nextSession]),
+        },
+      } as unknown as Partial<RootState>);
+
+      await testBed.dispatchHandled(
+        setUpcomingSessions(RemoteData.success([nextSession])),
+      );
+
+      testBed.expectNotDispatched(setCurrentSession);
+    });
+
+    it('does not clobber an in-progress workout', async () => {
+      const testBed = bed({
+        currentSession: {
+          isHydrated: true,
+          workoutSession: EmptySession,
+          historySession: undefined,
+        },
+        program: {
+          autoLoadNext: true,
+          upcomingSessions: RemoteData.success([nextSession]),
+        },
+      } as unknown as Partial<RootState>);
+
+      await testBed.dispatchHandled(
+        setUpcomingSessions(RemoteData.success([nextSession])),
+      );
+
+      testBed.expectNotDispatched(setCurrentSession);
+    });
+
+    it('disarms autoLoadNext without loading anything when the upcoming list is empty', async () => {
+      const testBed = bed({
+        program: {
+          autoLoadNext: true,
+          upcomingSessions: RemoteData.success([]),
+        },
+      } as unknown as Partial<RootState>);
+
+      await testBed.dispatchHandled(
+        setUpcomingSessions(RemoteData.success([])),
+      );
+
+      // The one-shot flag must be cleared even with nothing to load, so a later
+      // unrelated refetch can't silently install a workout.
+      expect(testBed.getDispatchedAction(setAutoLoadNext).payload).toBe(false);
+      testBed.expectNotDispatched(setCurrentSession);
+    });
+
+    it('leaves autoLoadNext armed for a non-success (loading) list', async () => {
+      const testBed = bed({
+        program: {
+          autoLoadNext: true,
+          upcomingSessions: RemoteData.loading(),
+        },
+      } as unknown as Partial<RootState>);
+
+      await testBed.dispatchHandled(setUpcomingSessions(RemoteData.loading()));
+
+      testBed.expectNotDispatched(setAutoLoadNext);
+      testBed.expectNotDispatched(setCurrentSession);
+    });
+  });
+
+  // ─── finishing does not persist an unstarted session ──────────────────────────
+
+  describe('applyCurrentSessionEffects — finish only persists started sessions', () => {
+    const blueprint = new SessionBlueprint(
+      'Legs',
+      [
+        new WeightedExerciseBlueprint(
+          'Squat',
+          3,
+          10,
+          new NoProgressiveOverload(),
+          Rest.medium,
+          false,
+          '',
+          '',
+        ),
+      ],
+      '',
+    );
+
+    const unstartedSession = Session.getEmptySession(blueprint, 'kilograms');
+    const startedSession = unstartedSession.withCycledExerciseReps(
+      0,
+      0,
+      OffsetDateTime.now(),
+    );
+
+    function bed(session: Session) {
+      const testBed = createAddEffectTestBed({
+        initialState: {
+          currentSession: {
+            isHydrated: true,
+            workoutSession: session,
+            historySession: undefined,
+          },
+          program: {
+            activePlanId: 'p1',
+            savedPrograms: {
+              p1: {
+                name: 'Plan',
+                sessions: [blueprint],
+                lastEdited: LocalDate.now(),
+              },
+            },
+            autoLoadNext: false,
+            upcomingSessions: RemoteData.notAsked(),
+          },
+        } as unknown as Partial<RootState>,
+        services: { keyValueStore: makeKeyValueStore() },
+      });
+      applyCurrentSessionEffects(testBed.addEffect);
+      return testBed;
+    }
+
+    it('persist does not store an unstarted session, but still clears it', async () => {
+      const testBed = bed(unstartedSession);
+
+      await testBed.dispatchHandled(persistCurrentSession('workoutSession'));
+
+      testBed.expectNotDispatched(addStoredSession);
+      // The current session is still cleared so nothing gets stuck.
+      const cleared = testBed.getDispatchedAction(setCurrentSession);
+      expect(cleared.payload).toEqual({
+        target: 'workoutSession',
+        session: undefined,
+      });
+    });
+
+    it('persist stores a started session', async () => {
+      const testBed = bed(startedSession);
+
+      await testBed.dispatchHandled(persistCurrentSession('workoutSession'));
+
+      expect(testBed.getDispatchedAction(addStoredSession).payload).toBe(
+        startedSession,
+      );
+    });
+
+    it('finish does not queue-publish an unstarted session', async () => {
+      const testBed = bed(unstartedSession);
+
+      await testBed.dispatchHandled(finishCurrentWorkout('workoutSession'));
+
+      testBed.expectNotDispatched(addUnpublishedSessionId);
+    });
+
+    it('finish queues a started session for publish', async () => {
+      const testBed = bed(startedSession);
+
+      await testBed.dispatchHandled(finishCurrentWorkout('workoutSession'));
+
+      expect(testBed.getDispatchedAction(addUnpublishedSessionId).payload).toBe(
+        startedSession.id,
       );
     });
   });

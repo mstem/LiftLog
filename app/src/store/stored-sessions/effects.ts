@@ -7,11 +7,14 @@ import {
   initializeStoredSessionsStateSlice,
   migrateExerciseWeights,
   selectSessions,
+  setAllExerciseNotes,
+  setExerciseNotes,
   setExercises,
   setExercisesRequiringWeightMigration,
   setIsHydrated,
   setStoredSessions,
   updateExercise,
+  upsertExerciseNotes,
   upsertStoredSessions,
   WeightMigrateableExercise,
 } from './index';
@@ -19,7 +22,12 @@ import { fetchUpcomingSessions } from '@/store/program';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { setCurrentSession } from '@/store/current-session';
-import { exercisesSchema, sessionsSchema } from '@/db/schema';
+import {
+  exerciseNotesSchema,
+  exercisesSchema,
+  sessionsSchema,
+} from '@/db/schema';
+import { NormalizedName } from '@/models/blueprint-models';
 import { eq, sql } from 'drizzle-orm';
 import { toRecord } from '@/utils/reduce';
 import {
@@ -103,6 +111,17 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       });
 
       dispatch(setExercises(Object.fromEntries(currentExercises)));
+
+      const exerciseNotes = (
+        await db.select().from(exerciseNotesSchema)
+      ).reduce(
+        toRecord(
+          (x) => x.id,
+          (x) => x.notes,
+        ),
+        {},
+      );
+      dispatch(setAllExerciseNotes(exerciseNotes));
 
       const newBuiltIns: string[] = builtinExercisesAddedInThePast.concat(
         Object.keys(builtInExercisesNotAlreadyAdded),
@@ -261,6 +280,9 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     upsertStoredSessions,
     async (action, { cancelActiveListeners, extra: { db, logger } }) => {
       cancelActiveListeners();
+      if (action.payload.length === 0) {
+        return;
+      }
       await logger.time('upsertStoredSessions', async () => {
         const toUpsert = action.payload.map((x) => ({
           id: x.id,
@@ -278,6 +300,44 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       });
     },
   );
+
+  addEffect(setExerciseNotes, async (action, { extra: { db } }) => {
+    const key = new NormalizedName(action.payload.exerciseName).toString();
+    if (action.payload.notes.trim()) {
+      await db
+        .insert(exerciseNotesSchema)
+        .values({ id: key, notes: action.payload.notes })
+        .onConflictDoUpdate({
+          target: exerciseNotesSchema.id,
+          set: {
+            notes: sql.raw(`excluded.${exerciseNotesSchema.notes.name}`),
+          },
+        });
+    } else {
+      await db
+        .delete(exerciseNotesSchema)
+        .where(eq(exerciseNotesSchema.id, key));
+    }
+  });
+
+  addEffect(upsertExerciseNotes, async (action, { extra: { db } }) => {
+    const values = Object.entries(action.payload).map(([id, notes]) => ({
+      id,
+      notes,
+    }));
+    if (!values.length) {
+      return;
+    }
+    await db
+      .insert(exerciseNotesSchema)
+      .values(values)
+      .onConflictDoUpdate({
+        target: exerciseNotesSchema.id,
+        set: {
+          notes: sql.raw(`excluded.${exerciseNotesSchema.notes.name}`),
+        },
+      });
+  });
 
   addEffect(deleteExercise, async (action, { extra: { db } }) => {
     await db

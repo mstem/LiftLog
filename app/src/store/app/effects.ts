@@ -10,7 +10,6 @@ import { AddEffectFn } from '@/store/store';
 import { sleep } from '@/utils/sleep';
 import { initializeSettingsStateSlice } from '../settings';
 import { initializeProgramStateSlice } from '../program';
-import { initializeFeedStateSlice } from '../feed';
 import { initializeAiPlannerStateSlice } from '../ai-planner';
 import { setStringAsync } from 'expo-clipboard';
 
@@ -25,7 +24,6 @@ export function applyAppEffects(addEffect: AddEffectFn) {
       await databaseMigrationService.migrate();
       dispatch(initializeSettingsStateSlice());
       dispatch(initializeProgramStateSlice());
-      dispatch(initializeFeedStateSlice());
       dispatch(initializeAiPlannerStateSlice());
 
       dispatch(setIsHydrated(true));
