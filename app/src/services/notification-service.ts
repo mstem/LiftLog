@@ -4,6 +4,7 @@ import { Dispatch } from '@reduxjs/toolkit';
 import {
   AndroidImportance,
   AndroidNotificationVisibility,
+  deleteNotificationChannelAsync,
   setNotificationChannelAsync,
   setNotificationHandler,
 } from 'expo-notifications';
@@ -29,10 +30,15 @@ if (Platform.OS === 'android') {
     lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
     bypassDnd: false,
   });
-  void setNotificationChannelAsync('rest_channel', {
+  // v2: the original 'rest_channel' was created at DEFAULT importance, which
+  // plays a sound but never wakes the screen - so with the phone locked the
+  // "rest over" alert was only discovered on unlock. Android ignores importance
+  // changes to an existing channel, so raising it requires a new channel id.
+  void deleteNotificationChannelAsync('rest_channel');
+  void setNotificationChannelAsync('rest_channel_v2', {
     name: 'Rest Notifications',
     description: 'A notification alerting you that your rest is over',
-    importance: AndroidImportance.DEFAULT,
+    importance: AndroidImportance.HIGH,
     enableVibrate: true,
     showBadge: true,
     lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,

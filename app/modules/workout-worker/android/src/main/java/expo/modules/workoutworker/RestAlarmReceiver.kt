@@ -17,6 +17,11 @@ class RestAlarmReceiver : BroadcastReceiver() {
         val title = intent.getStringExtra(EXTRA_TITLE) ?: return
 
         val notificationManager = WorkoutNotificationManager(context)
+        // Clear any still-showing rest banner first. setTimeoutAfter below is not
+        // reliably dismissing it (one was observed alive 5+ minutes after firing),
+        // and posting onto a live id makes this an *update*, which Android alerts
+        // for far less aggressively than a fresh post.
+        notificationManager.clearRestNotification()
         val notification = notificationManager.createRestNotificationBuilder()
             .setContentTitle(title)
             // Auto-dismiss so a stale "rest over" banner doesn't linger; mirrors the

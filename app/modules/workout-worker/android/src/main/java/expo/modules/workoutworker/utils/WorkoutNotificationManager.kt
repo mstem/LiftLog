@@ -16,7 +16,10 @@ class WorkoutNotificationManager(private val context: Context) {
         const val REST_NOTIFICATION_ID = 1234
 
         const val PERSISTENT_CHANNEL_ID = "workout_channel"
-        const val REST_CHANNEL_ID = "rest_channel"
+        // Must match the channel created in notification-service.ts. v2 raised the
+        // importance to HIGH so a finished rest wakes the screen; Android will not
+        // apply an importance change to an existing channel, hence the new id.
+        const val REST_CHANNEL_ID = "rest_channel_v2"
     }
 
     fun createWorkoutNotificationBuilder(): NotificationCompat.Builder {
@@ -37,7 +40,11 @@ class WorkoutNotificationManager(private val context: Context) {
             .setSmallIcon(R.drawable.fitness_center_24px)
             .setOngoing(false)
             .setSilent(false)
-            .setOnlyAlertOnce(true)
+            // Deliberately NOT setOnlyAlertOnce: that flag suppresses the sound
+            // whenever a notification with this id is already showing, so a
+            // lingering "min rest over" banner silenced the "max rest over" ding
+            // (and every ding of the next rest). It made sense only for the old
+            // polling path, which re-posted this same id on every tick.
     }
 
 
