@@ -28,12 +28,15 @@ class RestAlarmScheduler(private val context: Context) {
      * is never already over.
      */
     fun schedule(triggerAtEpochMs: Long, requestCode: Int, title: String) {
-        if (triggerAtEpochMs <= System.currentTimeMillis()) {
+        val now = System.currentTimeMillis()
+        if (triggerAtEpochMs <= now) {
+            Log.d(TAG, "skip code=$requestCode, target ${now - triggerAtEpochMs}ms in the past")
             cancel(requestCode)
             return
         }
 
         val pending = buildPendingIntent(requestCode, title)
+        Log.d(TAG, "schedule code=$requestCode in ${triggerAtEpochMs - now}ms title='$title'")
 
         if (canScheduleExact()) {
             alarmManager.setExactAndAllowWhileIdle(
@@ -42,7 +45,7 @@ class RestAlarmScheduler(private val context: Context) {
         } else {
             // Without the exact-alarm permission we can still wake the device in
             // Doze, just not to-the-second. Better a slightly late ding than none.
-            Log.w("RestAlarmScheduler", "Exact alarms not permitted; falling back to inexact")
+            Log.w(TAG, "Exact alarms not permitted; falling back to inexact")
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP, triggerAtEpochMs, pending
             )
@@ -50,6 +53,7 @@ class RestAlarmScheduler(private val context: Context) {
     }
 
     fun cancel(requestCode: Int) {
+        Log.d(TAG, "cancel code=$requestCode")
         alarmManager.cancel(buildPendingIntent(requestCode, null))
     }
 
@@ -83,6 +87,7 @@ class RestAlarmScheduler(private val context: Context) {
     }
 
     companion object {
+        private const val TAG = "RestAlarm"
         const val REQUEST_CODE_MIN = 2001
         const val REQUEST_CODE_MAX = 2002
     }

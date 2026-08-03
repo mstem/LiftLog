@@ -3,6 +3,7 @@ package expo.modules.workoutworker
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import expo.modules.workoutworker.utils.WorkoutNotificationManager
 
 /**
@@ -13,15 +14,18 @@ import expo.modules.workoutworker.utils.WorkoutNotificationManager
  */
 class RestAlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action != ACTION_REST_ALARM) return
-        val title = intent.getStringExtra(EXTRA_TITLE) ?: return
+        Log.d(TAG, "onReceive action=${intent.action} at=${System.currentTimeMillis()}")
+        if (intent.action != ACTION_REST_ALARM) {
+            Log.w(TAG, "ignoring unexpected action ${intent.action}")
+            return
+        }
+        val title = intent.getStringExtra(EXTRA_TITLE)
+        if (title == null) {
+            Log.w(TAG, "no title extra; nothing posted")
+            return
+        }
 
         val notificationManager = WorkoutNotificationManager(context)
-        // Clear any still-showing rest banner first. setTimeoutAfter below is not
-        // reliably dismissing it (one was observed alive 5+ minutes after firing),
-        // and posting onto a live id makes this an *update*, which Android alerts
-        // for far less aggressively than a fresh post.
-        notificationManager.clearRestNotification()
         val notification = notificationManager.createRestNotificationBuilder()
             .setContentTitle(title)
             // Auto-dismiss so a stale "rest over" banner doesn't linger; mirrors the
@@ -29,9 +33,11 @@ class RestAlarmReceiver : BroadcastReceiver() {
             .setTimeoutAfter(REST_NOTIFICATION_TIMEOUT_MS)
             .build()
         notificationManager.notifyRest(notification)
+        Log.d(TAG, "posted rest notification '$title'")
     }
 
     companion object {
+        private const val TAG = "RestAlarm"
         const val ACTION_REST_ALARM = "expo.modules.workoutworker.REST_ALARM"
         const val EXTRA_TITLE = "title"
         private const val REST_NOTIFICATION_TIMEOUT_MS = 10_000L
