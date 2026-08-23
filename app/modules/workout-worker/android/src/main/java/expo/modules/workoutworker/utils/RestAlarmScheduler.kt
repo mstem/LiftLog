@@ -7,15 +7,22 @@ import android.content.Intent
 import android.os.Build
 import android.util.Log
 import expo.modules.workoutworker.RestAlarmReceiver
+import expo.modules.workoutworker.WorkoutConstants.getLaunchAppAtWorkoutPagePendingIntent
 
 /**
  * Schedules the "rest over" ding as an exact AlarmManager alarm.
  *
  * The foreground service's polling timer freezes when the screen turns off (a
  * foreground service holds no wakelock, so the CPU sleeps between events), which
- * is why the rest notification used to arrive late or not at all. An exact
- * `setExactAndAllowWhileIdle` alarm wakes the CPU at the target time even in Doze,
- * so the ding lands on time regardless of app / screen state.
+ * is why the rest notification used to arrive late or not at all.
+ *
+ * The alarm is booked with `setAlarmClock`, the same call the clock app uses.
+ * `setExactAndAllowWhileIdle` is not enough: while the device is idle the OS
+ * dispatches at most one of those per app per 9 minutes, and OEM battery managers
+ * hold them until the screen comes back on - which is exactly the "it only dings
+ * when I unlock" failure. `setAlarmClock` is exempt from Doze, App Standby and
+ * battery optimisation, and is never rate limited. The cost is the alarm icon in
+ * the status bar for the length of the rest.
  */
 class RestAlarmScheduler(private val context: Context) {
 
@@ -39,12 +46,16 @@ class RestAlarmScheduler(private val context: Context) {
         Log.d(TAG, "schedule code=$requestCode in ${triggerAtEpochMs - now}ms title='$title'")
 
         if (canScheduleExact()) {
-            alarmManager.setExactAndAllowWhileIdle(
-                AlarmManager.RTC_WAKEUP, triggerAtEpochMs, pending
+            // showIntent is what the system opens if the user taps the alarm chip on
+            // the lock screen, so point it at the workout page.
+            val showIntent = context.getLaunchAppAtWorkoutPagePendingIntent()
+            alarmManager.setAlarmClock(
+                AlarmManager.AlarmClockInfo(triggerAtEpochMs, showIntent), pending
             )
         } else {
-            // Without the exact-alarm permission we can still wake the device in
-            // Doze, just not to-the-second. Better a slightly late ding than none.
+            // Without the exact-alarm permission setAlarmClock is off the table too.
+            // We can still wake the device in Doze, just not to-the-second.
+            // Better a slightly late ding than none.
             Log.w(TAG, "Exact alarms not permitted; falling back to inexact")
             alarmManager.setAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP, triggerAtEpochMs, pending

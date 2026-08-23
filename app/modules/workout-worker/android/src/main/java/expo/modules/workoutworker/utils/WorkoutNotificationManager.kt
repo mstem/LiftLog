@@ -16,10 +16,12 @@ class WorkoutNotificationManager(private val context: Context) {
         const val REST_NOTIFICATION_ID = 1234
 
         const val PERSISTENT_CHANNEL_ID = "workout_channel"
-        // Must match the channel created in notification-service.ts. v2 raised the
-        // importance to HIGH so a finished rest wakes the screen; Android will not
-        // apply an importance change to an existing channel, hence the new id.
-        const val REST_CHANNEL_ID = "rest_channel_v2"
+        // Must match the channel created in notification-service.ts. v4 is silent
+        // on purpose - RestAlarmReceiver plays the tone and vibration itself, so the
+        // channel only carries the banner. Android applies no change of importance,
+        // sound or audio attributes to a channel that already exists, which is why
+        // each revision needed a new id.
+        const val REST_CHANNEL_ID = "rest_channel_v4"
     }
 
     fun createWorkoutNotificationBuilder(): NotificationCompat.Builder {
@@ -40,6 +42,11 @@ class WorkoutNotificationManager(private val context: Context) {
             .setSmallIcon(R.drawable.fitness_center_24px)
             .setOngoing(false)
             .setSilent(false)
+            // This is an alarm going off, not an FYI: the category is what lets it
+            // through a Do Not Disturb profile that still allows alarms, and it
+            // matches the setAlarmClock booking that fires it.
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             // Deliberately NOT setOnlyAlertOnce: that flag suppresses the sound
             // whenever a notification with this id is already showing, so a
             // lingering "min rest over" banner silenced the "max rest over" ding

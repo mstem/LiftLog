@@ -30,19 +30,35 @@ if (Platform.OS === 'android') {
     lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
     bypassDnd: false,
   });
-  // v2: the original 'rest_channel' was created at DEFAULT importance, which
-  // plays a sound but never wakes the screen - so with the phone locked the
-  // "rest over" alert was only discovered on unlock. Android ignores importance
-  // changes to an existing channel, so raising it requires a new channel id.
+  // The rest ding has been through several channels. The short version of what
+  // each one taught us:
+  //   'rest_channel'    - DEFAULT importance, so it never woke the screen.
+  //   'rest_channel_v2' - HIGH importance, but USAGE_NOTIFICATION, so the tone came
+  //                       out of the notification stream, far quieter than media.
+  //   'rest_channel_v3' - USAGE_ALARM. Still inaudible: the notification was posted
+  //                       dead on time (confirmed in logcat) and Android simply
+  //                       declined to alert for it, with DND off, cooldown off and
+  //                       no listener hints. NotificationManagerService applies
+  //                       around a dozen mute rules of its own and there is no way
+  //                       for an app to force past them.
+  //   'rest_channel_v4' - silent by design. RestAlarmReceiver now plays the tone
+  //                       and the vibration itself, so the channel only has to
+  //                       carry the banner. sound: null and enableVibrate: false
+  //                       keep the system from adding a second, competing alert.
+  // Android applies none of importance, sound or audio attributes to a channel that
+  // already exists, so each change needs a fresh id and a cleanup of the old ones.
   void deleteNotificationChannelAsync('rest_channel');
-  void setNotificationChannelAsync('rest_channel_v2', {
+  void deleteNotificationChannelAsync('rest_channel_v2');
+  void deleteNotificationChannelAsync('rest_channel_v3');
+  void setNotificationChannelAsync('rest_channel_v4', {
     name: 'Rest Notifications',
     description: 'A notification alerting you that your rest is over',
     importance: AndroidImportance.HIGH,
-    enableVibrate: true,
+    enableVibrate: false,
     showBadge: true,
     lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
     bypassDnd: false,
+    sound: null,
   });
 }
 /**
