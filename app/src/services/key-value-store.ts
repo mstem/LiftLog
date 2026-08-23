@@ -2,7 +2,52 @@ import { uuid } from '@/utils/uuid';
 import { File, Paths } from 'expo-file-system';
 
 export class KeyValueStore {
+  /**
+   * One key, one operation at a time. A write is a create/write/delete/move
+   * sequence and a remove is a delete, so two of them in flight together can
+   * finish out of order - the classic result being a workout that was just
+   * finished and cleared getting written back over the clear, so it returns as
+   * the current session on the next launch. Queueing per key also stops a read
+   * landing in the window where the final file has been deleted but the temp
+   * file has not been moved into place yet.
+   */
+  private readonly operations = new Map<string, Promise<unknown>>();
+
+  private enqueue<T>(key: string, operation: () => Promise<T>): Promise<T> {
+    const previous = this.operations.get(key) ?? Promise.resolve();
+    // Run next regardless of whether the previous operation failed.
+    const result = previous.then(operation, operation);
+    const settled = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.operations.set(key, settled);
+    void settled.then(() => {
+      // Don't hold on to keys that are no longer being written to.
+      if (this.operations.get(key) === settled) {
+        this.operations.delete(key);
+      }
+    });
+    return result;
+  }
+
   async getItem(key: string): Promise<string | undefined> {
+    return this.enqueue(key, () => this.getItemInternal(key));
+  }
+
+  async getItemBytes(key: string): Promise<Uint8Array | undefined> {
+    return this.enqueue(key, () => this.getItemBytesInternal(key));
+  }
+
+  async setItem(key: string, value: string | Uint8Array): Promise<void> {
+    return this.enqueue(key, () => this.setItemInternal(key, value));
+  }
+
+  async removeItem(key: string): Promise<void> {
+    return this.enqueue(key, () => this.removeItemInternal(key));
+  }
+
+  private async getItemInternal(key: string): Promise<string | undefined> {
     const file = getFile(key);
     if (file.exists) {
       return file.text();
@@ -10,7 +55,9 @@ export class KeyValueStore {
     return undefined;
   }
 
-  async getItemBytes(key: string): Promise<Uint8Array | undefined> {
+  private async getItemBytesInternal(
+    key: string,
+  ): Promise<Uint8Array | undefined> {
     const file = getFile(key);
     if (file.exists) {
       return this.readBytes(file);
@@ -18,7 +65,10 @@ export class KeyValueStore {
     return undefined;
   }
 
-  async setItem(key: string, value: string | Uint8Array): Promise<void> {
+  private async setItemInternal(
+    key: string,
+    value: string | Uint8Array,
+  ): Promise<void> {
     // We do this tempfile business to catch if the app crashes halfway through a write, don't want to corrupt the existing data.
     // Originally I found that if the value was < the original file length then it kept the old files extra data -corrupting it.
     // Could just delete it, but this feels like less chance of data loss
@@ -55,7 +105,7 @@ export class KeyValueStore {
     return undefined;
   }
 
-  async removeItem(key: string): Promise<void> {
+  private async removeItemInternal(key: string): Promise<void> {
     const file = getFile(key);
     if (file.exists) {
       file.delete();

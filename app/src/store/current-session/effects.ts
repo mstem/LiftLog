@@ -81,6 +81,16 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
           }),
         );
       }
+
+      // Reconcile the worker with what we actually restored. Its notification is
+      // owned by a foreground service that outlives the JS process, so if a
+      // workout ever ends without the app getting to say so - a crash, the
+      // process being killed mid-finish - nothing else would ever clear it, and
+      // the notification comes back on every launch. Saying "ended" here is
+      // cheap and idempotent when no service is running.
+      if (!getState().currentSession.workoutSession?.isStarted) {
+        dispatch(broadcastWorkoutEvent({ type: 'WorkoutEndedEvent' }));
+      }
     },
   );
 
@@ -234,7 +244,14 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
   addEffect(currentWorkoutSessionUpdated, (action, { dispatch }) => {
     const previousValue = action.payload.before;
     const currentValue = action.payload.after;
-    if (!previousValue && currentValue) {
+    // The worker's notification tracks a workout that is actually under way, not
+    // whatever session happens to be loaded. Finishing a workout auto-loads the
+    // next one, and treating that as a start put the notification straight back
+    // up for a workout the user had not begun - which read as the finished one
+    // never closing out.
+    const wasInProgress = !!previousValue?.isStarted;
+    const isInProgress = !!currentValue?.isStarted;
+    if (!wasInProgress && isInProgress) {
       dispatch(broadcastWorkoutEvent({ type: 'WorkoutStartedEvent' }));
     }
     if (
@@ -245,7 +262,7 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
     ) {
       dispatch(notifySetTimer());
     }
-    if (currentValue) {
+    if (isInProgress && currentValue) {
       dispatch(
         broadcastWorkoutEvent({
           type: 'WorkoutUpdatedEvent',
@@ -260,7 +277,7 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
         }),
       );
     }
-    if (previousValue && !currentValue) {
+    if (wasInProgress && !isInProgress) {
       dispatch(broadcastWorkoutEvent({ type: 'WorkoutEndedEvent' }));
     }
   });

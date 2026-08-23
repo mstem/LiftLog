@@ -83,7 +83,9 @@ export default function History() {
   };
 
   const startWorkout = (session: Session, force = false) => {
-    if (currentWorkoutSession && !force) {
+    // Only confirm over a workout that has something recorded in it - the session
+    // auto-loaded after finishing one has nothing to save.
+    if (currentWorkoutSession?.isStarted && !force) {
       setSelectedWorkout(session);
       setReplaceCurrentSessionConfirmOpen(true);
     } else {

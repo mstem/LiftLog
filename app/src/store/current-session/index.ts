@@ -73,6 +73,17 @@ export const selectCurrentSession = createSelector(
   (state, target) => state[target],
 );
 
+/**
+ * A workout only counts as in progress once something has been recorded in it.
+ * Holding a session as current is not enough: finishing a workout auto-loads the
+ * next one, and that untouched session has nothing to resume, nothing to save,
+ * and nothing worth a persistent notification.
+ */
+export const selectIsWorkoutInProgress = createSelector(
+  [currentSessionSlice.selectors.selectState],
+  (state) => !!state.workoutSession?.isStarted,
+);
+
 export const clearSetTimerNotification = createAction(
   'clearSetTimerNotification',
 );

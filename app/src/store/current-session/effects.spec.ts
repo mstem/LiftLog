@@ -1,10 +1,12 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
+  broadcastWorkoutEvent,
   initializeCurrentSessionStateSlice,
   setCurrentSession,
   setIsHydrated,
   currentWorkoutSessionUpdated,
 } from '@/store/current-session';
+import { WorkoutMessage } from '@/models/workout-worker-messages';
 import { RootState } from '@/store/store';
 import { applyCurrentSessionEffects } from '@/store/current-session/effects';
 import { createAddEffectTestBed } from '@/utils/__test__/add-effect-testbed';
@@ -44,7 +46,8 @@ function defaultKvStore() {
 
 const hydratedSettingsState = {
   settings: { isHydrated: true },
-} as Partial<RootState>;
+  currentSession: { isHydrated: false, workoutSession: undefined },
+} as unknown as Partial<RootState>;
 
 describe('current-session effects', () => {
   // ─── initializeCurrentSessionStateSlice ──────────────────────────────────────
@@ -491,6 +494,107 @@ describe('current-session effects', () => {
 
       expect(testBed.getDispatchedAction(addUnpublishedSessionId).payload).toBe(
         startedSession.id,
+      );
+    });
+  });
+
+  // ─── the worker only tracks a workout that is actually under way ─────────────
+
+  describe('applyCurrentSessionEffects — worker events follow a started workout', () => {
+    const blueprint = new SessionBlueprint(
+      'Push',
+      [
+        new WeightedExerciseBlueprint(
+          'Bench Press',
+          3,
+          10,
+          new NoProgressiveOverload(),
+          Rest.medium,
+          false,
+          '',
+          '',
+        ),
+      ],
+      '',
+    );
+    const unstarted = Session.getEmptySession(blueprint, 'kilograms');
+    const started = unstarted.withCycledExerciseReps(0, 0, OffsetDateTime.now());
+
+    function bed() {
+      const testBed = createAddEffectTestBed({
+        initialState: {
+          settings: { restNotifications: true },
+          currentSession: { isHydrated: true },
+        } as unknown as Partial<RootState>,
+        services: { keyValueStore: makeKeyValueStore() },
+      });
+      applyCurrentSessionEffects(testBed.addEffect);
+      return testBed;
+    }
+
+    function broadcastTypes(testBed: ReturnType<typeof bed>) {
+      return testBed.dispatchedActions
+        .filter((x) => x.type === broadcastWorkoutEvent.type)
+        .map(
+          (x) =>
+            (x as ReturnType<typeof broadcastWorkoutEvent>).payload.type,
+        ) satisfies WorkoutMessage['payload']['type'][];
+    }
+
+    it('stays quiet for a session that has not been started', async () => {
+      const testBed = bed();
+
+      await testBed.dispatchHandled(
+        currentWorkoutSessionUpdated({ before: undefined, after: unstarted }),
+      );
+
+      expect(broadcastTypes(testBed)).toEqual([]);
+    });
+
+    it('starts once the first set is recorded', async () => {
+      const testBed = bed();
+
+      await testBed.dispatchHandled(
+        currentWorkoutSessionUpdated({ before: unstarted, after: started }),
+      );
+
+      expect(broadcastTypes(testBed)).toEqual([
+        'WorkoutStartedEvent',
+        'WorkoutUpdatedEvent',
+      ]);
+    });
+
+    it('ends when the finished workout is cleared', async () => {
+      const testBed = bed();
+
+      await testBed.dispatchHandled(
+        currentWorkoutSessionUpdated({ before: started, after: undefined }),
+      );
+
+      expect(broadcastTypes(testBed)).toEqual(['WorkoutEndedEvent']);
+    });
+
+    it('ends - and does not restart - when the next workout is auto-loaded', async () => {
+      const testBed = bed();
+
+      await testBed.dispatchHandled(
+        currentWorkoutSessionUpdated({ before: started, after: unstarted }),
+      );
+
+      expect(broadcastTypes(testBed)).toEqual(['WorkoutEndedEvent']);
+    });
+
+    it('tells the worker to stand down on startup when nothing is in progress', async () => {
+      const testBed = createAddEffectTestBed({
+        initialState: hydratedSettingsState,
+        services: { keyValueStore: makeKeyValueStore() },
+      });
+      applyCurrentSessionEffects(testBed.addEffect);
+
+      await testBed.dispatchHandled(initializeCurrentSessionStateSlice());
+
+      expect(testBed.getDispatchedAction(broadcastWorkoutEvent).payload).toEqual(
+        { type: 'WorkoutEndedEvent' },
       );
     });
   });

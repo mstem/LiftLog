@@ -14,6 +14,7 @@ import com.limajuice.liftlog.WorkoutStartedEvent
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.workoutworker.utils.Json
+import expo.modules.workoutworker.utils.WorkoutNotificationManager
 import java.lang.ref.WeakReference
 
 class WorkoutWorkerModule : Module() {
@@ -123,6 +124,14 @@ class WorkoutWorkerModule : Module() {
                     unbindIfNeeded()
                     val intent = Intent(context, WorkoutWorkerService::class.java)
                     context.stopService(intent)
+                    // The notification can outlive the service that posted it: kill
+                    // the process and the ongoing, no-clear notification is left on
+                    // screen with no service to stop and no way for the user to swipe
+                    // it away. stopService does nothing for it, so cancel by id too -
+                    // cancelling one that isn't showing costs nothing.
+                    val notificationManager = WorkoutNotificationManager(context)
+                    notificationManager.clearPersistentNotification()
+                    notificationManager.clearRestNotification()
                 }
 
                 else -> {

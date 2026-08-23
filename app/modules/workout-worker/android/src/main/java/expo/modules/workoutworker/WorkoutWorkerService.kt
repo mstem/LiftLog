@@ -71,6 +71,16 @@ class WorkoutWorkerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("WorkoutWorker", "Service started")
 
+        // A null intent means the system restarted us on its own. Everything this
+        // service shows comes from the JS side, which is not running at that point,
+        // so there is no workout to show - only a "workout in progress" notification
+        // nothing can ever clear. Go away instead.
+        if (intent == null) {
+            Log.d("WorkoutWorker", "Restarted with no intent, stopping")
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
+
         val notification = notificationManager.createWorkoutNotificationBuilder().build()
 
         val type = when {
@@ -83,7 +93,11 @@ class WorkoutWorkerService : Service() {
             this, WorkoutNotificationManager.PERSISTENT_NOTIFICATION_ID, notification, type
         )
 
-        return START_STICKY
+        // Not sticky: the service holds no state of its own, so an automatic
+        // restart after the process is killed can only put up a notification for a
+        // workout that no longer exists. The app re-starts the service itself when
+        // there really is a workout under way.
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder = binder

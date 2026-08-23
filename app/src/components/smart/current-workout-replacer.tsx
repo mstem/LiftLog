@@ -3,6 +3,7 @@ import { Session } from '@/models/session-models';
 import { useAppSelector, useAppSelectorWithArg } from '@/store';
 import {
   selectCurrentSession,
+  selectIsWorkoutInProgress,
   setCurrentSession,
 } from '@/store/current-session';
 import { T, useTranslate } from '@tolgee/react';
@@ -19,15 +20,16 @@ export function CurrentWorkoutReplacer({
   clearSession: () => void;
 }) {
   const { t } = useTranslate();
-  const hasActiveSession = useAppSelector(
-    (x) => !!x.currentSession.workoutSession,
-  );
+  // Only a workout with something recorded in it is worth confirming over. The
+  // session auto-loaded after finishing a workout has nothing to lose, so asking
+  // "replace it without saving?" for it was just noise about a workout the user
+  // had never started.
+  const workoutInProgress = useAppSelector(selectIsWorkoutInProgress);
   const { push } = useRouter();
   const currentSession = useAppSelectorWithArg(
     selectCurrentSession,
     'workoutSession',
   );
-  const hasCurrentSession = !!currentSession;
   const activeSessionSameAsSelected = session?.equals(currentSession);
   const dispatch = useDispatch();
   const replaceSession = useDebouncedCallback(
@@ -49,13 +51,13 @@ export function CurrentWorkoutReplacer({
     replaceSession(session);
   };
   useEffect(() => {
-    if (session && (!hasCurrentSession || activeSessionSameAsSelected)) {
+    if (session && (!workoutInProgress || activeSessionSameAsSelected)) {
       replaceSession(session);
     }
-  }, [session, hasCurrentSession, replaceSession, activeSessionSameAsSelected]);
+  }, [session, workoutInProgress, replaceSession, activeSessionSameAsSelected]);
   return (
     <ConfirmationDialog
-      open={hasActiveSession && !!session && !activeSessionSameAsSelected}
+      open={workoutInProgress && !!session && !activeSessionSameAsSelected}
       onCancel={clearSession}
       okText={t('generic.replace.button')}
       onOk={replaceSessionDialogAction}
