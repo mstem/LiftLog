@@ -735,6 +735,10 @@ export interface Rest {
   failureRest: Duration;
 }
 
+function firstNonZero(...durations: Duration[]): Duration {
+  return durations.find((d) => !d.isZero()) ?? Duration.ZERO;
+}
+
 export const Rest = {
   short: {
     minRest: Duration.ofSeconds(60),
@@ -759,11 +763,25 @@ export const Rest = {
 
   // Exercises with no timer configured (all durations zero) fall back to the default
   orDefault(value: Rest): Rest {
-    return value.minRest.isZero() &&
+    if (
+      value.minRest.isZero() &&
       value.maxRest.isZero() &&
       value.failureRest.isZero()
-      ? Rest.default
-      : value;
+    ) {
+      return Rest.default;
+    }
+    // A single zero field means "not configured", not "no timer". Both callers
+    // treat a zero rest as "skip the timer entirely", so leaving min rest at zero
+    // while setting a max rest silently disabled the rest for that exercise - no
+    // countdown in the app and no alarm in the native worker - and threw the max
+    // rest away. Fill each gap from the nearest configured neighbour instead.
+    const minRest = firstNonZero(value.minRest, value.maxRest, value.failureRest);
+    const maxRest = firstNonZero(value.maxRest, minRest);
+    return {
+      minRest,
+      maxRest,
+      failureRest: firstNonZero(value.failureRest, maxRest),
+    };
   },
 
   fromJSON(json: RestJSON): Rest {

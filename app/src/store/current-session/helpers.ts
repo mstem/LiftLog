@@ -68,11 +68,20 @@ export function getCurrentExerciseDetails(
 export function getTimerInfo(session: Session): RestTimerInfo | undefined {
   const lastExercise = session.lastExercise;
   const nextExercise = session.nextExercise;
+  // Only lastExercise decides how long the rest is, so its type is the one that
+  // matters. nextExercise merely has to exist - there is nothing to rest for at
+  // the end of a workout. Requiring it to be weighted too meant that finishing an
+  // exercise killed the rest whenever the exercise nextExercise picked was a
+  // cardio one, which for a plan opening with a Mobility block or a Warm Up is
+  // most of the time: completing an exercise makes it complete, so nextExercise
+  // falls back to the first incomplete exercise in the session, which is that
+  // skipped block sitting above. Session.restTimerEndTime never had this guard,
+  // so the in-app countdown and the native worker disagreed about whether a rest
+  // was running at all.
   if (
     !session.restTimerStartTime ||
     !lastExercise ||
     !nextExercise ||
-    !(nextExercise instanceof RecordedWeightedExercise) ||
     !(lastExercise instanceof RecordedWeightedExercise)
   ) {
     return undefined;
