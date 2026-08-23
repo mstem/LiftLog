@@ -1,4 +1,3 @@
-import ConfirmationDialog from '@/components/presentation/foundation/confirmation-dialog';
 import SessionComponent from '@/components/smart/session-component';
 import SessionMoreMenuComponent from '@/components/smart/session-more-menu-component';
 import { useAppSelector, useAppSelectorWithArg } from '@/store';
@@ -6,7 +5,6 @@ import {
   finishCurrentWorkout,
   selectCurrentSession,
 } from '@/store/current-session';
-import { useTranslate } from '@tolgee/react';
 import { Stack, useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useState } from 'react';
@@ -22,21 +20,16 @@ export default function Index() {
     (x) => x.settings.keepScreenAwakeDuringWorkout,
   );
   const { dismissTo, push } = useRouter();
-  const { t } = useTranslate();
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [postWorkoutSessionId, setPostWorkoutSessionId] = useState<
     string | undefined
   >(undefined);
 
-  const save = (force = false) => {
+  // Finishing is unconditional. Asking "this workout is incomplete, finish it?"
+  // fired on every single save for anyone whose session has optional work in it
+  // (a warmup or mobility block is never fully checked off), and dismissing that
+  // dialog instead of confirming it left the workout open and unrecorded.
+  const save = () => {
     const finishedSessionId = session?.id;
-    if (session) {
-      if (!force && !session.isComplete) {
-        setConfirmOpen(true);
-        return;
-      }
-      setConfirmOpen(false);
-    }
     if (showPostWorkoutSummary) {
       setPostWorkoutSessionId(finishedSessionId);
       if (finishedSessionId) {
@@ -77,14 +70,6 @@ export default function Index() {
             `/session/post-workout?sessionId=${encodeURIComponent(session.id)}&source=live`,
           );
         }}
-      />
-      <ConfirmationDialog
-        okText={t('generic.finish.button')}
-        onOk={() => save(true)}
-        onCancel={() => setConfirmOpen(false)}
-        textContent={t('workout.finish.incomplete.body')}
-        headline={t('workout.finish.confirm.title')}
-        open={confirmOpen}
       />
     </>
   );

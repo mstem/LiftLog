@@ -13,7 +13,7 @@ import {
 } from '@/store/stored-sessions';
 import { useTranslate } from '@tolgee/react';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
 import { FAB } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
@@ -44,6 +44,24 @@ export default function PostWorkoutPage() {
   const dispatch = useDispatch();
   const { t } = useTranslate();
 
+  // Leaving this screen has to conclude the workout however it happens - the
+  // Finish button, the Android back button, a tap on the workout notification
+  // that navigates away. Only the button used to finish it, so every other exit
+  // silently dropped the save: the workout stayed current with its notification
+  // still running, which reads as a completed workout that never closed out.
+  const finishedFromButton = useRef(false);
+  const stillNeedsFinishing = useRef(false);
+  stillNeedsFinishing.current =
+    openedAfterFinishingWorkout && currentWorkoutSession?.id === sessionId;
+  useEffect(
+    () => () => {
+      if (!finishedFromButton.current && stillNeedsFinishing.current) {
+        dispatch(finishCurrentWorkout('workoutSession'));
+      }
+    },
+    [dispatch],
+  );
+
   useEffect(() => {
     if (!sessionId || !session) {
       dismissTo('/session');
@@ -59,6 +77,7 @@ export default function PostWorkoutPage() {
       fab={
         <FAB
           onPress={() => {
+            finishedFromButton.current = true;
             dispatch(finishCurrentWorkout('workoutSession'));
             dismissTo('/');
           }}
