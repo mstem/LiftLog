@@ -15,12 +15,7 @@ import {
   setIsHydrated,
 } from '@/store/current-session';
 import { AddEffectFn, RootState } from '@/store/store';
-import {
-  fetchUpcomingSessions,
-  selectActiveProgram,
-  setAutoLoadNext,
-  setUpcomingSessions,
-} from '@/store/program';
+import { fetchUpcomingSessions, selectActiveProgram } from '@/store/program';
 import {
   addStoredSession,
   selectLatestExercises,
@@ -159,9 +154,8 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
     async (a, { dispatch, getState, extra: { logger } }) => {
       dispatch(clearSetTimerNotification());
       const session = selectCurrentSession(getState(), a.payload);
-      // Only persist a session that was actually started. Auto-loading the next
-      // session (below) can install an unstarted session as current; a stray
-      // finish on that would otherwise store an empty duplicate in history.
+      // Only persist a session that was actually started - a stray finish on an
+      // unstarted session would otherwise store an empty duplicate in history.
       if (session?.isStarted) {
         const program = selectActiveProgram(getState());
         dispatch(addStoredSession(session));
@@ -207,39 +201,14 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
         }
       }
       dispatch(setCurrentSession({ target: a.payload, session: undefined }));
+      // Refetching leaves the next workout in the rotation sitting at the top of
+      // the upcoming list, ready to start whenever the user next trains. It is
+      // deliberately not installed as the current session: that reserved a
+      // workout on the day the previous one finished, dated it that day, and
+      // read as a workout already under way.
       dispatch(fetchUpcomingSessions());
-      dispatch(setAutoLoadNext(true));
     },
   );
-
-  // After finishing a workout, persistCurrentSession sets autoLoadNext(true) and
-  // kicks off a fresh fetchUpcomingSessions. We advance to the next session only
-  // once that fresh list lands (setUpcomingSessions) - reading the upcoming slice
-  // directly from a component would race against the in-flight fetch and pick up
-  // the stale pre-workout list, whose first entry is the session just finished,
-  // making it look like the save never concluded the workout.
-  addEffect(setUpcomingSessions, (action, { dispatch, getState }) => {
-    const state = getState();
-    if (!state.program.autoLoadNext) {
-      return;
-    }
-    // Only a resolved list consumes the one-shot flag; a loading/error
-    // placeholder must leave it armed for the real list to land.
-    if (!action.payload.isSuccess()) {
-      return;
-    }
-    if (state.currentSession.workoutSession) {
-      return;
-    }
-    // Disarm as soon as we see a resolved list while eligible, even when it's
-    // empty. Leaving the flag armed let a later unrelated refetch silently
-    // install a workout the user never asked to start.
-    dispatch(setAutoLoadNext(false));
-    const next = action.payload.unwrapOr([] as readonly Session[])[0];
-    if (next) {
-      dispatch(setCurrentSession({ target: 'workoutSession', session: next }));
-    }
-  });
 
   addEffect(currentWorkoutSessionUpdated, (action, { dispatch }) => {
     const previousValue = action.payload.before;

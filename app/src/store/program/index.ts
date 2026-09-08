@@ -21,7 +21,6 @@ interface ProgramState {
   readonly savedPrograms: {
     readonly [programId: string]: ProgramBlueprintPOJO;
   };
-  readonly autoLoadNext: boolean;
 }
 
 const initialState: ProgramState = {
@@ -29,7 +28,6 @@ const initialState: ProgramState = {
   activePlanId: '00000000-0000-0000-0000-000000000000',
   upcomingSessions: RemoteData.notAsked(),
   savedPrograms: {},
-  autoLoadNext: false,
 };
 
 const programSlice = createSlice({
@@ -38,10 +36,6 @@ const programSlice = createSlice({
   reducers: {
     setIsHydrated(state, action: PayloadAction<boolean>) {
       state.isHydrated = action.payload;
-    },
-
-    setAutoLoadNext(state, action: PayloadAction<boolean>) {
-      state.autoLoadNext = action.payload;
     },
 
     setUpcomingSessions(
@@ -280,7 +274,6 @@ const programSlice = createSlice({
 
 export const {
   setIsHydrated,
-  setAutoLoadNext,
   setUpcomingSessions,
   applyDiffToPlan,
   addProgramSession,
