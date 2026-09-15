@@ -106,6 +106,7 @@ export default function RemoteBackupPage() {
             value={endpointValue}
             error={!!endpointError}
             onChangeText={updateEndpoint}
+            autoCapitalize="none"
             autoCorrect={false}
           />
           <HelperText type="error">{endpointError}</HelperText>
@@ -115,6 +116,7 @@ export default function RemoteBackupPage() {
             mode="outlined"
             value={apiKeyValue}
             onChangeText={setApiKey}
+            autoCapitalize="none"
             autoCorrect={false}
           />
           <HelperText type="error">{endpointError}</HelperText>
