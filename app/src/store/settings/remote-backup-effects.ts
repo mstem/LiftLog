@@ -80,11 +80,11 @@ export function addRemoteBackupEffects(addEffect: AddEffectFn) {
         };
 
         if (apiKey?.trim()) {
-          headers['X-Api-Key'] = apiKey;
+          headers['X-Api-Key'] = apiKey.trim();
         }
 
         // Send backup request with abort signal
-        const response = await fetch(endpoint, {
+        const response = await fetch(endpoint.trim(), {
           method: 'POST',
           headers,
           body: daoBytes,
