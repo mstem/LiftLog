@@ -28,6 +28,15 @@ export default function PotentialSetAdditionalActionsDialog({
   const { colors } = useAppTheme();
   const originalReps = set?.set?.repsCompleted ?? pendingReps;
 
+  // Shortcut buttons cover the target reps plus or minus 5 - the only numbers
+  // anyone taps in practice. Negative reps don't exist, so the low end stops
+  // at 0.
+  const lowestRepOption = Math.max(0, repTarget - 5);
+  const repOptions = Array.from(
+    { length: repTarget + 5 - lowestRepOption + 1 },
+    (_, i) => lowestRepOption + i,
+  );
+
   const [repCountText, setRepCountText] = useState<string>(
     originalReps?.toString() ?? '',
   );
@@ -79,14 +88,14 @@ export default function PotentialSetAdditionalActionsDialog({
               />
 
               <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                {Array.from({ length: repTarget + 3 }).map((_, i) => (
+                {repOptions.map((reps) => (
                   <IconButton
-                    key={i}
+                    key={reps}
                     mode="outlined"
-                    icon={() => <Text>{i}</Text>}
+                    icon={() => <Text>{reps}</Text>}
                     onPress={() => {
-                      setRepCountText(i.toString());
-                      updateRepCount(i);
+                      setRepCountText(reps.toString());
+                      updateRepCount(reps);
                       close();
                     }}
                   />
