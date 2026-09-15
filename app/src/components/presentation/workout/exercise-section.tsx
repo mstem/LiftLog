@@ -14,6 +14,7 @@ import ExerciseNotesDisplay from '@/components/presentation/workout/exercise-not
 import ExerciseNotesField from '@/components/presentation/workout/exercise-notes-field';
 import RecordedExerciseNotesEditor from '@/components/presentation/workout/recorded-exercise-notes-editor';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
+import TouchableRipple from '@/components/presentation/foundation/gesture-wrappers/touchable-ripple';
 import { useRouter } from 'expo-router';
 
 interface ExerciseSectionProps<T extends RecordedExercise> {
@@ -36,6 +37,11 @@ export default function ExerciseSection<T extends RecordedExercise>(
   const { updateExercise, onRemoveExercise } = props;
   const openUrl = (url: string) => {
     void Linking.canOpenURL(url).then(() => Linking.openURL(url));
+  };
+  const searchExerciseForm = (name: string) => {
+    openUrl(
+      `https://www.google.com/search?q=${encodeURIComponent(`${name} form gif`)}`,
+    );
   };
   const { t } = useTranslate();
   const { colors } = useAppTheme();
@@ -162,11 +168,17 @@ export default function ExerciseSection<T extends RecordedExercise>(
             alignItems: 'center',
           }}
         >
-          <ItemTitle
-            testID="weighted-exercise-title"
-            style={{ marginVertical: spacing[2], color: colors.primary }}
-            title={recordedExercise.blueprint.name}
-          />
+          <TouchableRipple
+            testID="exercise-title-search-btn"
+            style={{ flexShrink: 1, minWidth: 0 }}
+            onPress={() => searchExerciseForm(recordedExercise.blueprint.name)}
+          >
+            <ItemTitle
+              testID="weighted-exercise-title"
+              style={{ marginVertical: spacing[2], color: colors.primary }}
+              title={recordedExercise.blueprint.name}
+            />
+          </TouchableRipple>
           {interactiveButtons}
         </View>
         {props.children}
