@@ -12,3 +12,24 @@ updates:
       actions:
         patterns:
           - "*"
+  - package-ecosystem: npm
+    directories:
+      - "/app"
+      - "/scripts"
+      - "/tests/cypress-tests"
+    schedule:
+      interval: monthly
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+  - package-ecosystem: nuget
+    directories:
+      - "/backend/*"
+      - "/tests/LiftLog.Tests.Api"
+    schedule:
+      interval: monthly
+    groups:
+      dependencies:
+        patterns:
+          - "*"
