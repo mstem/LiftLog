@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Actions need no manifest: Dependabot reads .github/workflows directly. This
+  # catches an action pinned to a floating major tag, which never updates on its
+  # own. Grouped and monthly so it arrives as one pull request rather than one
+  # per action.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
