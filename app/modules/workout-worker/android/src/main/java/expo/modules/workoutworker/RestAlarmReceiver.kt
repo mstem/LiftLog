@@ -15,11 +15,17 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import expo.modules.workoutworker.utils.WorkoutNotificationManager
 
 /**
  * Fired by [expo.modules.workoutworker.utils.RestAlarmScheduler] at a rest
- * milestone. Posts the rest notification and makes the noise itself.
+ * milestone. Rewrites the workout notification and makes the noise itself.
+ *
+ * It reuses the persistent notification's id rather than posting one of its own.
+ * A separate rest notification sat in the shade beside the workout one, both
+ * saying the rest was over. Posting under the same id on the rest channel still
+ * pops the banner, and the workout timer's next tick puts the quiet channel back.
  *
  * The sound is deliberately NOT left to the notification channel. Posting a
  * notification only *asks* Android to alert; NotificationManagerService then runs
@@ -44,17 +50,20 @@ class RestAlarmReceiver : BroadcastReceiver() {
             Log.w(TAG, "no title extra; nothing posted")
             return
         }
+        val text = intent.getStringExtra(EXTRA_TEXT)
 
         val notificationManager = WorkoutNotificationManager(context)
         val notification = notificationManager.createRestNotificationBuilder()
             .setContentTitle(title)
-            // Long enough to still be on the lock screen when the phone is picked
-            // up mid-rest. At 10s it had always cleared itself by then, which made
-            // a ding that did fire look like one that never happened.
-            .setTimeoutAfter(REST_NOTIFICATION_TIMEOUT_MS)
+            .apply {
+                if (text != null) {
+                    setContentText(text)
+                    setStyle(NotificationCompat.BigTextStyle().bigText(text))
+                }
+            }
             .build()
-        notificationManager.notifyRest(notification)
-        Log.d(TAG, "posted rest notification '$title'")
+        notificationManager.notifyPersistent(notification)
+        Log.d(TAG, "posted rest-over '$title' on the workout notification")
 
         vibrate(context)
         alert(context, goAsync())
@@ -158,7 +167,7 @@ class RestAlarmReceiver : BroadcastReceiver() {
         private const val TAG = "RestAlarm"
         const val ACTION_REST_ALARM = "expo.modules.workoutworker.REST_ALARM"
         const val EXTRA_TITLE = "title"
-        private const val REST_NOTIFICATION_TIMEOUT_MS = 60_000L
+        const val EXTRA_TEXT = "text"
         private const val ALERT_DURATION_MS = 1_000L
         private const val SYNTHESIZED_TONE_MS = 1_000
         private val VIBRATION_PATTERN = longArrayOf(0, 350, 200, 350)

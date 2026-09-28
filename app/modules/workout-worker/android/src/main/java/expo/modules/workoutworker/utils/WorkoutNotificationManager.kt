@@ -13,6 +13,8 @@ class WorkoutNotificationManager(private val context: Context) {
 
     companion object {
         const val PERSISTENT_NOTIFICATION_ID = 123
+        // No longer posted: rest-over now rewrites the persistent notification.
+        // Still cancelled on workout end, to clear one left by an older build.
         const val REST_NOTIFICATION_ID = 1234
 
         const val PERSISTENT_CHANNEL_ID = "workout_channel"
@@ -58,12 +60,6 @@ class WorkoutNotificationManager(private val context: Context) {
     fun notifyPersistent(notification: android.app.Notification) {
         val manager = context.getSystemService(NotificationManager::class.java)
         manager.notify(PERSISTENT_NOTIFICATION_ID, notification)
-    }
-
-    fun notifyRest(notification: Notification) {
-        val manager = context.getSystemService(NotificationManager::class.java)
-        manager.notify(REST_NOTIFICATION_ID, notification)
-
     }
 
     fun clearPersistentNotification() {
