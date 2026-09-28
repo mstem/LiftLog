@@ -7,6 +7,8 @@ import {
 } from '@js-joda/core';
 import { v4 as uuid } from 'uuid';
 import {
+  selectAverageSessionsPerMonth,
+  upsertStoredSessions,
   selectExerciseNotes,
   selectSessionsInMonth,
   setExerciseNotes,
@@ -129,5 +131,90 @@ describe('exercise notes', () => {
     expect(
       selectExerciseNotes({ storedSessions: state }, 'Bicep Curls'),
     ).toBeUndefined();
+  });
+});
+
+describe('average sessions per month', () => {
+  function stateWithSessionsOn(dates: LocalDate[]) {
+    const sessions = dates.map((date, i) =>
+      createSessionWithCompletionTime(
+        date,
+        OffsetDateTime.of(
+          date.year(),
+          date.monthValue(),
+          date.dayOfMonth(),
+          12,
+          0,
+          0,
+          0,
+          ZoneOffset.UTC,
+        ),
+        `Session ${i}`,
+      ),
+    );
+    return {
+      storedSessions: storedSessionsReducer(
+        undefined,
+        upsertStoredSessions(sessions),
+      ),
+    };
+  }
+
+  it('divides the sessions by the number of months they span', () => {
+    const state = stateWithSessionsOn([
+      LocalDate.of(2026, 1, 5),
+      LocalDate.of(2026, 1, 20),
+      LocalDate.of(2026, 2, 3),
+      LocalDate.of(2026, 3, 28),
+    ]);
+
+    // 4 sessions over January, February and March
+    expect(selectAverageSessionsPerMonth(state)).toBeCloseTo(4 / 3, 5);
+  });
+
+  it('counts a single month of sessions as one month', () => {
+    const state = stateWithSessionsOn([
+      LocalDate.of(2026, 4, 1),
+      LocalDate.of(2026, 4, 15),
+    ]);
+
+    expect(selectAverageSessionsPerMonth(state)).toBe(2);
+  });
+
+  it('counts months with no sessions in them', () => {
+    const state = stateWithSessionsOn([
+      LocalDate.of(2026, 1, 10),
+      LocalDate.of(2026, 5, 10),
+    ]);
+
+    expect(selectAverageSessionsPerMonth(state)).toBeCloseTo(2 / 5, 5);
+  });
+
+  it('is zero with nothing recorded', () => {
+    expect(selectAverageSessionsPerMonth(stateWithSessionsOn([]))).toBe(0);
+  });
+
+  it('skips sessions with no exercises recorded in them', () => {
+    const recorded = createSessionWithCompletionTime(
+      LocalDate.of(2026, 6, 4),
+      OffsetDateTime.of(2026, 6, 4, 12, 0, 0, 0, ZoneOffset.UTC),
+      'Recorded',
+    );
+    const empty = new Session(
+      uuid(),
+      recorded.blueprint,
+      [],
+      LocalDate.of(2026, 6, 11),
+      undefined,
+      undefined,
+    );
+    const state = {
+      storedSessions: storedSessionsReducer(
+        undefined,
+        upsertStoredSessions([recorded, empty]),
+      ),
+    };
+
+    expect(selectAverageSessionsPerMonth(state)).toBe(1);
   });
 });

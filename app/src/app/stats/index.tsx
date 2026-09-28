@@ -16,6 +16,7 @@ import {
   setOverallViewTime,
 } from '@/store/stats';
 import { formatDuration } from '@/utils/format-date';
+import { formatRate } from '@/utils/format-rate';
 import { useTranslate } from '@tolgee/react';
 import { Stack, useFocusEffect } from 'expo-router';
 import { View, Text } from 'react-native';
@@ -67,12 +68,12 @@ function OverallStatsGrid({ stats }: { stats: GranularStatisticView }) {
       <SingleValueStatisticsGrid>
         <SingleValueStatisticCard
           title={t('stats.workouts_per_week.label')}
-          value={formatWeeklyRate(stats.workoutsPerWeek)}
+          value={formatRate(stats.workoutsPerWeek)}
           icon={'assignment'}
         />
         <SingleValueStatisticCard
           title={t('stats.sets_per_week.label')}
-          value={formatWeeklyRate(stats.setsPerWeek)}
+          value={formatRate(stats.setsPerWeek)}
           icon={'function'}
         />
         <SingleValueStatisticCard
@@ -104,14 +105,6 @@ function OverallStatsGrid({ stats }: { stats: GranularStatisticView }) {
       </SingleValueStatisticsGrid>
     </TitledSection>
   );
-}
-
-function formatWeeklyRate(value: number) {
-  const rounded =
-    Math.abs(value - Math.round(value)) < 0.05
-      ? Math.round(value).toString()
-      : value.toFixed(1);
-  return rounded;
 }
 
 function BodyweightStatValue({

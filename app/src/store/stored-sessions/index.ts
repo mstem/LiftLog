@@ -9,7 +9,13 @@ import {
   ExerciseBlueprint,
   KeyedExerciseBlueprint,
 } from '@/models/blueprint-models';
-import { LocalDate, OffsetDateTime, YearMonth, ZoneId } from '@js-joda/core';
+import {
+  ChronoUnit,
+  LocalDate,
+  OffsetDateTime,
+  YearMonth,
+  ZoneId,
+} from '@js-joda/core';
 import {
   createAction,
   createSelector,
@@ -375,9 +381,7 @@ const selectAllTimeWeightedExerciseBests = createSelector(
 export const selectWeightedExercisePersonalBests = createSelector(
   [selectAllTimeWeightedExerciseBests],
   (bests) =>
-    (
-      blueprint: ExerciseBlueprint,
-    ): WeightedExercisePersonalBests | undefined =>
+    (blueprint: ExerciseBlueprint): WeightedExercisePersonalBests | undefined =>
       bests[NormalizedName.fromExerciseBlueprint(blueprint).toString()],
 );
 
@@ -408,6 +412,14 @@ export const selectPreviousComparableSession = createSelector(
   },
 );
 
+export const selectLastCompletedSession = createSelector(
+  [selectSessions],
+  (sessions) =>
+    Enumerable.from(sessions)
+      .orderByDescending((x) => getSessionReferenceTime(x), TemporalComparer)
+      .firstOrDefault(),
+);
+
 export const selectSessionsInMonth = createSelector(
   [selectSessions, (_, ym: YearMonth) => ym],
   (sessions, ym) =>
@@ -417,6 +429,31 @@ export const selectSessionsInMonth = createSelector(
       )
       .orderByDescending((x) => getSessionReferenceTime(x), TemporalComparer)
       .toArray(),
+);
+
+export const selectAverageSessionsPerMonth = createSelector(
+  [selectSessions],
+  (sessions) => {
+    // Sessions with nothing recorded in them are skipped, the same way the
+    // weekly rates on the stats page skip them.
+    const recordedSessions = sessions.filter(
+      (x) => x.recordedExercises.length > 0,
+    );
+    if (!recordedSessions.length) return 0;
+    // Averaged over the months that were actually recorded in, from the first
+    // session to the last, so a long break does not keep dragging the number
+    // down after it ends.
+    const epochDays = Enumerable.from(recordedSessions).select((x) =>
+      x.date.toEpochDay(),
+    );
+    const firstMonth = YearMonth.from(LocalDate.ofEpochDay(epochDays.min()));
+    const lastMonth = YearMonth.from(LocalDate.ofEpochDay(epochDays.max()));
+    const monthsRecorded = firstMonth.until(
+      lastMonth.plusMonths(1),
+      ChronoUnit.MONTHS,
+    );
+    return recordedSessions.length / Math.max(monthsRecorded, 1);
+  },
 );
 
 export const selectMuscles = createSelector([selectExercises], (exercises) =>

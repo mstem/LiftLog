@@ -15,8 +15,9 @@ import { useTranslate } from '@tolgee/react';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { View } from 'react-native';
-import { FAB } from 'react-native-paper';
+import { FAB, Tooltip } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
+import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 
 export default function PostWorkoutPage() {
   const { sessionId, source } = useLocalSearchParams<{
@@ -40,7 +41,7 @@ export default function PostWorkoutPage() {
     selectPreviousComparableSession,
     session,
   );
-  const { dismissTo } = useRouter();
+  const { back, dismissTo } = useRouter();
   const dispatch = useDispatch();
   const { t } = useTranslate();
 
@@ -49,18 +50,25 @@ export default function PostWorkoutPage() {
   // that navigates away. Only the button used to finish it, so every other exit
   // silently dropped the save: the workout stayed current with its notification
   // still running, which reads as a completed workout that never closed out.
-  const finishedFromButton = useRef(false);
+  // The Resume button is the one deliberate exit that leaves the workout open,
+  // so it opts out of that fallback the same way the Finish button does.
+  const exitHandled = useRef(false);
   const stillNeedsFinishing = useRef(false);
   stillNeedsFinishing.current =
     openedAfterFinishingWorkout && currentWorkoutSession?.id === sessionId;
   useEffect(
     () => () => {
-      if (!finishedFromButton.current && stillNeedsFinishing.current) {
+      if (!exitHandled.current && stillNeedsFinishing.current) {
         dispatch(finishCurrentWorkout('workoutSession'));
       }
     },
     [dispatch],
   );
+
+  const resumeWorkout = () => {
+    exitHandled.current = true;
+    back();
+  };
 
   useEffect(() => {
     if (!sessionId || !session) {
@@ -77,7 +85,7 @@ export default function PostWorkoutPage() {
       fab={
         <FAB
           onPress={() => {
-            finishedFromButton.current = true;
+            exitHandled.current = true;
             dispatch(finishCurrentWorkout('workoutSession'));
             dismissTo('/');
           }}
@@ -99,7 +107,17 @@ export default function PostWorkoutPage() {
           title: t('workout.post_workout.title'),
           gestureEnabled: showBackButton,
           headerBackVisible: showBackButton,
-          headerLeft: showFinishButton ? () => null : undefined!,
+          headerLeft: showFinishButton
+            ? () => (
+                <Tooltip title={t('workout.resume.button')}>
+                  <IconButton
+                    testID="post-workout-resume"
+                    icon={'chevronLeft'}
+                    onPress={resumeWorkout}
+                  />
+                </Tooltip>
+              )
+            : undefined!,
         }}
       />
       <View style={{ marginVertical: spacing[4] }}>

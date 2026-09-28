@@ -8,6 +8,7 @@ import HistoryCalendarCard from '@/components/presentation/summary/history-calen
 import LimitedHtml from '@/components/presentation/foundation/limited-html';
 import SessionSummary from '@/components/presentation/summary/session-summary';
 import SessionSummaryTitle from '@/components/presentation/summary/session-summary-title';
+import SingleValueStatisticCard from '@/components/presentation/stats/single-value-statistic-card';
 import SplitCardControl from '@/components/presentation/foundation/split-card-control';
 import { spacing } from '@/hooks/useAppTheme';
 import { Session } from '@/models/session-models';
@@ -19,14 +20,17 @@ import {
 import { addUnpublishedSessionId, encryptAndShare } from '@/store/feed';
 import {
   deleteStoredSession,
+  selectAverageSessionsPerMonth,
   selectSessions,
   selectSessionsInMonth,
 } from '@/store/stored-sessions';
+import { formatRate } from '@/utils/format-rate';
 import { uuid } from '@/utils/uuid';
 import { LocalDate, YearMonth } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import { Stack, useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { View } from 'react-native';
 import { Card, Tooltip } from 'react-native-paper';
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import { useDispatch } from 'react-redux';
@@ -44,6 +48,7 @@ export default function History() {
       .unwrapOr(undefined),
   );
   const sessions = useAppSelector(selectSessions);
+  const averageSessionsPerMonth = useAppSelector(selectAverageSessionsPerMonth);
   const sessionsInMonth = useAppSelectorWithArg(
     selectSessionsInMonth,
     currentYearMonth,
@@ -134,6 +139,15 @@ export default function History() {
           }}
           onSessionSelect={onSelectSession}
         />
+        {averageSessionsPerMonth > 0 && (
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+            <SingleValueStatisticCard
+              title={t('stats.workouts_per_month.label')}
+              icon="calendar"
+              value={formatRate(averageSessionsPerMonth)}
+            />
+          </View>
+        )}
         <CardList
           testID="history-list"
           items={sessionsInMonth}
@@ -145,6 +159,7 @@ export default function History() {
                   <SessionSummaryTitle
                     isFilled
                     showDuration
+                    showTime
                     session={session}
                   />
                 }

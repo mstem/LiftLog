@@ -22,6 +22,7 @@ import {
 import { encryptAndShare, publishUnpublishedSessions } from '@/store/feed';
 import { fetchUpcomingSessions, selectActiveProgram } from '@/store/program';
 import { setEditingSession } from '@/store/session-editor';
+import { selectLastCompletedSession } from '@/store/stored-sessions';
 import { executeRemoteBackup } from '@/store/settings';
 import { LocalDate } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
@@ -36,6 +37,7 @@ import { WelcomeWizard } from '@/components/smart/welcome-wizard';
 import { SessionDiffSaveDialog } from '@/components/smart/session-diff-save-dialog';
 import { SharedSession } from '@/models/feed-models';
 import { CurrentWorkoutReplacer } from '@/components/smart/current-workout-replacer';
+import { useFormatDate } from '@/hooks/useFormatDate';
 
 function PlanManager() {
   const { push } = useRouter();
@@ -45,7 +47,13 @@ function PlanManager() {
   );
 
   return (
-    <View style={{ flexDirection: 'row', gap: spacing[2] }}>
+    <View
+      style={{
+        flexDirection: 'row',
+        gap: spacing[2],
+        marginTop: spacing[4],
+      }}
+    >
       <Button
         mode="outlined"
         style={{ flex: 1 }}
@@ -67,6 +75,33 @@ function PlanManager() {
         <T keyName="workout.edit_workouts.button" />
       </Button>
     </View>
+  );
+}
+
+function LastWorkoutSummary() {
+  const { t } = useTranslate();
+  const formatDate = useFormatDate();
+  const lastSession = useAppSelector(selectLastCompletedSession);
+
+  if (!lastSession) {
+    return undefined;
+  }
+
+  return (
+    <Text variant="bodyMedium">
+      {t('workout.last.label', {
+        date: formatDate(lastSession.date, {
+          weekday: 'long',
+          day: 'numeric',
+          month: 'long',
+          year:
+            lastSession.date.year() !== LocalDate.now().year()
+              ? 'numeric'
+              : undefined,
+        }),
+        name: lastSession.blueprint.name,
+      })}
+    </Text>
   );
 }
 
@@ -107,7 +142,7 @@ function ListUpcomingWorkouts({
     <View style={{ flex: 1, gap: spacing[2], paddingTop: spacing[4] }}>
       <SessionDiffSaveDialog />
       <WelcomeWizard />
-      <PlanManager />
+      <LastWorkoutSummary />
       {currentSession && (
         <>
           <Text style={{ marginTop: spacing[2] }} variant="titleSmall">
@@ -201,6 +236,7 @@ function ListUpcomingWorkouts({
           );
         }}
       />
+      <PlanManager />
       <ConfirmationDialog
         headline={t('workout.clear_current.confirm.title')}
         textContent={t('workout.clear_current.confirm.body')}

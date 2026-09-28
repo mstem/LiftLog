@@ -23,6 +23,8 @@ interface ExerciseSectionProps<T extends RecordedExercise> {
   toStartNext: boolean;
   isReadonly: boolean;
   showPreviousButton: boolean;
+  /** Tint shared by every exercise in the same superset */
+  backgroundColor?: string;
 
   children: ReactNode;
 
@@ -157,6 +159,7 @@ export default function ExerciseSection<T extends RecordedExercise>(
         paddingBlock: spacing[4],
         paddingHorizontal: spacing.pageHorizontalMargin,
         width: '100%',
+        backgroundColor: props.backgroundColor,
       }}
       testID="weighted-exercise"
     >
