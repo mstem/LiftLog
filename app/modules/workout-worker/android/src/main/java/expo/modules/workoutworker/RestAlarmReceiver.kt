@@ -159,7 +159,7 @@ class RestAlarmReceiver : BroadcastReceiver() {
         const val ACTION_REST_ALARM = "expo.modules.workoutworker.REST_ALARM"
         const val EXTRA_TITLE = "title"
         private const val REST_NOTIFICATION_TIMEOUT_MS = 60_000L
-        private const val ALERT_DURATION_MS = 2_000L
+        private const val ALERT_DURATION_MS = 1_000L
         private const val SYNTHESIZED_TONE_MS = 1_000
         private val VIBRATION_PATTERN = longArrayOf(0, 350, 200, 350)
     }
