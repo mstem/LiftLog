@@ -9,6 +9,7 @@ import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
 import { AudioPlayer, setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Holdable from '@/components/presentation/foundation/holdable';
 import { Jiggler } from '@/components/presentation/foundation/jiggler';
+import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import clickSound from '../../../../assets/click.wav';
 
 // expo-audio exposes volume only as a settable property on the player object,
@@ -25,6 +26,7 @@ interface RestTimerProps {
   failed: boolean;
   style?: ViewStyle;
   resetTimer: () => void;
+  adjustRest: (amount: Duration) => void;
 }
 
 export default function RestTimer({
@@ -33,16 +35,13 @@ export default function RestTimer({
   failed,
   style,
   resetTimer,
+  adjustRest,
 }: RestTimerProps) {
   const { colors } = useAppTheme();
   const rest = Rest.orDefault(restProp);
   const isSameMinMaxRest = rest.minRest.equals(rest.maxRest);
   const [jiggled, setJiggled] = useState([] as string[]);
   const clickPlayer = useAudioPlayer(clickSound);
-
-  useEffect(() => {
-    setJiggled([]);
-  }, [startTime]);
 
   useEffect(() => {
     // Play in silent mode and mix with (rather than pause) the user's music.
@@ -79,9 +78,14 @@ export default function RestTimer({
     const displayTime = nextMilestone
       ? formatTimeSpan(nextMilestone.minus(diffMs), 'ceil')
       : `+${formatTimeSpan(diffMs.minus(finalMilestone))}`;
-    const firstProgressBarProgress = failed
-      ? Math.min(diffMs.toMillis() / rest.failureRest.toMillis(), 1)
-      : Math.min(diffMs.toMillis() / rest.minRest.toMillis(), 1);
+    // +15 straight after a set puts the start in the future, so elapsed time
+    // can be negative; the ring starts empty rather than running backwards.
+    const firstProgressBarProgress = Math.max(
+      0,
+      failed
+        ? Math.min(diffMs.toMillis() / rest.failureRest.toMillis(), 1)
+        : Math.min(diffMs.toMillis() / rest.minRest.toMillis(), 1),
+    );
     const secondProgressBarProgress =
       failed || isSameMinMaxRest
         ? -1
@@ -104,6 +108,21 @@ export default function RestTimer({
       backgroundColor,
     };
   }, [startTime, rest, failed, isSameMinMaxRest]);
+
+  useEffect(() => {
+    // A new rest clears every milestone. Nudging the running rest by 15s only
+    // clears the ones it moved back into the future, so pressing +15 after the
+    // rest ended clicks again at the new end, and a milestone already passed
+    // doesn't click a second time.
+    const state = getTimerState();
+    setJiggled((j) =>
+      j.filter(
+        (m) =>
+          (m === 'first' && state.firstProgressBarProgress === 1) ||
+          (m === 'second' && state.secondProgressBarProgress === 1),
+      ),
+    );
+  }, [getTimerState]);
 
   const [timerState, setTimerState] = useState(getTimerState());
   const [jiggling, setJiggling] = useState(false);
@@ -140,73 +159,111 @@ export default function RestTimer({
     return () => clearInterval(timer);
   }, [getTimerState, triggerJiggle]);
 
+  // The buttons tuck under the pill's rounded ends, and pad that side by the
+  // same amount so the label stays centred on the part left showing.
+  const buttonOverlap = pillHeight / 2;
+  const adjustButton = (seconds: number) => (
+    <Button
+      testID={`rest-timer-adjust-${seconds}`}
+      mode="contained-tonal"
+      onPress={() => adjustRest(Duration.ofSeconds(seconds))}
+      labelStyle={{ fontVariant: ['tabular-nums'] }}
+      style={[
+        { borderWidth: 2, borderColor: colors.primary },
+        seconds < 0
+          ? { marginRight: -buttonOverlap }
+          : { marginLeft: -buttonOverlap },
+      ]}
+      contentStyle={
+        seconds < 0
+          ? { paddingRight: buttonOverlap }
+          : { paddingLeft: buttonOverlap }
+      }
+    >
+      {seconds > 0 ? `+${seconds}` : `\u2212${-seconds}`}
+    </Button>
+  );
+
   return (
-    <Holdable
-      onLongPress={() => {
-        resetTimer();
-        triggerJiggle('reset');
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
       }}
     >
-      <Jiggler
-        testID="rest-timer"
-        jiggling={jiggling}
-        style={[
-          {
-            width: pillWidth,
-            height: pillHeight,
-            pointerEvents: 'none',
-            overflow: 'hidden',
-            borderRadius: pillHeight,
-            backgroundColor: colors[timerState.backgroundColor],
-            alignItems: 'center',
-            justifyContent: 'center',
-          },
-          style,
-        ]}
-      >
-        <View
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '100%',
-            alignItems: 'center',
-            justifyContent: 'center',
+      {adjustButton(-15)}
+      {/* Drawn over both buttons; without zIndex the +15, which comes later,
+          would sit on top of the pill. */}
+      <View style={{ zIndex: 1 }}>
+        <Holdable
+          onLongPress={() => {
+            resetTimer();
+            triggerJiggle('reset');
           }}
         >
-          <Svg width={pillWidth} height={pillHeight}>
-            <PillProgressBar
-              color={colors.primary}
-              progress={timerState.firstProgressBarProgress}
-              pillWidth={pillWidth}
-              pillHeight={pillHeight}
-              pillPerimeter={pillPerimeter}
-            />
-            <PillProgressBar
-              color={colors.orange}
-              progress={timerState.secondProgressBarProgress}
-              pillWidth={pillWidth}
-              pillHeight={pillHeight}
-              pillPerimeter={pillPerimeter}
-              visible={
-                !failed &&
-                !isSameMinMaxRest &&
-                timerState.secondProgressBarProgress > 0
-              }
-            />
-          </Svg>
-        </View>
-        <SurfaceText
-          style={{ fontVariant: ['tabular-nums'] }}
-          font="text-2xl"
-          weight="bold"
-          color={timerState.textColor}
-        >
-          {timerState.displayTime}
-        </SurfaceText>
-      </Jiggler>
-    </Holdable>
+          <Jiggler
+            testID="rest-timer"
+            jiggling={jiggling}
+            style={[
+              {
+                width: pillWidth,
+                height: pillHeight,
+                pointerEvents: 'none',
+                overflow: 'hidden',
+                borderRadius: pillHeight,
+                backgroundColor: colors[timerState.backgroundColor],
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+              style,
+            ]}
+          >
+            <View
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Svg width={pillWidth} height={pillHeight}>
+                <PillProgressBar
+                  color={colors.primary}
+                  progress={timerState.firstProgressBarProgress}
+                  pillWidth={pillWidth}
+                  pillHeight={pillHeight}
+                  pillPerimeter={pillPerimeter}
+                />
+                <PillProgressBar
+                  color={colors.orange}
+                  progress={timerState.secondProgressBarProgress}
+                  pillWidth={pillWidth}
+                  pillHeight={pillHeight}
+                  pillPerimeter={pillPerimeter}
+                  visible={
+                    !failed &&
+                    !isSameMinMaxRest &&
+                    timerState.secondProgressBarProgress > 0
+                  }
+                />
+              </Svg>
+            </View>
+            <SurfaceText
+              style={{ fontVariant: ['tabular-nums'] }}
+              font="text-2xl"
+              weight="bold"
+              color={timerState.textColor}
+            >
+              {timerState.displayTime}
+            </SurfaceText>
+          </Jiggler>
+        </Holdable>
+      </View>
+      {adjustButton(15)}
+    </View>
   );
 }
 

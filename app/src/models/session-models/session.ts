@@ -517,6 +517,20 @@ export class Session {
     return result;
   }
 
+  /**
+   * Lengthens (positive) or shortens (negative) the running rest. Moving the
+   * start rather than the rest itself leaves the exercise's configured rest
+   * alone, so the change lasts for this one rest only.
+   */
+  withRestAdjustedBy(amount: Duration): Session {
+    if (!this.restTimerStartTime) {
+      return this;
+    }
+    return this.with({
+      restTimerStartTime: this.restTimerStartTime.plus(amount),
+    });
+  }
+
   get restTimerEndTime(): OffsetDateTime | undefined {
     if (!this.restTimerStartTime) {
       return undefined;

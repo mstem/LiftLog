@@ -287,6 +287,9 @@ export default function SessionComponent(props: {
         startTime={session.restTimerStartTime}
         failed={!!lastSetFailed}
         resetTimer={() => resetTimer(OffsetDateTime.now())}
+        adjustRest={(amount) =>
+          updateSession((s) => s.withRestAdjustedBy(amount))
+        }
       />
     </View>
   ) : undefined;
