@@ -1,6 +1,6 @@
 import { useAppTheme, spacing, font } from '@/hooks/useAppTheme';
 import { Duration } from '@js-joda/core';
-import { useCallback, useEffect, useState } from 'react';
+import { useDurationFields } from '@/components/presentation/foundation/editors/use-duration-fields';
 import { Text, View } from 'react-native';
 import { TextInput } from 'react-native-paper';
 
@@ -16,48 +16,15 @@ export default function DurationEditor(props: DurationEditorProps) {
   const { colors } = useAppTheme();
   const { duration, onDurationUpdated, readonly } = props;
 
-  const [hours, setHours] = useState(duration.toHours().toString());
-  const [minutes, setMinutes] = useState(
-    (duration.toMinutes() % 60).toString(),
-  );
-  const [seconds, setSeconds] = useState((duration.seconds() % 60).toString());
-
-  const updateHours = (text: string) => {
-    setHours(text);
-    const hours = Number.parseInt(text);
-    if (!isNaN(hours)) {
-      const seconds = duration.seconds() % 60;
-      const mins = duration.toMinutes() % 60;
-      onDurationUpdated(
-        Duration.ofSeconds(seconds + mins * 60 + hours * 60 * 60),
-      );
-    }
-  };
-  const updateMinutes = (text: string) => {
-    setMinutes(text);
-    const mins = Number.parseInt(text);
-    if (!isNaN(mins)) {
-      const seconds = duration.seconds() % 60;
-      onDurationUpdated(Duration.ofSeconds(seconds + mins * 60));
-    }
-  };
-  const updateSeconds = (text: string) => {
-    setSeconds(text);
-    const seconds = Number.parseInt(text);
-    if (!isNaN(seconds)) {
-      const mins = duration.toMinutes();
-      onDurationUpdated(Duration.ofSeconds(mins * 60 + seconds));
-    }
-  };
-
-  const resetValues = useCallback(() => {
-    setHours(duration.toHours().toString());
-    setMinutes((duration.toMinutes() % 60).toString());
-    setSeconds((duration.seconds() % 60).toString());
-  }, [duration]);
-  useEffect(() => {
-    resetValues();
-  }, [readonly, resetValues]);
+  const {
+    hours,
+    minutes,
+    seconds,
+    updateHours,
+    updateMinutes,
+    updateSeconds,
+    resetValues,
+  } = useDurationFields(duration, onDurationUpdated, readonly);
 
   return (
     <>
