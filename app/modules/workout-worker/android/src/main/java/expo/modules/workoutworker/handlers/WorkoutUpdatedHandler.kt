@@ -98,6 +98,10 @@ class WorkoutUpdatedHandler(
         }
 
         val currentExerciseMessage = getCurrentExerciseMessage(translations, workoutUpdatedEvent)
+        fun withExercise(message: String) = when {
+            currentExerciseMessage == "" -> message
+            else -> "$currentExerciseMessage\n$message"
+        }
 
         // Ding at each rest milestone via an exact alarm rather than the polling
         // timer below: the timer freezes when the screen sleeps, so it can't be
@@ -110,6 +114,7 @@ class WorkoutUpdatedHandler(
                 restTimerInfo.partiallyEndAt.toEpochMilliseconds(),
                 RestAlarmScheduler.REQUEST_CODE_MIN,
                 translations.workoutPersistentNotificationMinRestOverMessage,
+                withExercise(translations.workoutPersistentNotificationStartSoonMessage),
             )
         }
         if (restTimerInfo.endAt.epochSeconds > restTimerInfo.partiallyEndAt.epochSeconds) {
@@ -117,6 +122,7 @@ class WorkoutUpdatedHandler(
                 restTimerInfo.endAt.toEpochMilliseconds(),
                 RestAlarmScheduler.REQUEST_CODE_MAX,
                 translations.workoutPersistentNotificationMaxRestOverMessage,
+                withExercise(translations.workoutPersistentNotificationStartNowMessage),
             )
         } else {
             restAlarmScheduler.cancel(RestAlarmScheduler.REQUEST_CODE_MAX)
@@ -140,10 +146,7 @@ class WorkoutUpdatedHandler(
                 now in timePartiallyEndSecs..timeEndSecs -> translations.workoutPersistentNotificationStartSoonMessage
                 else -> translations.workoutPersistentNotificationStartNowMessage
             }
-            val contentText = when {
-                currentExerciseMessage == "" -> message
-                else -> "$currentExerciseMessage\n$message"
-            }
+            val contentText = withExercise(message)
             var notifBuilder =
                 notificationManager.createWorkoutNotificationBuilder()
                     .setContentText(contentText).setSubText(

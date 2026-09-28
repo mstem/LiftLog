@@ -30,11 +30,11 @@ class RestAlarmScheduler(private val context: Context) {
 
     /**
      * Schedule (or replace) the alarm identified by [requestCode] to fire at
-     * [triggerAtEpochMs] and post a rest notification titled [title].
+     * [triggerAtEpochMs] and rewrite the workout notification as [title] over [text].
      * Times already in the past are ignored - a rest that has only just started
      * is never already over.
      */
-    fun schedule(triggerAtEpochMs: Long, requestCode: Int, title: String) {
+    fun schedule(triggerAtEpochMs: Long, requestCode: Int, title: String, text: String) {
         val now = System.currentTimeMillis()
         if (triggerAtEpochMs <= now) {
             Log.d(TAG, "skip code=$requestCode, target ${now - triggerAtEpochMs}ms in the past")
@@ -42,7 +42,7 @@ class RestAlarmScheduler(private val context: Context) {
             return
         }
 
-        val pending = buildPendingIntent(requestCode, title)
+        val pending = buildPendingIntent(requestCode, title, text)
         Log.d(TAG, "schedule code=$requestCode in ${triggerAtEpochMs - now}ms title='$title'")
 
         if (canScheduleExact()) {
@@ -65,7 +65,7 @@ class RestAlarmScheduler(private val context: Context) {
 
     fun cancel(requestCode: Int) {
         Log.d(TAG, "cancel code=$requestCode")
-        alarmManager.cancel(buildPendingIntent(requestCode, null))
+        alarmManager.cancel(buildPendingIntent(requestCode, null, null))
     }
 
     /** Cancel every rest alarm this scheduler can produce. */
@@ -84,10 +84,11 @@ class RestAlarmScheduler(private val context: Context) {
 
     // Extras are not part of PendingIntent equality, so a null-title intent still
     // matches (and cancels) the one scheduled with a title.
-    private fun buildPendingIntent(requestCode: Int, title: String?): PendingIntent {
+    private fun buildPendingIntent(requestCode: Int, title: String?, text: String?): PendingIntent {
         val intent = Intent(context, RestAlarmReceiver::class.java).apply {
             action = RestAlarmReceiver.ACTION_REST_ALARM
             if (title != null) putExtra(RestAlarmReceiver.EXTRA_TITLE, title)
+            if (text != null) putExtra(RestAlarmReceiver.EXTRA_TEXT, text)
         }
         return PendingIntent.getBroadcast(
             context,
