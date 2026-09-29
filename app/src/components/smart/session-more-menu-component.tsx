@@ -110,6 +110,23 @@ export default function SessionMoreMenuComponent(props: {
   );
 }
 
+/** Lightning mode caps every rest in the current workout at a minute. */
+function useLightningToggle(target: SessionTarget) {
+  const dispatch = useDispatch();
+  const session = useAppSelectorWithArg(selectCurrentSession, target);
+  const lightning = !!session?.lightning;
+  const toggleLightning = () => {
+    if (!session) return;
+    dispatch(
+      setCurrentSession({
+        target,
+        session: session.with({ lightning: !lightning }),
+      }),
+    );
+  };
+  return { lightning, toggleLightning };
+}
+
 function IosMenu(props: {
   target: SessionTarget;
   save: () => void;
@@ -125,12 +142,21 @@ function IosMenu(props: {
     setExerciseEditorOpen,
     setWorkoutEditorOpen,
   } = props;
+  const { lightning, toggleLightning } = useLightningToggle(target);
   const finishText =
     target === 'workoutSession'
       ? t('generic.finish.button')
       : t('generic.save.button');
   return (
     <Stack.Toolbar placement="right">
+      {target === 'workoutSession' ? (
+        <Stack.Toolbar.Button
+          icon={lightning ? 'bolt.fill' : 'bolt'}
+          selected={lightning}
+          accessibilityLabel={t('workout.lightning.tooltip')}
+          onPress={toggleLightning}
+        />
+      ) : null}
       <Stack.Toolbar.Button onPress={save}>
         <Stack.Toolbar.Label>{finishText}</Stack.Toolbar.Label>
       </Stack.Toolbar.Button>
@@ -177,20 +203,10 @@ function AndroidMenu(props: {
   } = props;
   const session = useAppSelectorWithArg(selectCurrentSession, target);
 
-  const dispatch = useDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
   const [jiggleFinishButton, setJiggleFinishButton] = useState(false);
   const isComplete = session?.isComplete;
-  const lightning = !!session?.lightning;
-  const toggleLightning = () => {
-    if (!session) return;
-    dispatch(
-      setCurrentSession({
-        target,
-        session: session.with({ lightning: !lightning }),
-      }),
-    );
-  };
+  const { lightning, toggleLightning } = useLightningToggle(target);
 
   useEffect(() => {
     const shouldJiggle = isComplete === true;
