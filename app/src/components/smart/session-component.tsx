@@ -37,6 +37,8 @@ import { match, P } from 'ts-pattern';
 import { CardioExercise } from '@/components/presentation/workout/cardio/cardio-exercise';
 import ExerciseGroupSection from '@/components/presentation/workout/exercise-group-section';
 import { groupExercises } from '@/components/smart/group-exercises';
+import { groupSupersets } from '@/components/smart/group-supersets';
+import { withOpacity } from '@/utils/color';
 import WeightFormat from '../presentation/foundation/weight-format';
 import { formatDuration } from '@/utils/format-date';
 
@@ -150,6 +152,34 @@ export default function SessionComponent(props: {
       </EmptyInfo>
     ) : null;
 
+  // Exercises chained by 'superset with next' share a tinted background, so a
+  // superset reads as one block instead of separate exercises that happen to sit
+  // next to each other. Two tints alternate so back to back supersets stay
+  // distinct, and the divider inside a chain is dropped.
+  const supersetPositions = groupSupersets(
+    session.recordedExercises.map(
+      (x) =>
+        x instanceof RecordedWeightedExercise && x.blueprint.supersetWithNext,
+    ),
+  );
+  const supersetTints = [
+    withOpacity(colors.primary, 0.12),
+    withOpacity(colors.tertiary, 0.14),
+  ];
+  const supersetBackground = (index: number) => {
+    const position = supersetPositions[index];
+    return position
+      ? supersetTints[position.chain % supersetTints.length]
+      : undefined;
+  };
+  const showDividerAfter = (
+    entries: { index: number }[],
+    entryIndex: number,
+  ) => {
+    const position = supersetPositions[entries[entryIndex]!.index];
+    return !position || position.isLast;
+  };
+
   const renderItem = (item: RecordedExercise, index: number) => {
     return match(item)
       .with(P.instanceOf(RecordedWeightedExercise), (item) => (
@@ -180,6 +210,7 @@ export default function SessionComponent(props: {
             updateSession((s) => s.withRemovedExercise(index))
           }
           isReadonly={isReadonly}
+          backgroundColor={supersetBackground(index)}
           showPreviousButton={props.target === 'workoutSession'}
           previousRecordedExercises={
             recentlyCompletedExercises(
@@ -214,6 +245,7 @@ export default function SessionComponent(props: {
             updateSession((s) => s.withRemovedExercise(index))
           }
           isReadonly={isReadonly}
+          backgroundColor={supersetBackground(index)}
           showPreviousButton={props.target === 'workoutSession'}
           previousRecordedExercises={
             recentlyCompletedExercises(
@@ -369,6 +401,7 @@ export default function SessionComponent(props: {
             key={segment.key}
             items={segment.entries}
             renderItem={({ exercise, index }) => renderItem(exercise, index)}
+            showDividerAfter={(i) => showDividerAfter(segment.entries, i)}
           />
         ) : (
           <ExerciseGroupSection
@@ -379,6 +412,7 @@ export default function SessionComponent(props: {
             <ItemList
               items={segment.entries}
               renderItem={({ exercise, index }) => renderItem(exercise, index)}
+              showDividerAfter={(i) => showDividerAfter(segment.entries, i)}
             />
           </ExerciseGroupSection>
         ),
