@@ -127,3 +127,38 @@ describe('getTimerInfo', () => {
     ).toBe(Rest.medium.minRest.seconds());
   });
 });
+
+describe('withRestAdjustedBy', () => {
+  it('moves the rest end, in the app and for the native alarm', () => {
+    const session = restingSession(Rest.medium);
+    const before = getTimerInfo(session)!;
+
+    const longer = session.withRestAdjustedBy(Duration.ofSeconds(15));
+    const shorter = session.withRestAdjustedBy(Duration.ofSeconds(-15));
+
+    const endAt = (s: Session) =>
+      Instant.parse(getTimerInfo(s)!.endAt).epochSecond();
+    const partiallyEndAt = (s: Session) =>
+      Instant.parse(getTimerInfo(s)!.partiallyEndAt).epochSecond();
+    const beforeEnd = Instant.parse(before.endAt).epochSecond();
+    const beforePartial = Instant.parse(before.partiallyEndAt).epochSecond();
+
+    expect(endAt(longer) - beforeEnd).toBe(15);
+    expect(partiallyEndAt(longer) - beforePartial).toBe(15);
+    expect(endAt(shorter) - beforeEnd).toBe(-15);
+    expect(
+      longer.restTimerEndTime!.toEpochSecond() -
+        session.restTimerEndTime!.toEpochSecond(),
+    ).toBe(15);
+  });
+
+  it('does nothing when no rest is running', () => {
+    const session = restingSession(Rest.medium).with({
+      restTimerStartTime: undefined,
+    });
+
+    expect(
+      session.withRestAdjustedBy(Duration.ofSeconds(15)).restTimerStartTime,
+    ).toBeUndefined();
+  });
+});
