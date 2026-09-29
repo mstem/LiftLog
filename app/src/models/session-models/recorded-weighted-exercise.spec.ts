@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Weight } from '@/models/weight';
+import { Rest } from '@/models/blueprint-models';
 import {
   PotentialSet,
   RecordedSet,
@@ -84,5 +85,25 @@ describe('RecordedWeightedExercise.withNothingCompleted', () => {
 
     const result = exercise.withNothingCompleted();
     expect(result.potentialSets[0]!.weight).toEqual(weight);
+  });
+});
+
+describe('RecordedWeightedExercise.withRest', () => {
+  it('changes the rest and keeps the sets already done', () => {
+    const t = tick();
+    const exercise = new RecordedWeightedExercise(
+      makeWeightedBlueprint(),
+      [
+        filledPotentialSet(10, t),
+        new PotentialSet(undefined, new Weight(60, 'kilograms')),
+      ],
+      undefined,
+    );
+
+    const result = exercise.withRest(Rest.long);
+
+    expect(result.blueprint.restBetweenSets).toEqual(Rest.long);
+    expect(result.potentialSets).toEqual(exercise.potentialSets);
+    expect(result.blueprint.name).toBe(exercise.blueprint.name);
   });
 });

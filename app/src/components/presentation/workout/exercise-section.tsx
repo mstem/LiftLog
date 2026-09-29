@@ -16,6 +16,11 @@ import RecordedExerciseNotesEditor from '@/components/presentation/workout/recor
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import TouchableRipple from '@/components/presentation/foundation/gesture-wrappers/touchable-ripple';
 import { useRouter } from 'expo-router';
+import Icon from '@/components/presentation/foundation/gesture-wrappers/icon';
+import RestFormat from '@/components/presentation/foundation/rest-format';
+import { SurfaceText } from '@/components/presentation/foundation/surface-text';
+import { RestEditorDialog } from '@/components/presentation/workout-editor/rest-editor-dialog';
+import { Rest } from '@/models/blueprint-models';
 
 interface ExerciseSectionProps<T extends RecordedExercise> {
   recordedExercise: T;
@@ -50,6 +55,7 @@ export default function ExerciseSection<T extends RecordedExercise>(
   const [menuVisible, setMenuVisible] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [previousDialogOpen, setPreviousDialogOpen] = useState(false);
+  const [restDialogOpen, setRestDialogOpen] = useState(false);
   const [removeExerciseDialogOpen, setRemoveExerciseDialogOpen] =
     useState(false);
   const showStats = recordedExercise instanceof RecordedWeightedExercise;
@@ -181,6 +187,34 @@ export default function ExerciseSection<T extends RecordedExercise>(
           </TouchableRipple>
           {interactiveButtons}
         </View>
+        {recordedExercise instanceof RecordedWeightedExercise ? (
+          <TouchableRipple
+            testID="exercise-rest-btn"
+            disabled={props.isReadonly}
+            style={{ alignSelf: 'flex-start', marginBottom: spacing[2] }}
+            onPress={() => setRestDialogOpen(true)}
+          >
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: spacing[1],
+              }}
+            >
+              <Icon source={'timer'} size={18} color={colors.primary} />
+              <SurfaceText color="primary">
+                {t('rest.rest.label')}{' '}
+                {/* The same default the rest timer falls back on, so this
+                    shows the rest that will actually be timed. */}
+                <RestFormat
+                  rest={Rest.orDefault(
+                    recordedExercise.blueprint.restBetweenSets,
+                  )}
+                />
+              </SurfaceText>
+            </View>
+          </TouchableRipple>
+        ) : null}
         {props.children}
         <ExerciseNotesField
           exerciseName={recordedExercise.blueprint.name}
@@ -192,6 +226,16 @@ export default function ExerciseSection<T extends RecordedExercise>(
         />
       </View>
 
+      {recordedExercise instanceof RecordedWeightedExercise ? (
+        <RestEditorDialog
+          rest={Rest.orDefault(recordedExercise.blueprint.restBetweenSets)}
+          onRestUpdated={(rest) =>
+            updateExercise(recordedExercise.withRest(rest) as T)
+          }
+          dialogOpen={restDialogOpen}
+          setDialogOpen={setRestDialogOpen}
+        />
+      ) : null}
       <RecordedExerciseNotesEditor
         exerciseName={recordedExercise.blueprint.name}
         onDismiss={() => setNotesDialogOpen(false)}
