@@ -16,11 +16,13 @@ import { RemoteData } from '@/models/remote';
 import {
   finishCurrentWorkout,
   persistCurrentSession,
+  setCurrentPlanDiff,
 } from '@/store/current-session';
 import { addStoredSession } from '@/store/stored-sessions';
 import { addUnpublishedSessionId } from '@/store/feed';
 import {
   NoProgressiveOverload,
+  ProgramBlueprint,
   Rest,
   SessionBlueprint,
   WeightedExerciseBlueprint,
@@ -321,6 +323,68 @@ describe('current-session effects', () => {
     });
   });
 
+  // ─── finishing never offers to write reps back to the plan ───────────────────
+
+  describe('applyCurrentSessionEffects - finishing leaves plan reps alone', () => {
+    const bench = (sets: number, reps: number) =>
+      new WeightedExerciseBlueprint(
+        'Bench Press',
+        sets,
+        reps,
+        new NoProgressiveOverload(),
+        Rest.medium,
+        false,
+        '',
+        '',
+      );
+    const planned = new SessionBlueprint('Push', [bench(3, 10)], '');
+
+    function finish(done: SessionBlueprint) {
+      const session = Session.getEmptySession(
+        done,
+        'kilograms',
+      ).withCycledExerciseReps(0, 0, OffsetDateTime.now());
+      const testBed = createAddEffectTestBed({
+        initialState: {
+          currentSession: { isHydrated: true, workoutSession: session },
+          program: {
+            activePlanId: 'plan',
+            savedPrograms: {
+              plan: new ProgramBlueprint(
+                'Plan',
+                [planned],
+                LocalDate.now(),
+              ).toPOJO(),
+            },
+          },
+        } as unknown as Partial<RootState>,
+      });
+      applyCurrentSessionEffects(testBed.addEffect);
+      return testBed
+        .dispatchHandled(persistCurrentSession('workoutSession'))
+        .then(() => testBed);
+    }
+
+    it('does not open the save-to-plan dialog when only reps changed', async () => {
+      const testBed = await finish(
+        new SessionBlueprint('Push', [bench(3, 8)], ''),
+      );
+
+      testBed.expectNotDispatched(setCurrentPlanDiff);
+    });
+
+    it('offers the other changes without the rep change', async () => {
+      const testBed = await finish(
+        new SessionBlueprint('Push', [bench(4, 8)], ''),
+      );
+
+      const planDiff = testBed.getDispatchedAction(setCurrentPlanDiff).payload;
+      expect(planDiff?.diff.allChanges.map((c) => c.kind)).toEqual([
+        'exerciseSets',
+      ]);
+    });
+  });
+
   // ─── the worker only tracks a workout that is actually under way ─────────────
 
   describe('applyCurrentSessionEffects — worker events follow a started workout', () => {
@@ -341,7 +405,11 @@ describe('current-session effects', () => {
       '',
     );
     const unstarted = Session.getEmptySession(blueprint, 'kilograms');
-    const started = unstarted.withCycledExerciseReps(0, 0, OffsetDateTime.now());
+    const started = unstarted.withCycledExerciseReps(
+      0,
+      0,
+      OffsetDateTime.now(),
+    );
 
     function bed() {
       const testBed = createAddEffectTestBed({
@@ -359,8 +427,7 @@ describe('current-session effects', () => {
       return testBed.dispatchedActions
         .filter((x) => x.type === broadcastWorkoutEvent.type)
         .map(
-          (x) =>
-            (x as ReturnType<typeof broadcastWorkoutEvent>).payload.type,
+          (x) => (x as ReturnType<typeof broadcastWorkoutEvent>).payload.type,
         ) satisfies WorkoutMessage['payload']['type'][];
     }
 
@@ -416,9 +483,9 @@ describe('current-session effects', () => {
 
       await testBed.dispatchHandled(initializeCurrentSessionStateSlice());
 
-      expect(testBed.getDispatchedAction(broadcastWorkoutEvent).payload).toEqual(
-        { type: 'WorkoutEndedEvent' },
-      );
+      expect(
+        testBed.getDispatchedAction(broadcastWorkoutEvent).payload,
+      ).toEqual({ type: 'WorkoutEndedEvent' });
     });
   });
 });
