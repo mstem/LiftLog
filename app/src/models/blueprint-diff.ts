@@ -15,6 +15,7 @@ import { TranslationKey, UseTranslateResult } from '@tolgee/react';
 import { uuid } from '@/utils/uuid';
 import { EmptySession } from '@/models/session-models';
 import { localeFormatBigNumber } from '@/utils/locale-bignumber';
+import { withoutRolledOverExercises } from '@/models/roll-over';
 
 // ============================================================================
 // Change Types
@@ -827,13 +828,18 @@ export function diffSessionBlueprints(
 /**
  * Diff for writing a finished workout back to an existing workout in the plan.
  * Rep changes are left out: the plan's rep targets only change in the plan
- * editor, never as a side effect of finishing a workout.
+ * editor, never as a side effect of finishing a workout. Lifts rolled over from
+ * the previous workout are one-offs, so they are taken out before diffing -
+ * otherwise they would show as added and every exercise after them as moved.
  */
 export function diffSessionBlueprintsForPlanUpdate(
   original: SessionBlueprint,
   modified: SessionBlueprint,
 ): SessionBlueprintDiff {
-  const diff = diffSessionBlueprints(original, modified);
+  const diff = diffSessionBlueprints(
+    original,
+    withoutRolledOverExercises(modified),
+  );
   return filterDiff(
     diff,
     new Set(

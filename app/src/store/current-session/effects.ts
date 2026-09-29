@@ -26,6 +26,7 @@ import {
   diffSessionBlueprintsForPlanUpdate,
   PlanDiff,
 } from '@/models/blueprint-diff';
+import { withoutRolledOverExercises } from '@/models/roll-over';
 import { addUnpublishedSessionId } from '@/store/feed';
 import { setStatsIsDirty } from '@/store/stats';
 import {
@@ -189,7 +190,7 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
                   type: 'add',
                   diff: diffSessionBlueprints(
                     EmptySession.blueprint,
-                    session.blueprint,
+                    withoutRolledOverExercises(session.blueprint),
                   ),
                 };
             // Only reps differed: nothing is left to offer, so no dialog.

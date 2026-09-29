@@ -11,6 +11,7 @@ import {
   SessionBlueprintDiff,
 } from '@/models/blueprint-diff';
 import { EmptySession } from '@/models/session-models';
+import { withoutRolledOverExercises } from '@/models/roll-over';
 import { useAppSelector } from '@/store';
 import { setCurrentPlanDiff } from '@/store/current-session';
 import {
@@ -46,7 +47,10 @@ function createAddNewWorkoutDiff(
   currentPlanDiff: PlanDiff,
   newWorkoutName: string,
 ): SessionBlueprintDiff {
-  const newSessionWithName = currentPlanDiff.diff.newSession.with({
+  // Rolled-over lifts are one-offs and never become part of a saved workout.
+  const newSessionWithName = withoutRolledOverExercises(
+    currentPlanDiff.diff.newSession,
+  ).with({
     name: newWorkoutName,
   });
 

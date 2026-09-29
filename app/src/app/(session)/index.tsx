@@ -10,6 +10,7 @@ import SessionSummaryTitle from '@/components/presentation/summary/session-summa
 import SplitCardControl from '@/components/presentation/foundation/split-card-control';
 import { spacing } from '@/hooks/useAppTheme';
 import { Session } from '@/models/session-models';
+import { withoutRolledOverExercises } from '@/models/roll-over';
 import {
   RootState,
   useAppSelector,
@@ -161,11 +162,16 @@ function ListUpcomingWorkouts({
           );
         }}
         renderItemTitle={(session) => {
+          // Match on the planned exercises, so a workout carrying lifts over
+          // from the last one still finds its plan entry and keeps its edit button.
+          const plannedBlueprint = withoutRolledOverExercises(
+            session.blueprint,
+          );
           const sessionPlanIndex = plan.sessions.findIndex((x) =>
-            x.equals(session.blueprint),
+            x.equals(plannedBlueprint),
           );
           const handleEditPress = () => {
-            dispatch(setEditingSession(session.blueprint));
+            dispatch(setEditingSession(plannedBlueprint));
             push(
               `/settings/manage-workouts/${planId}/manage-session/${sessionPlanIndex}`,
               { withAnchor: true },
