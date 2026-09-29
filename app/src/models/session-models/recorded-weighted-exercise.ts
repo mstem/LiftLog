@@ -1,4 +1,4 @@
-import { WeightedExerciseBlueprint } from '@/models/blueprint-models';
+import { Rest, WeightedExerciseBlueprint } from '@/models/blueprint-models';
 import { TemporalComparer } from '@/models/comparers';
 import { RecordedExercise } from '@/models/session-models/recorded-exercise';
 
@@ -88,6 +88,12 @@ export class RecordedWeightedExercise {
         : this.potentialSets,
       'notes' in other ? other.notes : this.notes,
     );
+  }
+
+  withRest(restBetweenSets: Rest): RecordedWeightedExercise {
+    return this.with({
+      blueprint: this.blueprint.with({ restBetweenSets }),
+    });
   }
 
   withNothingCompleted(): RecordedWeightedExercise {
