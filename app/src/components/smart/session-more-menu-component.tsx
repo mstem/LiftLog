@@ -177,9 +177,20 @@ function AndroidMenu(props: {
   } = props;
   const session = useAppSelectorWithArg(selectCurrentSession, target);
 
+  const dispatch = useDispatch();
   const [menuOpen, setMenuOpen] = useState(false);
   const [jiggleFinishButton, setJiggleFinishButton] = useState(false);
   const isComplete = session?.isComplete;
+  const lightning = !!session?.lightning;
+  const toggleLightning = () => {
+    if (!session) return;
+    dispatch(
+      setCurrentSession({
+        target,
+        session: session.with({ lightning: !lightning }),
+      }),
+    );
+  };
 
   useEffect(() => {
     const shouldJiggle = isComplete === true;
@@ -191,6 +202,17 @@ function AndroidMenu(props: {
   }, [isComplete]);
   return (
     <>
+      {target === 'workoutSession' ? (
+        <Tooltip title={t('workout.lightning.tooltip')}>
+          <IconButton
+            testID="session-lightning"
+            icon={lightning ? 'boltFill' : 'bolt'}
+            mode={lightning ? 'contained' : undefined}
+            selected={lightning}
+            onPress={toggleLightning}
+          />
+        </Tooltip>
+      ) : null}
       <Jiggler jiggling={jiggleFinishButton} jiggleSpeed={140}>
         <Tooltip title={t('workout.finish.action.tooltip')}>
           <IconButton icon={'assignmentTurnedIn'} onPress={save} />

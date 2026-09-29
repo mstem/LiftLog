@@ -34,6 +34,8 @@ import {
 } from '@/models/session-models/recorded-weighted-exercise';
 import { IndexOutOfBoundsError } from '@/utils/index-out-of-bounds';
 
+const LIGHTNING_REST = Duration.ofSeconds(60);
+
 export class Session {
   constructor(
     readonly id: string,
@@ -42,6 +44,12 @@ export class Session {
     readonly date: LocalDate,
     readonly bodyweight: Weight | undefined,
     readonly restTimerStartTime: OffsetDateTime | undefined,
+    /**
+     * Caps every rest at a minute for this workout. Like restTimerStartTime it
+     * is not saved with the session, so it resets if the app restarts. Off is
+     * undefined rather than false so it stays out of the plaintext export.
+     */
+    readonly lightning?: boolean,
   ) {}
   get duration(): Duration | undefined {
     return this.lastExercise?.latestTime && this.firstExercise?.earliestTime
@@ -152,6 +160,7 @@ export class Session {
       'restTimerStartTime' in other
         ? other.restTimerStartTime
         : this.restTimerStartTime,
+      'lightning' in other ? other.lightning || undefined : this.lightning,
     );
   }
 
@@ -531,6 +540,26 @@ export class Session {
     });
   }
 
+  /**
+   * The rest that is actually timed for an exercise in this workout: the
+   * configured rest (or the default when none is set), capped at a minute in
+   * lightning mode. Everything that times a rest must go through this so the
+   * in-app countdown and the native alarm agree.
+   */
+  restFor(configured: Rest): Rest {
+    const rest = Rest.orDefault(configured);
+    if (!this.lightning) {
+      return rest;
+    }
+    const cap = (d: Duration) =>
+      d.compareTo(LIGHTNING_REST) > 0 ? LIGHTNING_REST : d;
+    return {
+      minRest: cap(rest.minRest),
+      maxRest: cap(rest.maxRest),
+      failureRest: cap(rest.failureRest),
+    };
+  }
+
   get restTimerEndTime(): OffsetDateTime | undefined {
     if (!this.restTimerStartTime) {
       return undefined;
@@ -543,7 +572,7 @@ export class Session {
       exercise instanceof RecordedWeightedExercise
     ) {
       const repsPerSet = exercise.blueprint.repsPerSet;
-      const { minRest, failureRest } = Rest.orDefault(
+      const { minRest, failureRest } = this.restFor(
         exercise.blueprint.restBetweenSets,
       );
 

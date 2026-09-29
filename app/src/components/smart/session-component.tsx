@@ -283,7 +283,7 @@ export default function SessionComponent(props: {
   const restTimer = showRestTimer ? (
     <View style={{ flex: 1 }}>
       <RestTimer
-        rest={lastExercise.blueprint.restBetweenSets}
+        rest={session.restFor(lastExercise.blueprint.restBetweenSets)}
         startTime={session.restTimerStartTime}
         failed={!!lastSetFailed}
         resetTimer={() => resetTimer(OffsetDateTime.now())}
