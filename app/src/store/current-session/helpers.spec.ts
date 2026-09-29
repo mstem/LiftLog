@@ -162,3 +162,44 @@ describe('withRestAdjustedBy', () => {
     ).toBeUndefined();
   });
 });
+
+describe('lightning mode', () => {
+  const secondsOf = (info: ReturnType<typeof getTimerInfo>) => ({
+    partial:
+      Instant.parse(info!.partiallyEndAt).epochSecond() -
+      Instant.parse(info!.startedAt).epochSecond(),
+    full:
+      Instant.parse(info!.endAt).epochSecond() -
+      Instant.parse(info!.startedAt).epochSecond(),
+  });
+
+  it('caps every rest at 60 seconds, for the alarm and the app', () => {
+    const session = restingSession(Rest.long).with({ lightning: true });
+
+    expect(secondsOf(getTimerInfo(session))).toEqual({ partial: 60, full: 60 });
+    expect(
+      session.restTimerEndTime!.toEpochSecond() -
+        session.restTimerStartTime!.toEpochSecond(),
+    ).toBe(60);
+  });
+
+  it('leaves a rest already under 60 seconds alone', () => {
+    const short: Rest = {
+      minRest: Duration.ofSeconds(20),
+      maxRest: Duration.ofSeconds(40),
+      failureRest: Duration.ofSeconds(90),
+    };
+    const session = restingSession(short).with({ lightning: true });
+
+    expect(secondsOf(getTimerInfo(session))).toEqual({ partial: 20, full: 40 });
+  });
+
+  it('is off unless switched on', () => {
+    const session = restingSession(Rest.long);
+
+    expect(session.lightning).toBeFalsy();
+    expect(secondsOf(getTimerInfo(session)).partial).toBe(
+      Rest.long.minRest.seconds(),
+    );
+  });
+});

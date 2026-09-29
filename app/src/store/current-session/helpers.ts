@@ -3,7 +3,6 @@ import {
   RecordedWeightedExercise,
   Session,
 } from '@/models/session-models';
-import { Rest } from '@/models/blueprint-models';
 import {
   toDurationJSON,
   toInstantJson,
@@ -88,13 +87,13 @@ export function getTimerInfo(session: Session): RestTimerInfo | undefined {
   }
 
   const repsPerSet = lastExercise.blueprint.repsPerSet;
-  // Must go through Rest.orDefault, exactly as Session.restTimerEndTime does.
+  // Must go through session.restFor, exactly as Session.restTimerEndTime does.
   // Reading restBetweenSets raw meant an exercise with no rest configured (all
   // durations zero) produced no restTimerInfo at all, so the native worker took
   // the "current exercise" branch and cancelled the rest alarms - while the
   // in-app timer, which does apply the default, happily counted down. The
   // screen-off ding could never fire for those exercises.
-  const { minRest, maxRest, failureRest } = Rest.orDefault(
+  const { minRest, maxRest, failureRest } = session.restFor(
     lastExercise.blueprint.restBetweenSets,
   );
 
