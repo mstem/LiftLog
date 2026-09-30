@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Text, View } from 'react-native';
 import { useAppTheme, font } from '@/hooks/useAppTheme';
 
-export const weightIncreaseFloatDurationMs = 1500;
+export const weightIncreaseFloatDurationMs = 3000;
 
 /**
  * "+5 kg" that rises from a set towards the top of the screen and fades, when
