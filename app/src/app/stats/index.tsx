@@ -6,6 +6,7 @@ import SingleValueStatisticCard from '@/components/presentation/stats/single-val
 import { SingleValueStatisticsGrid } from '@/components/presentation/stats/single-value-statistics-grid';
 import { TimePeriodSelector } from '@/components/presentation/stats/time-period-selector';
 import { TitledSection } from '@/components/presentation/stats/titled-section';
+import { MuscleGapsCard } from '@/components/presentation/stats/muscle-gaps-card';
 import { spacing } from '@/hooks/useAppTheme';
 import { Weight } from '@/models/weight';
 import { useAppSelector } from '@/store';
@@ -37,6 +38,7 @@ export default function StatsPage() {
           title: t('stats.statistics.title'),
         }}
       />
+      <MuscleGapsCard />
       <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
         <TimePeriodSelector
           timePeriod={timePeriod}
