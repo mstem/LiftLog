@@ -12,6 +12,7 @@ import {
 import {
   applySessionBlueprintDiff,
   diffSessionBlueprints,
+  diffSessionBlueprintsForPlanUpdate,
   getChangeDescription,
 } from './blueprint-diff';
 import { UseTranslateResult } from '@tolgee/react';
@@ -313,6 +314,47 @@ describe('diffSessionBlueprints', () => {
       const kinds = diff.modifiedExercises[0]!.changes.map((c) => c.kind);
       expect(kinds).toContain('exerciseSets');
       expect(kinds).toContain('exerciseReps');
+    });
+  });
+
+  describe('diffSessionBlueprintsForPlanUpdate', () => {
+    it('leaves rep changes out, so reps done in a workout never rewrite the plan', () => {
+      const original = new SessionBlueprint(
+        'Workout',
+        [createWeightedExercise('Squat', 3, 10)],
+        '',
+      );
+      const modified = new SessionBlueprint(
+        'Workout',
+        [createWeightedExercise('Squat', 3, 8)],
+        '',
+      );
+
+      const diff = diffSessionBlueprintsForPlanUpdate(original, modified);
+
+      expect(diff.hasChanges).toBe(false);
+      expect(diff.allChanges).toEqual([]);
+      expect(diff.modifiedExercises).toEqual([]);
+    });
+
+    it('keeps the other changes made to the same exercise', () => {
+      const original = new SessionBlueprint(
+        'Workout',
+        [createWeightedExercise('Squat', 3, 10)],
+        '',
+      );
+      const modified = new SessionBlueprint(
+        'Workout',
+        [createWeightedExercise('Squat', 5, 8)],
+        '',
+      );
+
+      const diff = diffSessionBlueprintsForPlanUpdate(original, modified);
+
+      expect(diff.allChanges.map((c) => c.kind)).toEqual(['exerciseSets']);
+      expect(
+        applySessionBlueprintDiff(original, diff).exercises[0],
+      ).toMatchObject({ sets: 5, repsPerSet: 10 });
     });
   });
 

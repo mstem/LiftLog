@@ -21,7 +21,11 @@ import {
   selectLatestExercises,
 } from '@/store/stored-sessions';
 import { selectPreferredWeightUnit } from '@/store/settings';
-import { diffSessionBlueprints } from '@/models/blueprint-diff';
+import {
+  diffSessionBlueprints,
+  diffSessionBlueprintsForPlanUpdate,
+  PlanDiff,
+} from '@/models/blueprint-diff';
 import { addUnpublishedSessionId } from '@/store/feed';
 import { setStatsIsDirty } from '@/store/stats';
 import {
@@ -170,28 +174,28 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
             const sessionWithSameNameInPlan = program.sessions.find(
               (x) => x.name === session.blueprint.name,
             );
-            dispatch(
-              setCurrentPlanDiff(
-                sessionWithSameNameInPlan
-                  ? {
-                      type: 'diff',
-                      diff: diffSessionBlueprints(
-                        sessionWithSameNameInPlan,
-                        session.blueprint,
-                      ),
-                      sessionIndex: program.sessions.indexOf(
-                        sessionWithSameNameInPlan,
-                      ),
-                    }
-                  : {
-                      type: 'add',
-                      diff: diffSessionBlueprints(
-                        EmptySession.blueprint,
-                        session.blueprint,
-                      ),
-                    },
-              ),
-            );
+            const planDiff: PlanDiff = sessionWithSameNameInPlan
+              ? {
+                  type: 'diff',
+                  diff: diffSessionBlueprintsForPlanUpdate(
+                    sessionWithSameNameInPlan,
+                    session.blueprint,
+                  ),
+                  sessionIndex: program.sessions.indexOf(
+                    sessionWithSameNameInPlan,
+                  ),
+                }
+              : {
+                  type: 'add',
+                  diff: diffSessionBlueprints(
+                    EmptySession.blueprint,
+                    session.blueprint,
+                  ),
+                };
+            // Only reps differed: nothing is left to offer, so no dialog.
+            if (planDiff.diff.hasChanges) {
+              dispatch(setCurrentPlanDiff(planDiff));
+            }
           }
         } catch (e) {
           logger.error(

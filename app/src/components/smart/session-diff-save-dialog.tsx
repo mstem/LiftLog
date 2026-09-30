@@ -5,6 +5,7 @@ import SessionDiffView from '@/components/presentation/summary/session-diff-view
 import { spacing } from '@/hooks/useAppTheme';
 import {
   diffSessionBlueprints,
+  diffSessionBlueprintsForPlanUpdate,
   EmptySessionBlueprintDiff,
   PlanDiff,
   SessionBlueprintDiff,
@@ -30,7 +31,7 @@ import { useDispatch } from 'react-redux';
 function createUpdateExistingWorkoutDiff(
   currentPlanDiff: PlanDiff,
 ): SessionBlueprintDiff {
-  return diffSessionBlueprints(
+  return diffSessionBlueprintsForPlanUpdate(
     currentPlanDiff.diff.originalSession,
     currentPlanDiff.diff.newSession,
   );

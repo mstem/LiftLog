@@ -824,6 +824,24 @@ export function diffSessionBlueprints(
   };
 }
 
+/**
+ * Diff for writing a finished workout back to an existing workout in the plan.
+ * Rep changes are left out: the plan's rep targets only change in the plan
+ * editor, never as a side effect of finishing a workout.
+ */
+export function diffSessionBlueprintsForPlanUpdate(
+  original: SessionBlueprint,
+  modified: SessionBlueprint,
+): SessionBlueprintDiff {
+  const diff = diffSessionBlueprints(original, modified);
+  return filterDiff(
+    diff,
+    new Set(
+      diff.allChanges.filter((c) => c.kind !== 'exerciseReps').map((c) => c.id),
+    ),
+  );
+}
+
 // ============================================================================
 // Filter Diff by Selected Changes
 // ============================================================================
