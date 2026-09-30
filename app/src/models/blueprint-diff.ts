@@ -1306,6 +1306,11 @@ function stringifyProgressiveOverload(
         strategy: stringifyIncreaseStrategy(t, x.increaseStrategy),
       }),
     )
+    .with({ type: 'AdjustByRepsProgressiveOverload' }, (x) =>
+      t('plan.diff.progressive_overload_adjust_by_reps.label', {
+        amount: localeFormatBigNumber(x.amount),
+      }),
+    )
     .exhaustive();
 }
 

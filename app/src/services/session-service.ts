@@ -5,7 +5,9 @@ import {
   ExerciseBlueprint,
   CardioExerciseBlueprint,
   WeightedExerciseBlueprint,
+  AdjustByRepsProgressiveOverload,
 } from '@/models/blueprint-models';
+import { adjustByRepsWeight } from '@/models/adjust-by-reps';
 import {
   rolledOverExercises,
   withRolledOverExercises,
@@ -140,6 +142,34 @@ export class SessionService {
       }
     }
 
+    // History by movement for lifts that adjust by reps, built once and only
+    // when one is present - it reads every stored workout.
+    let historyByName:
+      | Map<string, { date: LocalDate; exercise: RecordedWeightedExercise }[]>
+      | undefined;
+    const historyFor = (e: WeightedExerciseBlueprint) => {
+      if (!historyByName) {
+        historyByName = new Map();
+        for (const session of $this.progressRepository.getOrderedSessions()) {
+          for (const ex of session.recordedExercises) {
+            if (!(ex instanceof RecordedWeightedExercise)) {
+              continue;
+            }
+            const key = NormalizedName.fromExerciseBlueprint(
+              ex.blueprint,
+            ).toString();
+            const list = historyByName.get(key) ?? [];
+            list.push({ date: session.date, exercise: ex });
+            historyByName.set(key, list);
+          }
+        }
+      }
+      return (
+        historyByName.get(NormalizedName.fromExerciseBlueprint(e).toString()) ??
+        []
+      );
+    };
+
     function getNextExercise(e: ExerciseBlueprint): RecordedExercise {
       const lastExercise =
         latestRecordedExercises[
@@ -200,6 +230,16 @@ export class SessionService {
           newExercise.blueprint.progressiveOverload.applyProgressiveOverload(
             newExercise,
           );
+      }
+      if (e.progressiveOverload instanceof AdjustByRepsProgressiveOverload) {
+        const weight = adjustByRepsWeight({
+          history: historyFor(e),
+          today: LocalDate.now(),
+          increment: e.progressiveOverload.weightIncrement,
+        });
+        if (weight) {
+          newExercise = newExercise.withAllSets((s) => s.with({ weight }));
+        }
       }
 
       return newExercise;

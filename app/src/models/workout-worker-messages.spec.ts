@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js';
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import Ajv from 'ajv';
@@ -15,6 +16,7 @@ import {
   CardioExerciseBlueprint,
   CardioExerciseSetBlueprint,
   NoProgressiveOverload,
+  AdjustByRepsProgressiveOverload,
 } from '@/models/blueprint-models';
 import { Weight } from '@/models/weight';
 import { Duration, Instant, OffsetDateTime, ZoneOffset } from '@js-joda/core';
@@ -343,6 +345,19 @@ describe('WorkoutMessage JSON schema validation', () => {
           makeWeightedExerciseWithSets().toJSON(),
         ),
       ).toBe(true);
+    });
+    it('validates an exercise that adjusts by reps', () => {
+      const exercise = makeWeightedExercise();
+      const byReps = new RecordedWeightedExercise(
+        exercise.blueprint.with({
+          progressiveOverload: new AdjustByRepsProgressiveOverload(
+            BigNumber(2.5),
+          ),
+        }),
+        exercise.potentialSets,
+        undefined,
+      );
+      expect(validate('RecordedWeightedExercise', byReps.toJSON())).toBe(true);
     });
   });
 

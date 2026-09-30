@@ -1,5 +1,6 @@
 package expo.modules.workoutworker.utils
 
+import com.limajuice.liftlog.AdjustByRepsProgressiveOverload
 import com.limajuice.liftlog.CardioExerciseBlueprint
 import com.limajuice.liftlog.CardioTarget
 import com.limajuice.liftlog.DistanceCardioTarget
@@ -89,6 +90,7 @@ object Json {
                 .withSubtype(NoProgressiveOverload::class.java, "NoProgressiveOverload")
                 .withSubtype(IncreaseAllEvenlyProgressiveOverload::class.java, "IncreaseAllEvenlyProgressiveOverload")
                 .withSubtype(IncreaseLowestSetProgressiveOverload::class.java, "IncreaseLowestSetProgressiveOverload")
+                .withSubtype(AdjustByRepsProgressiveOverload::class.java, "AdjustByRepsProgressiveOverload")
         )
         .add(Duration::class.java, DurationAdapter())
         .add(Instant::class.java, InstantAdapter())

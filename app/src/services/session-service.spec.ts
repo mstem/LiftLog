@@ -4,6 +4,7 @@ import { SessionService } from '@/services/session-service';
 import type { RootState } from '@/store';
 import type { ProgressRepository } from '@/services/progress-repository';
 import {
+  AdjustByRepsProgressiveOverload,
   IncreaseAllEvenlyProgressiveOverload,
   KeyedExerciseBlueprint,
   Rest,
@@ -20,6 +21,7 @@ import { tick } from '@/models/session-models/__test__/helpers';
 import { Session } from '@/models/session-models';
 import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 import Enumerable from 'linq';
+import { LocalDate } from '@js-joda/core';
 
 const overload = () => new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5));
 
@@ -177,5 +179,73 @@ describe('SessionService rolls skipped lifts into the next workout', () => {
     const [next] = await upcoming(inProgress, 1);
 
     expect(next!.blueprint.equals(legs)).toBe(true);
+  });
+});
+
+describe('SessionService adjusts by reps', () => {
+  const byReps = new AdjustByRepsProgressiveOverload(BigNumber(2.5));
+  const legPress = (sets: number, reps: number) =>
+    blueprint('Leg Press', sets, reps).with({ progressiveOverload: byReps });
+
+  function stored(date: string, kg: number, reps: number[], target = 10) {
+    const bp = legPress(reps.length, target);
+    return new Session(
+      `s-${date}`,
+      new SessionBlueprint('Legs', [bp], ''),
+      [
+        new RecordedWeightedExercise(
+          bp,
+          reps.map(
+            (r) =>
+              new PotentialSet(
+                new RecordedSet(r, tick()),
+                new Weight(kg, 'kilograms'),
+              ),
+          ),
+          undefined,
+        ),
+      ],
+      LocalDate.parse(date),
+      undefined,
+      undefined,
+    );
+  }
+
+  function hydrate(history: Session[]) {
+    const getState = (() =>
+      ({
+        settings: { useImperialUnits: false },
+      }) as unknown as RootState) as () => RootState;
+    const repository = {
+      getOrderedSessions: () => Enumerable.from(history),
+    } as unknown as ProgressRepository;
+    const service = new SessionService(repository, getState);
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Legs', [legPress(3, 10)], ''),
+      {},
+    );
+    return (
+      session.recordedExercises[0] as RecordedWeightedExercise
+    ).potentialSets.map((x) => x.weight.value.toNumber());
+  }
+
+  it('sets every set to the weight the recent reps call for', () => {
+    const recent = LocalDate.now();
+    expect(
+      hydrate([
+        stored(recent.toString(), 50, [11]),
+        stored(recent.minusDays(7).toString(), 50, [13], 15),
+      ]),
+    ).toEqual([50, 50, 50]);
+    expect(
+      hydrate([
+        stored(recent.toString(), 50, [11], 15),
+        stored(recent.minusDays(7).toString(), 50, [13], 15),
+      ]),
+    ).toEqual([47.5, 47.5, 47.5]);
+  });
+
+  it('leaves the carried-forward weight when there is no recent history', () => {
+    expect(hydrate([])).toEqual([0, 0, 0]);
   });
 });

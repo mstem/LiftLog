@@ -16,6 +16,9 @@
     },
     {
       "$ref": "./IncreaseLowestSetProgressiveOverload.json"
+    },
+    {
+      "$ref": "./AdjustByRepsProgressiveOverload.json"
     }
   ]
 }

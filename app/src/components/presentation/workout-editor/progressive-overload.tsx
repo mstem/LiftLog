@@ -2,6 +2,7 @@ import SelectButton, {
   SelectButtonOption,
 } from '@/components/presentation/foundation/select-button';
 import {
+  AdjustByRepsProgressiveOverload,
   IncreaseAllEvenlyProgressiveOverload,
   IncreaseLowestSetProgressiveOverload,
   IncreaseStrategy,
@@ -49,6 +50,10 @@ export function ProgressiveOverloadSelect(props: Props) {
       value: 'IncreaseLowestSetProgressiveOverload',
       label: t('exercise.progressive_overload.increase_lowest_set.label'),
     },
+    {
+      value: 'AdjustByRepsProgressiveOverload',
+      label: t('exercise.progressive_overload.adjust_by_reps.label'),
+    },
   ];
   return (
     <SelectButton
@@ -72,13 +77,19 @@ export function ProgressiveOverloadValuesEditor(props: Props) {
         .with({ type: 'IncreaseLowestSetProgressiveOverload' }, (x) => (
           <IncreaseLowestSetValues value={x} onChange={props.onChange} />
         ))
+        .with({ type: 'AdjustByRepsProgressiveOverload' }, (x) => (
+          <AdjustByRepsValues value={x} onChange={props.onChange} />
+        ))
         .exhaustive()}
-      {props.value.type !== 'NoProgressiveOverload' && (
-        <>
-          <Divider />
-          <ProgressiveOverloadExample value={props.value} />
-        </>
-      )}
+      {/* Adjusting by reps depends on the lift's history, which a worked
+          example of one exercise cannot show. */}
+      {props.value.type !== 'NoProgressiveOverload' &&
+        props.value.type !== 'AdjustByRepsProgressiveOverload' && (
+          <>
+            <Divider />
+            <ProgressiveOverloadExample value={props.value} />
+          </>
+        )}
     </View>
   );
 }
@@ -98,6 +109,30 @@ function IncreaseAllEvenlyValues(
         value={props.value.amount}
         onChange={(amount) => props.onChange(props.value.with({ amount }))}
       />
+    </View>
+  );
+}
+
+function AdjustByRepsValues(
+  props: Props & { value: AdjustByRepsProgressiveOverload },
+) {
+  const { t } = useTranslate();
+  return (
+    <View style={{ gap: spacing[1] }}>
+      <Text variant="bodySmall">
+        {t('exercise.progressive_overload.adjust_by_reps.explanation')}
+      </Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <Text>
+          {t('exercise.progressive_overload.adjust_by_reps.amount.label')}
+        </Text>
+        <DecimalEditor
+          underlineColor="transparent"
+          style={{ flex: 1, textAlign: 'right' }}
+          value={props.value.amount}
+          onChange={(amount) => props.onChange(props.value.with({ amount }))}
+        />
+      </View>
     </View>
   );
 }
