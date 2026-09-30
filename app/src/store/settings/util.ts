@@ -10,23 +10,33 @@ export async function getBackupBytes(options: {
   expoDb: SQLiteDatabase;
 }) {
   const { expoDb, includeFeed } = options;
-  const backupDatabase = await openDatabaseAsync(':memory:');
-  await backupDatabaseAsync({
-    sourceDatabase: expoDb,
-    destDatabase: backupDatabase,
+  // A new connection gives each backup its own in-memory copy. expo-sqlite
+  // otherwise returns the database already open under ':memory:', so
+  // overlapping backups shared one copy and the native backup call crashed.
+  const backupDatabase = await openDatabaseAsync(':memory:', {
+    useNewConnection: true,
   });
-  if (!includeFeed) {
-    await backupDatabase.execAsync(`
-          DELETE FROM feed_items;
-          DELETE FROM feed_identity;
-          DELETE FROM feed_followed_user;
-          DELETE FROM feed_follower_user;
-          DELETE FROM feed_follow_request;
-          DELETE FROM feed_revoked_follow_secrets;
-          DELETE FROM feed_unpublished_sessions;
-          `);
+  let bytes: Uint8Array;
+  try {
+    await backupDatabaseAsync({
+      sourceDatabase: expoDb,
+      destDatabase: backupDatabase,
+    });
+    if (!includeFeed) {
+      await backupDatabase.execAsync(`
+            DELETE FROM feed_items;
+            DELETE FROM feed_identity;
+            DELETE FROM feed_followed_user;
+            DELETE FROM feed_follower_user;
+            DELETE FROM feed_follow_request;
+            DELETE FROM feed_revoked_follow_secrets;
+            DELETE FROM feed_unpublished_sessions;
+            `);
+    }
+    bytes = await backupDatabase.serializeAsync();
+  } finally {
+    await backupDatabase.closeAsync();
   }
-  const bytes = await backupDatabase.serializeAsync();
   const stream = new CompressionStream('gzip');
   const writer = stream.writable.getWriter();
   // Don't await this until we start reading

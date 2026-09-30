@@ -8,11 +8,13 @@ import {
 import { v4 as uuid } from 'uuid';
 import {
   selectExerciseNotes,
+  selectRecentlyCompletedExercises,
   selectSessionsInMonth,
   setExerciseNotes,
   storedSessionsReducer,
 } from '@/store/stored-sessions';
 import {
+  CardioExerciseBlueprint,
   NoProgressiveOverload,
   Rest,
   SessionBlueprint,
@@ -20,11 +22,13 @@ import {
 } from '@/models/blueprint-models';
 import {
   PotentialSet,
+  RecordedCardioExercise,
   RecordedSet,
   RecordedWeightedExercise,
   Session,
 } from '@/models/session-models';
 import { Weight } from '@/models/weight';
+import { makeCardioSetBlueprint } from '@/models/session-models/__test__/helpers';
 
 function createSessionWithCompletionTime(
   sessionDate: LocalDate,
@@ -129,5 +133,56 @@ describe('exercise notes', () => {
     expect(
       selectExerciseNotes({ storedSessions: state }, 'Bicep Curls'),
     ).toBeUndefined();
+  });
+});
+
+describe('recently completed exercises', () => {
+  // Pigeon was a timed stretch and became a ticked one: its history is cardio,
+  // the exercise now being done is weighted. Handing the cardio records to the
+  // weighted exercise crashed the workout screen on start.
+  const timedPigeon = new CardioExerciseBlueprint(
+    'Pigeon',
+    [makeCardioSetBlueprint()],
+    '',
+    '',
+  );
+  const tickedPigeon = new WeightedExerciseBlueprint(
+    'Pigeon',
+    2,
+    1,
+    new NoProgressiveOverload(),
+    Rest.medium,
+    false,
+    '',
+    '',
+  );
+  const done = OffsetDateTime.of(2026, 9, 27, 10, 0, 0, 0, ZoneOffset.UTC);
+  const timedRecord = new RecordedCardioExercise(
+    timedPigeon,
+    RecordedCardioExercise.empty(timedPigeon).sets.map((x) =>
+      x.with({ completionDateTime: done }),
+    ),
+    undefined,
+  );
+  const session = new Session(
+    uuid(),
+    new SessionBlueprint('Legs', [timedPigeon], ''),
+    [timedRecord],
+    LocalDate.of(2026, 9, 27),
+    undefined,
+    undefined,
+  );
+  const state = { storedSessions: { sessions: { [session.id]: session } } };
+
+  it('does not give a weighted exercise the history of a timed one with the same name', () => {
+    const lookup = selectRecentlyCompletedExercises(state, 10);
+
+    expect(lookup(tickedPigeon)).toEqual([]);
+  });
+
+  it('still gives the timed exercise its own history', () => {
+    const lookup = selectRecentlyCompletedExercises(state, 10);
+
+    expect(lookup(timedPigeon)).toEqual([timedRecord]);
   });
 });

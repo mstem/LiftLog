@@ -2,6 +2,10 @@ import PersonalRecordFlash, {
   personalRecordFlashDurationMs,
 } from '@/components/presentation/workout/weighted/personal-record-flash';
 import PotentialSetCounter from '@/components/presentation/workout/weighted/potential-set-counter';
+import WeightIncreaseFloat, {
+  weightIncreaseFloatDurationMs,
+} from '@/components/presentation/workout/weighted/weight-increase-float';
+import { weightIncreaseSinceLastTime } from '@/components/presentation/workout/weighted/weight-increase';
 import { useAppTheme, spacing, font } from '@/hooks/useAppTheme';
 import { RecordedWeightedExercise } from '@/models/session-models';
 import { Weight } from '@/models/weight';
@@ -19,6 +23,7 @@ interface WeightedExerciseProps {
   isReadonly: boolean;
   showPreviousButton: boolean;
   personalBests?: WeightedExercisePersonalBests;
+  backgroundColor?: string;
 
   timeProvider: () => OffsetDateTime;
   updateExercise: (ex: RecordedWeightedExercise) => void;
@@ -58,6 +63,26 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
     undefined,
   );
   useEffect(() => () => clearTimeout(prFlashTimeout.current), []);
+  const [weightFloat, setWeightFloat] = useState<
+    { id: number; setIndex: number; increase: Weight } | undefined
+  >();
+  const weightFloatTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
+  useEffect(() => () => clearTimeout(weightFloatTimeout.current), []);
+
+  const showWeightIncrease = (setIndex: number, increase: Weight) => {
+    setWeightFloat((previous) => ({
+      id: (previous?.id ?? 0) + 1,
+      setIndex,
+      increase,
+    }));
+    clearTimeout(weightFloatTimeout.current);
+    weightFloatTimeout.current = setTimeout(
+      () => setWeightFloat(undefined),
+      weightIncreaseFloatDurationMs,
+    );
+  };
 
   const checkForPersonalRecord = (
     exercise: RecordedWeightedExercise,
@@ -132,6 +157,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
       toStartNext={props.toStartNext}
       isReadonly={props.isReadonly}
       showPreviousButton={props.showPreviousButton}
+      backgroundColor={props.backgroundColor}
       updateExercise={props.updateExercise}
       onEditExercise={props.onEditExercise}
       onRemoveExercise={props.onRemoveExercise}
@@ -166,9 +192,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
             <PotentialSetCounter
               isReadonly={props.isReadonly}
               isBarbell={isBarbell}
-              weightAbove={
-                recordedExercise.potentialSets[index - 1]?.weight
-              }
+              weightAbove={recordedExercise.potentialSets[index - 1]?.weight}
               setIndex={index}
               maxReps={recordedExercise.blueprint.repsPerSet}
               pendingReps={pendingReps[index]}
@@ -217,9 +241,19 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                 }
                 resetSetTimer();
               }}
-              onUpdateWeight={(w, applyTo) =>
-                updateExercise(recordedExercise.withWeight(index, w, applyTo))
-              }
+              onUpdateWeight={(w, applyTo) => {
+                updateExercise(recordedExercise.withWeight(index, w, applyTo));
+                const lastTime =
+                  props.previousRecordedExercises.at(0)?.potentialSets[index];
+                const increase = weightIncreaseSinceLastTime({
+                  saved: w,
+                  before: set.weight,
+                  lastTime: lastTime?.set ? lastTime.weight : undefined,
+                });
+                if (increase) {
+                  showWeightIncrease(index, increase);
+                }
+              }}
               set={set}
               toStartNext={
                 props.toStartNext &&
@@ -230,6 +264,12 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                 recordedExercise.blueprint.progressiveOverload.weightIncrement
               }
             />
+            {weightFloat?.setIndex === index ? (
+              <WeightIncreaseFloat
+                key={weightFloat.id}
+                increase={weightFloat.increase}
+              />
+            ) : null}
             {prFlash?.setIndex === index ? (
               <PersonalRecordFlash
                 key={prFlash.id}

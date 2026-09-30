@@ -9,9 +9,12 @@ export default function ItemList<T>(
     renderItem: (item: T, index: number) => React.ReactNode;
     verticalPadding?: boolean;
     empty?: ReactNode;
+    /** Lets a caller join items visually - e.g. the parts of a superset */
+    showDividerAfter?: (index: number) => boolean;
   } & ViewProps,
 ) {
-  const { items, renderItem, verticalPadding, ...rest } = props;
+  const { items, renderItem, verticalPadding, showDividerAfter, ...rest } =
+    props;
   if (!items.length && props.empty) {
     return props.empty;
   }
@@ -28,7 +31,8 @@ export default function ItemList<T>(
       {items.map((item, index) => (
         <Fragment key={index}>
           <View>{renderItem(item, index)}</View>
-          {items.length - 1 !== index && <Divider style={{}} />}
+          {items.length - 1 !== index &&
+            (showDividerAfter?.(index) ?? true) && <Divider style={{}} />}
         </Fragment>
       ))}
     </View>

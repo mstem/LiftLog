@@ -1,7 +1,6 @@
 import CardActions from '@/components/presentation/foundation/card-actions';
 import CardList from '@/components/presentation/foundation/card-list';
 import ConfirmationDialog from '@/components/presentation/foundation/confirmation-dialog';
-import FloatingBottomContainer from '@/components/presentation/foundation/floating-bottom-container';
 import FullHeightScrollView from '@/components/layout/full-height-scroll-view';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import { Remote } from '@/components/presentation/foundation/remote';
@@ -29,7 +28,7 @@ import { T, useTranslate } from '@tolgee/react';
 import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
-import { Card, FAB, Text, Tooltip } from 'react-native-paper';
+import { Card, Text, Tooltip } from 'react-native-paper';
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import { useDispatch } from 'react-redux';
 import { MigrateToWeightUnitsWizard } from '@/components/smart/migrate-to-weight-units';
@@ -74,9 +73,11 @@ function PlanManager() {
 function ListUpcomingWorkouts({
   upcoming,
   selectSession,
+  createFreeformSession,
 }: {
   upcoming: readonly Session[];
   selectSession: (s: Session) => void;
+  createFreeformSession: () => void;
 }) {
   const plan = useAppSelector(selectActiveProgram);
   const { t } = useTranslate();
@@ -207,6 +208,15 @@ function ListUpcomingWorkouts({
           );
         }}
       />
+      <Button
+        mode="outlined"
+        icon={'fitnessCenter'}
+        style={{ marginTop: spacing[2], marginBottom: spacing[4] }}
+        testID="freeform-workout-button"
+        onPress={createFreeformSession}
+      >
+        <T keyName="workout.freeform.title" />
+      </Button>
       <ConfirmationDialog
         headline={t('workout.clear_current.confirm.title')}
         textContent={t('workout.clear_current.confirm.body')}
@@ -243,7 +253,6 @@ function SessionCardContent({ session }: { session: Session }) {
 export default function Index() {
   const upcomingSessions = useAppSelector((s) => s.program.upcomingSessions);
   const dispatch = useDispatch();
-  const { t } = useTranslate();
   const currentBodyweight = upcomingSessions
     .map((x) => x.at(0)?.bodyweight)
     .unwrapOr(undefined);
@@ -264,23 +273,8 @@ export default function Index() {
     setSelectedSession(newSession);
   };
 
-  const floatingBottomContainer = (
-    <FloatingBottomContainer
-      fab={
-        <FAB
-          variant="surface"
-          size="small"
-          icon="fitnessCenter"
-          label={t('workout.freeform.title')}
-          onPress={createFreeformSession}
-        />
-      }
-    />
-  );
-
   return (
     <FullHeightScrollView
-      floatingChildren={floatingBottomContainer}
       scrollStyle={{ paddingHorizontal: spacing.pageHorizontalMargin }}
     >
       <Stack.Screen
@@ -296,6 +290,7 @@ export default function Index() {
           return (
             <ListUpcomingWorkouts
               selectSession={setSelectedSession}
+              createFreeformSession={createFreeformSession}
               upcoming={upcoming}
             />
           );
