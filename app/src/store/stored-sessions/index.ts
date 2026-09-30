@@ -319,9 +319,13 @@ export const selectRecentlyCompletedExercises = createSelector(
   selectLatestOrderedRecordedExercises,
   (recentlyCompletedExercises) =>
     (blueprint: ExerciseBlueprint): RecordedExercise[] =>
-      recentlyCompletedExercises[
-        NormalizedName.fromExerciseBlueprint(blueprint).toString()
-      ] ?? [],
+      // Same name is not enough: an exercise switched between timed and
+      // weighted keeps its old records, which the other kind cannot read.
+      (
+        recentlyCompletedExercises[
+          NormalizedName.fromExerciseBlueprint(blueprint).toString()
+        ] ?? []
+      ).filter((x) => x.blueprint.type === blueprint.type),
 );
 
 export interface WeightedExercisePersonalBests {
