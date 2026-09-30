@@ -43,6 +43,7 @@ interface CardioExerciseProps {
   toStartNext: boolean;
   isReadonly: boolean;
   showPreviousButton: boolean;
+  backgroundColor?: string;
 
   updateExercise: (
     cb: (ex: RecordedCardioExercise) => RecordedCardioExercise,
@@ -75,6 +76,7 @@ export function CardioExercise(props: CardioExerciseProps) {
       toStartNext={props.toStartNext}
       isReadonly={props.isReadonly}
       showPreviousButton={props.showPreviousButton}
+      backgroundColor={props.backgroundColor}
       updateExercise={(x) => props.updateExercise(() => x)}
       onEditExercise={props.onEditExercise}
       onRemoveExercise={props.onRemoveExercise}

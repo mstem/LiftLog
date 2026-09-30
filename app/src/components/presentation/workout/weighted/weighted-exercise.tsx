@@ -19,6 +19,7 @@ interface WeightedExerciseProps {
   isReadonly: boolean;
   showPreviousButton: boolean;
   personalBests?: WeightedExercisePersonalBests;
+  backgroundColor?: string;
 
   timeProvider: () => OffsetDateTime;
   updateExercise: (ex: RecordedWeightedExercise) => void;
@@ -132,6 +133,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
       toStartNext={props.toStartNext}
       isReadonly={props.isReadonly}
       showPreviousButton={props.showPreviousButton}
+      backgroundColor={props.backgroundColor}
       updateExercise={props.updateExercise}
       onEditExercise={props.onEditExercise}
       onRemoveExercise={props.onRemoveExercise}
@@ -166,9 +168,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
             <PotentialSetCounter
               isReadonly={props.isReadonly}
               isBarbell={isBarbell}
-              weightAbove={
-                recordedExercise.potentialSets[index - 1]?.weight
-              }
+              weightAbove={recordedExercise.potentialSets[index - 1]?.weight}
               setIndex={index}
               maxReps={recordedExercise.blueprint.repsPerSet}
               pendingReps={pendingReps[index]}

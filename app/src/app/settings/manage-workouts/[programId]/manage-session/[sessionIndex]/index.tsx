@@ -8,7 +8,9 @@ import Form from '@/components/presentation/foundation/form';
 import LabelledFormRow from '@/components/presentation/foundation/labelled-form-row';
 import LimitedHtml from '@/components/presentation/foundation/limited-html';
 import CopyExerciseDialog from '@/components/smart/copy-exercise-dialog';
-import { spacing } from '@/hooks/useAppTheme';
+import { spacing, useAppTheme } from '@/hooks/useAppTheme';
+import { groupSupersets } from '@/components/smart/group-supersets';
+import { withOpacity } from '@/utils/color';
 import {
   WeightedExerciseBlueprint,
   Rest,
@@ -38,6 +40,7 @@ import {
   useRouter,
 } from 'expo-router';
 import { useState } from 'react';
+import { View } from 'react-native';
 import { Card, FAB, TextInput } from 'react-native-paper';
 import { useDispatch, useStore } from 'react-redux';
 
@@ -79,6 +82,7 @@ function SessionEditor({
     (x) => x.sessionEditor.sessionBlueprint?.exercises?.length ?? 0,
   );
   const { push } = useRouter();
+  const { colors } = useAppTheme();
   const openExerciseEditor = (exerciseIndex: number | undefined) => {
     dispatch(setEditingExerciseIndex(exerciseIndex));
 
@@ -129,6 +133,24 @@ function SessionEditor({
   const setNotes = (notes: string) => {
     dispatch(setEditingSessionNotes(notes));
     saveSession();
+  };
+
+  // Same superset tint as the live workout, so a superset looks like one block
+  // here too rather than exercises that happen to sit next to each other.
+  const supersetPositions = groupSupersets(
+    session.exercises.map(
+      (x) => x instanceof WeightedExerciseBlueprint && x.supersetWithNext,
+    ),
+  );
+  const supersetTints = [
+    withOpacity(colors.primary, 0.12),
+    withOpacity(colors.tertiary, 0.14),
+  ];
+  const supersetBackground = (index: number) => {
+    const position = supersetPositions[index];
+    return position
+      ? supersetTints[position.chain % supersetTints.length]
+      : undefined;
   };
 
   const floatingBottomContainer = (
@@ -185,20 +207,25 @@ function SessionEditor({
                 </Card.Content>
               </Card>
             }
+            showDividerAfter={(index) =>
+              !supersetPositions[index] || !!supersetPositions[index]?.isLast
+            }
             renderItem={(blueprint, index) => (
-              <ExerciseItem
-                blueprint={blueprint}
-                sessionIndex={sessionIndex}
-                programId={programId}
-                beginEdit={() => {
-                  openExerciseEditor(index);
-                }}
-                beginRemove={() => {
-                  setSelectedExercise(blueprint);
-                  setIsRemoveOpen(true);
-                }}
-                saveSession={saveSession}
-              />
+              <View style={{ backgroundColor: supersetBackground(index) }}>
+                <ExerciseItem
+                  blueprint={blueprint}
+                  sessionIndex={sessionIndex}
+                  programId={programId}
+                  beginEdit={() => {
+                    openExerciseEditor(index);
+                  }}
+                  beginRemove={() => {
+                    setSelectedExercise(blueprint);
+                    setIsRemoveOpen(true);
+                  }}
+                  saveSession={saveSession}
+                />
+              </View>
             )}
           />
         </LabelledFormRow>
