@@ -60,6 +60,10 @@ export type IncreaseLowestSetProgressiveOverloadJSON = ExtractType<
   ProgressiveOverloadJSON,
   'IncreaseLowestSetProgressiveOverload'
 >;
+export type AdjustByRepsProgressiveOverloadJSON = ExtractType<
+  ProgressiveOverloadJSON,
+  'AdjustByRepsProgressiveOverload'
+>;
 
 export type CardioExerciseBlueprintJSON = ExtractType<
   ExerciseBlueprintJSON,

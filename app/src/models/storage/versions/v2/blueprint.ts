@@ -17,10 +17,16 @@ export interface IncreaseLowestSetProgressiveOverloadJSON {
   readonly increaseStrategy: IncreaseStrategyJSON;
 }
 
+export interface AdjustByRepsProgressiveOverloadJSON {
+  readonly type: 'AdjustByRepsProgressiveOverload';
+  readonly amount: BigNumberJSON;
+}
+
 /**
  * @discriminator type
  */
 export type ProgressiveOverloadJSON =
   | NoProgressiveOverloadJSON
   | IncreaseAllEvenlyProgressiveOverloadJSON
-  | IncreaseLowestSetProgressiveOverloadJSON;
+  | IncreaseLowestSetProgressiveOverloadJSON
+  | AdjustByRepsProgressiveOverloadJSON;

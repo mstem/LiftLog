@@ -9,6 +9,7 @@ import {
   ExerciseBlueprintJSON,
   IncreaseAllEvenlyProgressiveOverloadJSON,
   IncreaseLowestSetProgressiveOverloadJSON,
+  AdjustByRepsProgressiveOverloadJSON,
   NoProgressiveOverloadJSON,
   ProgramBlueprintJSON,
   ProgressiveOverloadJSON,
@@ -368,6 +369,10 @@ export class NoProgressiveOverload {
         'IncreaseLowestSetProgressiveOverload',
         () => new IncreaseLowestSetProgressiveOverload(BigNumber('2.5'), 'all'),
       )
+      .with(
+        'AdjustByRepsProgressiveOverload',
+        () => new AdjustByRepsProgressiveOverload(BigNumber('2.5')),
+      )
       .exhaustive();
   }
 
@@ -410,6 +415,10 @@ export class IncreaseAllEvenlyProgressiveOverload {
       .with(
         'IncreaseLowestSetProgressiveOverload',
         () => new IncreaseLowestSetProgressiveOverload(this.amount, 'all'),
+      )
+      .with(
+        'AdjustByRepsProgressiveOverload',
+        () => new AdjustByRepsProgressiveOverload(this.amount),
       )
       .exhaustive();
   }
@@ -475,6 +484,10 @@ export class IncreaseLowestSetProgressiveOverload {
         () => new IncreaseAllEvenlyProgressiveOverload(this.amount),
       )
       .with('IncreaseLowestSetProgressiveOverload', () => this)
+      .with(
+        'AdjustByRepsProgressiveOverload',
+        () => new AdjustByRepsProgressiveOverload(this.amount),
+      )
       .exhaustive();
   }
 
@@ -544,10 +557,62 @@ export class IncreaseLowestSetProgressiveOverload {
   }
 }
 
+/**
+ * Moves the weight up or down by how the lift's recent reps compare with its
+ * target (see adjustByRepsWeight). It needs the lift's history, so the session
+ * service works out the weight; applying it to one exercise changes nothing.
+ */
+export class AdjustByRepsProgressiveOverload {
+  readonly type = 'AdjustByRepsProgressiveOverload';
+  /** The weight step results are rounded to */
+  constructor(readonly amount: BigNumber) {}
+
+  toJSON(): AdjustByRepsProgressiveOverloadJSON {
+    return {
+      type: 'AdjustByRepsProgressiveOverload',
+      amount: toBigNumberJSON(this.amount),
+    };
+  }
+  static fromJSON(
+    json: AdjustByRepsProgressiveOverloadJSON,
+  ): AdjustByRepsProgressiveOverload {
+    return new AdjustByRepsProgressiveOverload(fromBigNumberJSON(json.amount));
+  }
+  toType(type: ProgressiveOverload['type']) {
+    return match(type)
+      .with('NoProgressiveOverload', () => new NoProgressiveOverload())
+      .with(
+        'IncreaseAllEvenlyProgressiveOverload',
+        () => new IncreaseAllEvenlyProgressiveOverload(this.amount),
+      )
+      .with(
+        'IncreaseLowestSetProgressiveOverload',
+        () => new IncreaseLowestSetProgressiveOverload(this.amount, 'all'),
+      )
+      .with('AdjustByRepsProgressiveOverload', () => this)
+      .exhaustive();
+  }
+  with(other: Partial<AdjustByRepsProgressiveOverload>) {
+    return new AdjustByRepsProgressiveOverload(other.amount ?? this.amount);
+  }
+  equals(other: ProgressiveOverload): boolean {
+    return this.type === other.type && this.amount.isEqualTo(other.amount);
+  }
+  applyProgressiveOverload(
+    exercise: RecordedWeightedExercise,
+  ): RecordedWeightedExercise {
+    return exercise;
+  }
+  get weightIncrement(): BigNumber {
+    return this.amount.isZero() ? new BigNumber(2.5) : this.amount;
+  }
+}
+
 export type ProgressiveOverload =
   | NoProgressiveOverload
   | IncreaseAllEvenlyProgressiveOverload
-  | IncreaseLowestSetProgressiveOverload;
+  | IncreaseLowestSetProgressiveOverload
+  | AdjustByRepsProgressiveOverload;
 
 function fromProgressiveOverloadJSON(
   json: ProgressiveOverloadJSON,
@@ -561,6 +626,10 @@ function fromProgressiveOverloadJSON(
     .with(
       { type: 'IncreaseLowestSetProgressiveOverload' },
       IncreaseLowestSetProgressiveOverload.fromJSON,
+    )
+    .with(
+      { type: 'AdjustByRepsProgressiveOverload' },
+      AdjustByRepsProgressiveOverload.fromJSON,
     )
     .exhaustive();
 }
@@ -775,7 +844,11 @@ export const Rest = {
     // while setting a max rest silently disabled the rest for that exercise - no
     // countdown in the app and no alarm in the native worker - and threw the max
     // rest away. Fill each gap from the nearest configured neighbour instead.
-    const minRest = firstNonZero(value.minRest, value.maxRest, value.failureRest);
+    const minRest = firstNonZero(
+      value.minRest,
+      value.maxRest,
+      value.failureRest,
+    );
     const maxRest = firstNonZero(value.maxRest, minRest);
     return {
       minRest,
