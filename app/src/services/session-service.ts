@@ -4,7 +4,12 @@ import {
   SessionBlueprint,
   ExerciseBlueprint,
   CardioExerciseBlueprint,
+  WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
+import {
+  rolledOverExercises,
+  withRolledOverExercises,
+} from '@/models/roll-over';
 import { Weight, WeightUnit } from '@/models/weight';
 import {
   EmptySession,
@@ -54,12 +59,17 @@ export class SessionService {
       yield latestSession;
     }
 
+    // Lifts left untouched in the last finished workout carry into the next
+    // one only. An in-progress workout is not finished, so nothing rolls yet.
+    let rollOver = currentSession ? [] : rolledOverExercises(latestSession);
     while (true) {
       latestSession = this.getNextSession(
         latestSession,
         sessionBlueprints,
         latestExercises,
+        rollOver,
       );
+      rollOver = [];
       yield latestSession;
     }
   }
@@ -78,6 +88,7 @@ export class SessionService {
       string, //KeyedExerciseBlueprint,
       RecordedExercise | undefined
     >,
+    rollOver: readonly WeightedExerciseBlueprint[],
   ): Session {
     const lastBlueprint = previousSession.blueprint;
     const lastBlueprintIndex = sessionBlueprints.findIndex(
@@ -89,7 +100,10 @@ export class SessionService {
       return EmptySession.with({ id: uuid() });
     }
 
-    return this.createNewSession(nextBlueprint, latestRecordedExercises).with({
+    return this.createNewSession(
+      withRolledOverExercises(nextBlueprint, rollOver),
+      latestRecordedExercises,
+    ).with({
       bodyweight: previousSession.bodyweight,
     });
   }

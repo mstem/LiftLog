@@ -17,6 +17,9 @@ import {
 } from '@/models/session-models';
 import { Weight } from '@/models/weight';
 import { tick } from '@/models/session-models/__test__/helpers';
+import { Session } from '@/models/session-models';
+import { ROLLED_OVER_GROUP } from '@/models/roll-over';
+import Enumerable from 'linq';
 
 const overload = () => new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5));
 
@@ -39,7 +42,9 @@ function keyed(bp: WeightedExerciseBlueprint) {
 
 function makeService() {
   const getState = (() =>
-    ({ settings: { useImperialUnits: false } }) as unknown as RootState) as () => RootState;
+    ({
+      settings: { useImperialUnits: false },
+    }) as unknown as RootState) as () => RootState;
   return new SessionService(null as unknown as ProgressRepository, getState);
 }
 
@@ -93,7 +98,10 @@ describe('SessionService weight carry-forward', () => {
           new RecordedSet(10, tick()),
           new Weight(62.5, 'kilograms'),
         ),
-        new PotentialSet(new RecordedSet(8, tick()), new Weight(65, 'kilograms')),
+        new PotentialSet(
+          new RecordedSet(8, tick()),
+          new Weight(65, 'kilograms'),
+        ),
       ],
       undefined,
     );
@@ -106,10 +114,68 @@ describe('SessionService weight carry-forward', () => {
   });
 
   it('seeds zero weight when there is no history for the movement', () => {
-    const result = hydrateFirst(makeService(), blueprint('Novel Lift', 3, 10), {});
+    const result = hydrateFirst(
+      makeService(),
+      blueprint('Novel Lift', 3, 10),
+      {},
+    );
     expect(result.potentialSets).toHaveLength(3);
     expect(result.potentialSets.every((s) => s.weight.value.isZero())).toBe(
       true,
     );
+  });
+});
+
+describe('SessionService rolls skipped lifts into the next workout', () => {
+  const legs = new SessionBlueprint(
+    'Legs',
+    [blueprint('Hack Squat', 3, 10), blueprint('Leg Press', 3, 10)],
+    '',
+  );
+  const push = new SessionBlueprint('Push', [blueprint('Bench', 3, 10)], '');
+  // Legs finished with Leg Press done and Hack Squat never touched.
+  const finishedLegs = Session.getEmptySession(
+    legs,
+    'kilograms',
+  ).withCycledExerciseReps(1, 0, tick());
+
+  function upcoming(currentSession: Session | undefined, count: number) {
+    const getState = (() =>
+      ({
+        settings: { useImperialUnits: false },
+        currentSession: { workoutSession: currentSession },
+      }) as unknown as RootState) as () => RootState;
+    const repository = {
+      getOrderedSessions: () => Enumerable.from([finishedLegs]),
+    } as unknown as ProgressRepository;
+    const service = new SessionService(repository, getState);
+    return (async () => {
+      const sessions: Session[] = [];
+      for await (const s of service.getUpcomingSessions([legs, push], {})) {
+        sessions.push(s);
+        if (sessions.length === count) break;
+      }
+      return sessions;
+    })();
+  }
+
+  it('adds them to the next workout only', async () => {
+    const [next, after] = await upcoming(undefined, 2);
+
+    expect(
+      next!.recordedExercises.map((x) => [x.blueprint.name, x.blueprint.group]),
+    ).toEqual([
+      ['Hack Squat', ROLLED_OVER_GROUP],
+      ['Bench', undefined],
+    ]);
+    expect(after!.blueprint.equals(legs)).toBe(true);
+  });
+
+  it('rolls nothing while a workout is still in progress', async () => {
+    const inProgress = Session.getEmptySession(push, 'kilograms');
+
+    const [next] = await upcoming(inProgress, 1);
+
+    expect(next!.blueprint.equals(legs)).toBe(true);
   });
 });

@@ -16,6 +16,7 @@ import {
   getChangeDescription,
 } from './blueprint-diff';
 import { UseTranslateResult } from '@tolgee/react';
+import { ROLLED_OVER_GROUP } from './roll-over';
 
 describe('diffSessionBlueprints', () => {
   const createWeightedExercise = (
@@ -335,6 +336,24 @@ describe('diffSessionBlueprints', () => {
       expect(diff.hasChanges).toBe(false);
       expect(diff.allChanges).toEqual([]);
       expect(diff.modifiedExercises).toEqual([]);
+    });
+
+    it('ignores rolled-over exercises, including the positions they shift', () => {
+      const planned = new SessionBlueprint(
+        'Workout',
+        [createWeightedExercise('Squat'), createWeightedExercise('Bench')],
+        '',
+      );
+      const withRollover = planned.with({
+        exercises: [
+          createWeightedExercise('Row').with({ group: ROLLED_OVER_GROUP }),
+          ...planned.exercises,
+        ],
+      });
+
+      const diff = diffSessionBlueprintsForPlanUpdate(planned, withRollover);
+
+      expect(diff.hasChanges).toBe(false);
     });
 
     it('keeps the other changes made to the same exercise', () => {
