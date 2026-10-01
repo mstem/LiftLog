@@ -10,6 +10,7 @@ import { msDelete } from '@material-symbols-react-native/outlined-400/msDelete';
 import { msEdit } from '@material-symbols-react-native/outlined-400/msEdit';
 import { msFitnessCenter } from '@material-symbols-react-native/outlined-400/msFitnessCenter';
 import { msBolt } from '@material-symbols-react-native/outlined-400/msBolt';
+import { msSwapHoriz } from '@material-symbols-react-native/outlined-400/msSwapHoriz';
 import { msBoltFill } from '@material-symbols-react-native/outlined-400/msBoltFill';
 import { msStar } from '@material-symbols-react-native/outlined-400/msStar';
 import { msPromptSuggestion } from '@material-symbols-react-native/outlined-400/msPromptSuggestion';
@@ -169,6 +170,7 @@ const MaterialSymbols = {
   promptSuggestion: msPromptSuggestion,
   send: msSend,
   bolt: msBolt,
+  swapHoriz: msSwapHoriz,
   boltFill: msBoltFill,
   link: msLink,
   steps: msSteps,

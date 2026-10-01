@@ -2,6 +2,7 @@ import {
   selectCurrentSession,
   SessionTarget,
   setCurrentSession,
+  recordExerciseSwap,
 } from '@/store/current-session';
 import { Card, Icon, Text } from 'react-native-paper';
 import { useDispatch, useStore } from 'react-redux';
@@ -38,6 +39,8 @@ import { CardioExercise } from '@/components/presentation/workout/cardio/cardio-
 import ExerciseGroupSection from '@/components/presentation/workout/exercise-group-section';
 import { groupExercises } from '@/components/smart/group-exercises';
 import { groupSupersets } from '@/components/smart/group-supersets';
+import { SwapExerciseDialog } from '@/components/presentation/workout/swap-exercise-dialog';
+import { swapExercise } from '@/models/exercise-swap';
 import { withOpacity } from '@/utils/color';
 import WeightFormat from '../presentation/foundation/weight-format';
 import { formatDuration } from '@/utils/format-date';
@@ -94,6 +97,33 @@ export default function SessionComponent(props: {
     ExerciseBlueprint | undefined
   >(undefined);
   const [exerciseEditorOpen, setExerciseEditorOpen] = useState(false);
+  const [swapIndex, setSwapIndex] = useState<number | undefined>();
+  const swapIn = (index: number, name: string) => {
+    withLatestSession((latest) => {
+      const exercise = latest.recordedExercises[index];
+      if (!(exercise instanceof RecordedWeightedExercise)) {
+        return;
+      }
+      // The swapped-in lift's own last weight, as for any exercise
+      const lastWeight = (
+        recentlyCompletedExercises(
+          exercise.blueprint.with({ name }),
+        ) as RecordedWeightedExercise[]
+      )
+        .at(0)
+        ?.potentialSets.filter((x) => x.set)
+        .at(-1)?.weight;
+      updateSession(() => swapExercise(latest, index, name, lastWeight));
+      dispatch(
+        recordExerciseSwap({
+          sessionId: latest.id,
+          from: exercise.blueprint.name,
+          to: name,
+          original: exercise.blueprint,
+        }),
+      );
+    });
+  };
 
   const handleEditExercise = () => {
     if (editingExerciseBlueprint !== undefined) {
@@ -208,6 +238,11 @@ export default function SessionComponent(props: {
           }}
           onRemoveExercise={() =>
             updateSession((s) => s.withRemovedExercise(index))
+          }
+          onSwapExercise={
+            props.target === 'workoutSession' && !isReadonly
+              ? () => setSwapIndex(index)
+              : undefined
           }
           isReadonly={isReadonly}
           backgroundColor={supersetBackground(index)}
@@ -419,6 +454,19 @@ export default function SessionComponent(props: {
       )}
       {bodyweight}
       {workoutSummary}
+      <SwapExerciseDialog
+        exerciseName={
+          swapIndex === undefined
+            ? undefined
+            : session.recordedExercises[swapIndex]?.blueprint.name
+        }
+        onSwap={(name) => {
+          if (swapIndex !== undefined) {
+            swapIn(swapIndex, name);
+          }
+        }}
+        onClose={() => setSwapIndex(undefined)}
+      />
       <FullScreenDialog
         avoidKeyboard
         title={

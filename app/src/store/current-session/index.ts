@@ -1,4 +1,8 @@
-import { SessionBlueprint } from '@/models/blueprint-models';
+import {
+  SessionBlueprint,
+  WeightedExerciseBlueprint,
+} from '@/models/blueprint-models';
+import { ExerciseSwap } from '@/models/exercise-swap';
 import { Session } from '@/models/session-models';
 import {
   createAction,
@@ -16,6 +20,11 @@ interface CurrentSessionState {
   feedSession: Session | undefined;
   sharedSession: Session | undefined;
   currentPlanDiff: PlanDiff | undefined;
+  /**
+   * Lifts swapped in per workout id. Kept only while the app runs, like
+   * Lightning mode: after a restart Finish offers a swap as a plan change.
+   */
+  exerciseSwaps: Record<string, ExerciseSwap[]>;
 }
 
 export type SessionTarget =
@@ -31,6 +40,7 @@ const initialState: CurrentSessionState = {
   feedSession: undefined,
   sharedSession: undefined,
   currentPlanDiff: undefined,
+  exerciseSwaps: {},
 };
 
 export const initializeCurrentSessionStateSlice = createAction(
@@ -47,6 +57,30 @@ const currentSessionSlice = createSlice({
 
     setCurrentPlanDiff(state, action: PayloadAction<PlanDiff | undefined>) {
       state.currentPlanDiff = action.payload;
+    },
+
+    recordExerciseSwap(
+      state,
+      action: PayloadAction<{
+        sessionId: string;
+        from: string;
+        to: string;
+        original: WeightedExerciseBlueprint;
+      }>,
+    ) {
+      const { sessionId, from, to, original } = action.payload;
+      const swaps = (state.exerciseSwaps[sessionId] ??= []);
+      // Swapping a swapped-in lift again still stands in for the planned one
+      const earlier = swaps.find((x) => x.swappedIn === from);
+      if (earlier) {
+        earlier.swappedIn = to;
+      } else {
+        swaps.push({ swappedIn: to, original });
+      }
+    },
+
+    clearExerciseSwaps(state, action: PayloadAction<string>) {
+      delete state.exerciseSwaps[action.payload];
     },
 
     setCurrentSession: (
@@ -112,7 +146,12 @@ export const currentWorkoutSessionUpdated = createAction<{
   after: Session | undefined;
 }>('currentWorkoutSessionUpdated');
 
-export const { setIsHydrated, setCurrentSession, setCurrentPlanDiff } =
-  currentSessionSlice.actions;
+export const {
+  setIsHydrated,
+  setCurrentSession,
+  setCurrentPlanDiff,
+  recordExerciseSwap,
+  clearExerciseSwaps,
+} = currentSessionSlice.actions;
 
 export const currentSessionReducer = currentSessionSlice.reducer;
