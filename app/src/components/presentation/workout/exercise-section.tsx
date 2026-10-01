@@ -36,6 +36,8 @@ interface ExerciseSectionProps<T extends RecordedExercise> {
   updateExercise: (value: T) => void;
   onEditExercise: () => void;
   onRemoveExercise: () => void;
+  /** Offered for a lift with no set ticked yet */
+  onSwapExercise?: () => void;
 }
 
 export default function ExerciseSection<T extends RecordedExercise>(
@@ -113,6 +115,17 @@ export default function ExerciseSection<T extends RecordedExercise>(
           leadingIcon={'edit'}
           title={t('generic.edit.button')}
         />
+        {props.onSwapExercise && !recordedExercise.isStarted ? (
+          <Menu.Item
+            onPress={() => {
+              props.onSwapExercise?.();
+              setMenuVisible(false);
+            }}
+            testID="exercise-swap-menu-button"
+            leadingIcon={'swapHoriz'}
+            title={t('workout.swap_exercise.button')}
+          />
+        ) : null}
         <Menu.Item
           testID="exercise-notes-more-btn"
           title={t('generic.notes.label')}

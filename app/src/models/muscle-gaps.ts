@@ -124,6 +124,18 @@ const musclesByExerciseName: Record<string, string[]> = {
 const nameKey = (name: string) => name.trim().toLowerCase();
 
 /**
+ * Muscles an exercise works: the built-in map for names the library lacks,
+ * else the library's own tags.
+ */
+export function musclesForExercise(
+  name: string,
+  library: ReadonlyMap<string, { muscles: readonly string[] }>,
+): readonly string[] {
+  const key = nameKey(name);
+  return musclesByExerciseName[key] ?? library.get(key)?.muscles ?? [];
+}
+
+/**
  * Weighted sets per diagram region over the last 30 days: each ticked set
  * counts once for every region its exercise works, bodyweight, timed and
  * Mobility sets at half, stretches at a quarter.

@@ -17,6 +17,7 @@ import {
   finishCurrentWorkout,
   persistCurrentSession,
   setCurrentPlanDiff,
+  clearExerciseSwaps,
 } from '@/store/current-session';
 import { addStoredSession } from '@/store/stored-sessions';
 import { addUnpublishedSessionId } from '@/store/feed';
@@ -339,14 +340,22 @@ describe('current-session effects', () => {
       );
     const planned = new SessionBlueprint('Push', [bench(3, 10)], '');
 
-    function finish(done: SessionBlueprint) {
+    function finish(done: SessionBlueprint, swappedIn?: string) {
       const session = Session.getEmptySession(
         done,
         'kilograms',
       ).withCycledExerciseReps(0, 0, OffsetDateTime.now());
       const testBed = createAddEffectTestBed({
         initialState: {
-          currentSession: { isHydrated: true, workoutSession: session },
+          currentSession: {
+            isHydrated: true,
+            workoutSession: session,
+            exerciseSwaps: swappedIn
+              ? {
+                  [session.id]: [{ swappedIn, original: planned.exercises[0] }],
+                }
+              : {},
+          },
           program: {
             activePlanId: 'plan',
             savedPrograms: {
@@ -371,6 +380,31 @@ describe('current-session effects', () => {
       );
 
       testBed.expectNotDispatched(setCurrentPlanDiff);
+    });
+
+    it('does not offer a swap as a plan change', async () => {
+      const swapped = new SessionBlueprint(
+        'Push',
+        [bench(3, 10).with({ name: 'Chest Press Machine' })],
+        '',
+      );
+
+      const testBed = await finish(swapped, 'Chest Press Machine');
+
+      testBed.expectNotDispatched(setCurrentPlanDiff);
+      testBed.getDispatchedAction(clearExerciseSwaps);
+    });
+
+    it('still offers a rename that was not a swap', async () => {
+      const renamed = new SessionBlueprint(
+        'Push',
+        [bench(3, 10).with({ name: 'Chest Press Machine' })],
+        '',
+      );
+
+      const testBed = await finish(renamed);
+
+      testBed.getDispatchedAction(setCurrentPlanDiff);
     });
 
     it('offers the other changes without the rep change', async () => {

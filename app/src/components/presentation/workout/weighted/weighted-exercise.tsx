@@ -27,6 +27,7 @@ interface WeightedExerciseProps {
 
   timeProvider: () => OffsetDateTime;
   updateExercise: (ex: RecordedWeightedExercise) => void;
+  onSwapExercise?: () => void;
   resetSetTimer: () => void;
   onEditExercise: () => void;
   onRemoveExercise: () => void;
@@ -161,6 +162,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
       updateExercise={props.updateExercise}
       onEditExercise={props.onEditExercise}
       onRemoveExercise={props.onRemoveExercise}
+      onSwapExercise={props.onSwapExercise}
     >
       <View style={{ flexDirection: 'column' }}>
         {/* Column headers */}

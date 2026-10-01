@@ -10,6 +10,7 @@ import {
   persistCurrentSession,
   selectCurrentSession,
   setCurrentPlanDiff,
+  clearExerciseSwaps,
   setCurrentSession,
   setCurrentSessionFromBlueprint,
   setIsHydrated,
@@ -27,6 +28,7 @@ import {
   PlanDiff,
 } from '@/models/blueprint-diff';
 import { withoutRolledOverExercises } from '@/models/roll-over';
+import { undoSwaps } from '@/models/exercise-swap';
 import { addUnpublishedSessionId } from '@/store/feed';
 import { setStatsIsDirty } from '@/store/stats';
 import {
@@ -168,19 +170,25 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
         // must still be cleared below, or the workout gets stuck as current
         // (its stored copy already exists) with the notification running.
         try {
+          // A lift swapped in for this workout is compared as the planned
+          // lift it stood in for, so the swap is never offered to the plan.
+          const blueprint = undoSwaps(
+            session.blueprint,
+            getState().currentSession.exerciseSwaps?.[session.id] ?? [],
+          );
           const sessionInPlan = program.sessions.some((x) =>
-            x.equals(session.blueprint),
+            x.equals(blueprint),
           );
           if (!sessionInPlan) {
             const sessionWithSameNameInPlan = program.sessions.find(
-              (x) => x.name === session.blueprint.name,
+              (x) => x.name === blueprint.name,
             );
             const planDiff: PlanDiff = sessionWithSameNameInPlan
               ? {
                   type: 'diff',
                   diff: diffSessionBlueprintsForPlanUpdate(
                     sessionWithSameNameInPlan,
-                    session.blueprint,
+                    blueprint,
                   ),
                   sessionIndex: program.sessions.indexOf(
                     sessionWithSameNameInPlan,
@@ -190,7 +198,7 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
                   type: 'add',
                   diff: diffSessionBlueprints(
                     EmptySession.blueprint,
-                    withoutRolledOverExercises(session.blueprint),
+                    withoutRolledOverExercises(blueprint),
                   ),
                 };
             // Only reps differed: nothing is left to offer, so no dialog.
@@ -204,6 +212,9 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
             e,
           );
         }
+      }
+      if (session) {
+        dispatch(clearExerciseSwaps(session.id));
       }
       dispatch(setCurrentSession({ target: a.payload, session: undefined }));
       // Refetching leaves the next workout in the rotation sitting at the top of
