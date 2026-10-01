@@ -31,6 +31,28 @@ export const wellTrainedSets = 20;
 const windowDays = 30;
 /** Bodyweight and Mobility sets count for less than a loaded set */
 const bodyweightSetValue = 0.5;
+/** Stretches count for less again: they move a muscle more than train it */
+const stretchSetValue = 0.25;
+
+/**
+ * Matt's mobility moves that are stretches or loosening drills rather than
+ * bodyweight strength work. Library exercises count as stretches when filed
+ * under the stretching category.
+ */
+const stretches = new Set([
+  'cycling',
+  'high knee skips',
+  'high kicks',
+  '90 90s',
+  'kickover',
+  'on back leg crossover',
+  'hamstring extension',
+  'pigeon',
+  'quad lunge 3-way stretch',
+  'lizard elbow extensions',
+  'squat arrow shoots',
+  'side lunges low hips',
+]);
 
 /**
  * Muscle names, from the exercise library and the map below, to diagram
@@ -104,7 +126,7 @@ const nameKey = (name: string) => name.trim().toLowerCase();
 /**
  * Weighted sets per diagram region over the last 30 days: each ticked set
  * counts once for every region its exercise works, bodyweight, timed and
- * Mobility sets at half.
+ * Mobility sets at half, stretches at a quarter.
  */
 export function muscleGaps({
   sessions,
@@ -112,12 +134,14 @@ export function muscleGaps({
   today,
 }: {
   sessions: readonly Session[];
-  library: readonly { name: string; muscles: readonly string[] }[];
+  library: readonly {
+    name: string;
+    muscles: readonly string[];
+    category?: string;
+  }[];
   today: LocalDate;
 }): Record<MuscleGapRegion, number> {
-  const libraryMuscles = new Map(
-    library.map((x) => [nameKey(x.name), x.muscles]),
-  );
+  const libraryByName = new Map(library.map((x) => [nameKey(x.name), x]));
   const totals = Object.fromEntries(
     muscleGapRegions.map((r) => [r, 0]),
   ) as Record<MuscleGapRegion, number>;
@@ -129,15 +153,17 @@ export function muscleGaps({
     }
     for (const exercise of session.recordedExercises) {
       const key = nameKey(exercise.blueprint.name);
-      const muscles =
-        musclesByExerciseName[key] ?? libraryMuscles.get(key) ?? [];
+      const fromLibrary = libraryByName.get(key);
+      const muscles = musclesByExerciseName[key] ?? fromLibrary?.muscles ?? [];
       const regions = new Set(
         muscles.flatMap((m) => regionsForMuscle[m] ?? []),
       );
       if (!regions.size) {
         continue;
       }
-      const value = setValue(exercise);
+      const stretch =
+        stretches.has(key) || fromLibrary?.category === 'stretching';
+      const value = setValue(exercise, stretch);
       for (const region of regions) {
         totals[region] += value;
       }
@@ -146,12 +172,18 @@ export function muscleGaps({
   return totals;
 }
 
-function setValue(exercise: RecordedWeightedExercise | RecordedCardioExercise) {
+function setValue(
+  exercise: RecordedWeightedExercise | RecordedCardioExercise,
+  stretch: boolean,
+) {
   if (exercise instanceof RecordedCardioExercise) {
     return (
       exercise.sets.filter((s) => s.completionDateTime).length *
-      bodyweightSetValue
+      (stretch ? stretchSetValue : bodyweightSetValue)
     );
+  }
+  if (stretch) {
+    return exercise.potentialSets.filter((s) => s.set).length * stretchSetValue;
   }
   const mobility = exercise.blueprint.group === 'Mobility';
   return exercise.potentialSets

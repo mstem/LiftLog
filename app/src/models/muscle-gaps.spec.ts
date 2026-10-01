@@ -103,6 +103,31 @@ describe('muscleGaps', () => {
     expect(result.abs).toBe(0.5);
   });
 
+  it('counts stretches as a quarter set, bodyweight strength as half', () => {
+    const result = gaps(
+      session('2026-09-20', [
+        lift('Pigeon', [0, 0], 'Mobility'),
+        lift('Glute Bridge', [0, 0], 'Mobility'),
+      ]),
+    );
+
+    // Pigeon 2 x 0.25 + Glute Bridge 2 x 0.5
+    expect(result.gluteal).toBe(1.5);
+    expect(result.hamstring).toBe(1);
+  });
+
+  it('counts library exercises filed as stretching as a quarter set', () => {
+    const result = muscleGaps({
+      sessions: [session('2026-09-20', [lift('Calf Stretch', [0])])],
+      library: [
+        { name: 'Calf Stretch', muscles: ['calves'], category: 'stretching' },
+      ],
+      today,
+    });
+
+    expect(result.calves).toBe(0.25);
+  });
+
   it('counts completed timed sets as bodyweight work', () => {
     const plank = new CardioExerciseBlueprint(
       'Plank',
@@ -150,9 +175,10 @@ describe('muscleGaps', () => {
 
     expect(result.obliques).toBe(0.5);
     expect(result.abs).toBe(0);
-    // Hip flexors have no region of their own and show on the quadriceps
-    expect(result.quadriceps).toBe(0.5);
-    expect(result.adductors).toBe(0.5);
+    // Hip flexors have no region of their own and show on the quadriceps.
+    // Lizard is a stretch, so a quarter set.
+    expect(result.quadriceps).toBe(0.25);
+    expect(result.adductors).toBe(0.25);
   });
 
   it('only looks at the last 30 days', () => {
