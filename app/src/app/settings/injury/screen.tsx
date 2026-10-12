@@ -147,12 +147,8 @@ export default function InjurySelfScreen() {
               <RadioButton.Item label={t('generic.no.button')} value="no" />
               <RadioButton.Item label={t('injury.not_sure')} value="unsure" />
             </RadioButton.Group>
+            {/* Next comes first so it stays in the same place on every page. */}
             <View style={{ flexDirection: 'row', gap: spacing[2] }}>
-              {step > 0 && (
-                <Button mode="outlined" onPress={() => setStep(step - 1)}>
-                  <T keyName="generic.back.button" />
-                </Button>
-              )}
               <Button
                 mode="contained"
                 disabled={answers[question.key] === undefined}
@@ -160,6 +156,11 @@ export default function InjurySelfScreen() {
               >
                 <T keyName="generic.next.button" />
               </Button>
+              {step > 0 && (
+                <Button mode="outlined" onPress={() => setStep(step - 1)}>
+                  <T keyName="generic.back.button" />
+                </Button>
+              )}
             </View>
           </>
         ) : outcome?.kind === 'clinician' ? (
