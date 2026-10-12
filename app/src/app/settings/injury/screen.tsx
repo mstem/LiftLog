@@ -1,4 +1,5 @@
 import FullHeightScrollView from '@/components/layout/full-height-scroll-view';
+import ArmArcDiagram from '@/components/presentation/injury/arm-arc-diagram';
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import { spacing } from '@/hooks/useAppTheme';
 import {
@@ -131,6 +132,15 @@ export default function InjurySelfScreen() {
             <Text variant="titleMedium">
               <T keyName={question.text} />
             </Text>
+            {question.key === 'painfulArc' && (
+              <ArmArcDiagram
+                from={60}
+                to={120}
+                painLabel={t('injury.screen.painful_arc.pain')}
+                noPainLabel={t('injury.screen.painful_arc.no_pain')}
+                accessibilityLabel={t('injury.screen.painful_arc.diagram')}
+              />
+            )}
             <RadioButton.Group
               value={answers[question.key] ?? ''}
               onValueChange={(value) =>
