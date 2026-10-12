@@ -8,6 +8,7 @@ import { NormalizedName } from '@/models/blueprint-models';
 import { isShoulderLoaded } from '@/models/injury/flags';
 import { Injury } from '@/models/injury/injury';
 import { RootState, useAppSelector } from '@/store';
+import { showSnackbar } from '@/store/app';
 import { setFlagOverride, setInjury } from '@/store/injury';
 import { selectActiveProgram } from '@/store/program';
 import { LocalDate } from '@js-joda/core';
@@ -75,6 +76,9 @@ function InjuryForm({ injury }: { injury: Injury }) {
   const [newStructure, setNewStructure] = useState('');
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [discarding, setDiscarding] = useState(false);
+  const saveBlocked = useAppSelector(
+    (state: RootState) => state.injury.saveBlocked,
+  );
 
   useEffect(() => setDraft(injury), [injury]);
 
@@ -110,6 +114,14 @@ function InjuryForm({ injury }: { injury: Injury }) {
   const save = () => {
     dispatch(setInjury(edited));
     setNewStructure('');
+  };
+
+  // A blocked save shows its own message from the persist effect.
+  const saveAndConfirm = () => {
+    save();
+    if (!saveBlocked) {
+      dispatch(showSnackbar({ text: t('injury.saved') }));
+    }
   };
 
   // Leaving saves valid edits. Invalid ones ask before they are thrown away.
@@ -250,7 +262,11 @@ function InjuryForm({ injury }: { injury: Injury }) {
         </Text>
       </View>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing[2] }}>
-        <Button mode="contained" disabled={!isValid} onPress={save}>
+        <Button
+          mode="contained"
+          disabled={!isValid || !isDirty}
+          onPress={saveAndConfirm}
+        >
           <T keyName="generic.save.button" />
         </Button>
         {injury.status === 'active' ? (

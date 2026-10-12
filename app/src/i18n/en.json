@@ -260,6 +260,7 @@
   "injury.screen.trauma": "Did this start with a fall or blow, followed by weakness or sudden inability to lift the arm?",
   "injury.rehab.group": "Rehab",
   "injury.save_blocked": "Injury settings could not be loaded, so this change is not saved. Restart the app and try again.",
+  "injury.saved": "Injury settings saved",
   "injury.side": "Which side?",
   "injury.side.left": "Left",
   "injury.side.right": "Right",
