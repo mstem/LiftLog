@@ -155,8 +155,9 @@ const RecordedSetGenerator = fc
   .record({
     repsCompleted: fc.integer({ min: 0, max: 100 }),
     completionDateTime: OffsetDateTimeGenerator,
+    pain: fc.option(fc.integer({ min: 0, max: 10 }), { nil: undefined }),
   })
-  .map((x) => new RecordedSet(x.repsCompleted, x.completionDateTime));
+  .map((x) => new RecordedSet(x.repsCompleted, x.completionDateTime, x.pain));
 
 const PotentialSetGenerator = fc
   .record({

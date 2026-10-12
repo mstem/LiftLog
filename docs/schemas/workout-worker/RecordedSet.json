@@ -7,6 +7,9 @@
     },
     "completionDateTime": {
       "$ref": "./OffsetDateTime.json"
+    },
+    "pain": {
+      "type": "integer"
     }
   },
   "required": [

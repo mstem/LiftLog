@@ -23,6 +23,11 @@ export class RecordedWeightedExercise {
     readonly blueprint: WeightedExerciseBlueprint,
     readonly potentialSets: PotentialSet[],
     readonly notes: string | undefined,
+    /**
+     * Ended early because a set's pain went over the injury limit. The lift
+     * counts as finished with sets left open. Undefined when not stopped.
+     */
+    readonly stoppedForPain: boolean | undefined = undefined,
   ) {}
 
   static fromJSON(
@@ -32,6 +37,7 @@ export class RecordedWeightedExercise {
       WeightedExerciseBlueprint.fromJSON(json.blueprint),
       json.potentialSets.map((x) => PotentialSet.fromJSON(x)),
       json.notes,
+      json.stoppedForPain ? true : undefined,
     );
   }
 
@@ -70,6 +76,7 @@ export class RecordedWeightedExercise {
     return (
       this.blueprint.equals(other.blueprint) &&
       this.notes === other.notes &&
+      this.stoppedForPain === other.stoppedForPain &&
       this.potentialSets.length === other.potentialSets.length &&
       this.potentialSets.every((set, index) => {
         const otherSet = other.potentialSets[index];
@@ -87,6 +94,7 @@ export class RecordedWeightedExercise {
         ? (other.potentialSets ?? this.potentialSets)
         : this.potentialSets,
       'notes' in other ? other.notes : this.notes,
+      'stoppedForPain' in other ? other.stoppedForPain : this.stoppedForPain,
     );
   }
 
@@ -99,6 +107,7 @@ export class RecordedWeightedExercise {
   withNothingCompleted(): RecordedWeightedExercise {
     return this.with({
       notes: undefined,
+      stoppedForPain: undefined,
       potentialSets: this.potentialSets.map((ps) =>
         ps.with({ set: undefined }),
       ),
@@ -134,7 +143,12 @@ export class RecordedWeightedExercise {
   ): RecordedWeightedExercise {
     return this.withSet(setIndex, (s) =>
       s.with({
-        set: reps === undefined ? undefined : new RecordedSet(reps, time),
+        set:
+          reps === undefined
+            ? undefined
+            : s.set
+              ? s.set.with({ repsCompleted: reps, completionDateTime: time })
+              : new RecordedSet(reps, time),
       }),
     );
   }
@@ -171,6 +185,7 @@ export class RecordedWeightedExercise {
       blueprint: this.blueprint.toJSON(),
       potentialSets: this.potentialSets.map((x) => x.toJSON()),
       notes: this.notes,
+      ...(this.stoppedForPain ? { stoppedForPain: true } : {}),
     };
   }
 
@@ -230,7 +245,10 @@ export class RecordedWeightedExercise {
   }
 
   get isComplete(): boolean {
-    return !this.potentialSets.some((x) => x.set === undefined);
+    return (
+      !!this.stoppedForPain ||
+      !this.potentialSets.some((x) => x.set === undefined)
+    );
   }
 
   /// <summary>
@@ -241,18 +259,66 @@ export class RecordedWeightedExercise {
       (x) => x.set && x.set.repsCompleted >= this.blueprint.repsPerSet,
     );
   }
+
+  withSetPain(
+    setIndex: number,
+    pain: number | undefined,
+  ): RecordedWeightedExercise {
+    const ps = this.potentialSets[setIndex];
+    if (!ps?.set) {
+      return this;
+    }
+    return this.with({
+      potentialSets: this.potentialSets.with(
+        setIndex,
+        ps.with({ set: ps.set.with({ pain }) }),
+      ),
+    });
+  }
+
+  /** Sets or clears stoppedForPain from the sets' pain against the limit */
+  withPainStop(painLimit: number): RecordedWeightedExercise {
+    const stopped =
+      this.stoppedForPainAt(painLimit) !== undefined ? true : undefined;
+    return stopped === this.stoppedForPain
+      ? this
+      : this.with({ stoppedForPain: stopped });
+  }
+
+  /**
+   * Whether a set is closed off by a pain stop: a set after the stop that
+   * has not been done. Done sets stay editable so they can be corrected.
+   */
+  isSetLockedForPain(setIndex: number, painLimit: number): boolean {
+    const stoppedAt = this.stoppedForPainAt(painLimit);
+    return (
+      stoppedAt !== undefined &&
+      setIndex > stoppedAt &&
+      !this.potentialSets[setIndex]?.set
+    );
+  }
+
+  /** Index of the first set whose pain went over the limit, if any */
+  stoppedForPainAt(painLimit: number): number | undefined {
+    const i = this.potentialSets.findIndex(
+      (x) => x.set?.pain !== undefined && x.set.pain > painLimit,
+    );
+    return i === -1 ? undefined : i;
+  }
 }
 
 export class RecordedSet {
   constructor(
     readonly repsCompleted: number,
     readonly completionDateTime: OffsetDateTime,
+    readonly pain: number | undefined = undefined,
   ) {}
 
   static fromJSON(json: RecordedSetJSON): RecordedSet {
     return new RecordedSet(
       json.repsCompleted,
       fromOffsetDateTimeJSON(json.completionDateTime),
+      json.pain,
     );
   }
 
@@ -265,7 +331,8 @@ export class RecordedSet {
     }
     return (
       this.repsCompleted === other.repsCompleted &&
-      this.completionDateTime.equals(other.completionDateTime)
+      this.completionDateTime.equals(other.completionDateTime) &&
+      this.pain === other.pain
     );
   }
 
@@ -275,6 +342,7 @@ export class RecordedSet {
       'completionDateTime' in other
         ? other.completionDateTime!
         : this.completionDateTime,
+      'pain' in other ? other.pain : this.pain,
     );
   }
 
@@ -282,6 +350,7 @@ export class RecordedSet {
     return {
       repsCompleted: this.repsCompleted,
       completionDateTime: toOffsetDateTimeJSON(this.completionDateTime),
+      ...(this.pain === undefined ? {} : { pain: this.pain }),
     };
   }
 }

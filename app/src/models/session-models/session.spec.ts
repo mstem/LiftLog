@@ -805,3 +805,65 @@ describe('Session.withEditedExercise', () => {
     expect(updated.recordedExercises[1]!.blueprint.name).toBe('Bench');
   });
 });
+
+describe('pain-stopped lifts', () => {
+  const kg = new Weight(20, 'kilograms');
+  const exerciseWith = (
+    bp: WeightedExerciseBlueprint,
+    ticked: number,
+    pain?: number,
+  ) =>
+    new RecordedWeightedExercise(
+      bp,
+      Array.from(
+        { length: 3 },
+        (_, i) =>
+          new PotentialSet(
+            i < ticked
+              ? new RecordedSet(10, tick(), i === ticked - 1 ? pain : undefined)
+              : undefined,
+            kg,
+          ),
+      ),
+      undefined,
+    );
+  const sessionOf = (exercises: RecordedWeightedExercise[]) =>
+    new Session(
+      uuid(),
+      new SessionBlueprint(
+        'S',
+        exercises.map((x) => x.blueprint),
+        '',
+      ),
+      exercises,
+      LocalDate.of(2025, 4, 5),
+      undefined,
+      undefined,
+    );
+
+  it('nextExercise skips a stopped lift', () => {
+    const press = exerciseWith(makeWeightedBlueprint('Press'), 1, 7);
+    const squat = exerciseWith(makeWeightedBlueprint('Squat'), 0);
+    expect(sessionOf([press, squat]).nextExercise).toBe(press);
+    const stopped = press.withPainStop(5);
+    expect(sessionOf([stopped, squat]).nextExercise).toBe(squat);
+  });
+
+  it('is complete when the only unfinished lift is stopped', () => {
+    const press = exerciseWith(makeWeightedBlueprint('Press'), 1, 7);
+    const squat = exerciseWith(makeWeightedBlueprint('Squat'), 3);
+    expect(sessionOf([squat, press]).isComplete).toBe(false);
+    const session = sessionOf([squat, press.withPainStop(5)]);
+    expect(session.isComplete).toBe(true);
+    expect(session.nextExercise).toBeUndefined();
+  });
+
+  it('a superset does not jump back to a stopped lift', () => {
+    const press = exerciseWith(makeWeightedBlueprint('Press', true), 1, 7);
+    const row = exerciseWith(makeWeightedBlueprint('Row'), 1);
+    const curl = exerciseWith(makeWeightedBlueprint('Curl'), 0);
+    expect(sessionOf([press, row, curl]).nextExercise).toBe(press);
+    const session = sessionOf([press.withPainStop(5), row, curl]);
+    expect(session.nextExercise).toBe(row);
+  });
+});

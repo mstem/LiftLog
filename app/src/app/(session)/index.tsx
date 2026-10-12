@@ -36,6 +36,7 @@ import { WelcomeWizard } from '@/components/smart/welcome-wizard';
 import { SessionDiffSaveDialog } from '@/components/smart/session-diff-save-dialog';
 import { SharedSession } from '@/models/feed-models';
 import { CurrentWorkoutReplacer } from '@/components/smart/current-workout-replacer';
+import { NextDayCheckDialog } from '@/components/smart/next-day-check-dialog';
 
 function PlanManager() {
   const { push } = useRouter();
@@ -284,6 +285,7 @@ export default function Index() {
         }}
       />
       <MigrateToWeightUnitsWizard />
+      <NextDayCheckDialog />
       <Remote
         value={upcomingSessions}
         success={(upcoming) => {

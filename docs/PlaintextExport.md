@@ -7,6 +7,8 @@ To create an export, simply navigate to `Settings -> Export, Backup, and Restore
 Here, you can export a CSV or JSON file which contains your workout data. Sets which have not been completed are not included in the export.
 ![Excluded Fields](./img/includedexcludedplaintext.png)
 
+If any exported set has a pain rating, the CSV gets a final `Pain` column (0 to 10, empty for sets without one). Without any, the column is left out. In the JSON export, a set's `pain` field is present only when one was recorded.
+
 An example of the produced CSV:
 
 ```csv

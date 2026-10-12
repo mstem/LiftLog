@@ -8,6 +8,7 @@ import {
 } from '@reduxjs/toolkit';
 import { currentSessionReducer } from './current-session';
 import { settingsReducer } from './settings';
+import { injuryReducer } from './injury';
 import programReducer from './program';
 import appReducer from './app';
 import feedReducer from './feed';
@@ -35,6 +36,7 @@ export function createStore(db: ExpoSQLiteDatabase, expoDb: SQLiteDatabase) {
       currentSession: currentSessionReducer,
       aiPlanner: aiPlannerReducer,
       settings: settingsReducer,
+      injury: injuryReducer,
       program: programReducer,
       feed: feedReducer,
       app: appReducer,

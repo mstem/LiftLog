@@ -21,7 +21,10 @@ import { tick } from '@/models/session-models/__test__/helpers';
 import { Session } from '@/models/session-models';
 import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 import Enumerable from 'linq';
-import { LocalDate } from '@js-joda/core';
+import { LocalDate, OffsetDateTime } from '@js-joda/core';
+import type { Injury } from '@/models/injury/injury';
+import { REHAB_GROUP } from '@/models/injury/rehab';
+import { NormalizedName } from '@/models/blueprint-models';
 
 const overload = () => new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5));
 
@@ -247,5 +250,382 @@ describe('SessionService adjusts by reps', () => {
 
   it('leaves the carried-forward weight when there is no recent history', () => {
     expect(hydrate([])).toEqual([0, 0, 0]);
+  });
+});
+
+function makeInjuryService(opts: {
+  injury?: Partial<Injury>;
+  sessions?: Session[];
+  overrides?: Record<string, boolean>;
+  answers?: Record<string, 'worse' | 'notWorse'>;
+}) {
+  const injury: Injury = {
+    slug: 'shoulder',
+    name: 'Shoulder',
+    side: 'left',
+    structures: [],
+    onsetDate: '2026-04-25',
+    painLimit: 5,
+    firstCut: 0.5,
+    status: 'active',
+    screenFindings: undefined,
+    trackedFrom: '2026-04-25T00:00:00Z',
+    ...opts.injury,
+  };
+  const getState = (() =>
+    ({
+      settings: { useImperialUnits: false },
+      injury: {
+        isHydrated: true,
+        injury,
+        flagOverrides: opts.overrides ?? {},
+        nextDayAnswers: opts.answers ?? {},
+      },
+    }) as unknown as RootState) as () => RootState;
+  const repo = {
+    getOrderedSessions: () => Enumerable.from(opts.sessions ?? []),
+  } as unknown as ProgressRepository;
+  return new SessionService(repo, getState);
+}
+
+describe('injury mode', () => {
+  const press = blueprint('Standing Military Press', 3, 8);
+  const squat = blueprint('Barbell Squat', 3, 5);
+
+  function recorded(bp: WeightedExerciseBlueprint, kg: number) {
+    return new RecordedWeightedExercise(
+      bp,
+      Array.from(
+        { length: bp.sets },
+        () =>
+          new PotentialSet(
+            new RecordedSet(bp.repsPerSet, tick()),
+            new Weight(kg, 'kilograms'),
+          ),
+      ),
+      undefined,
+    );
+  }
+
+  it('cuts a flagged lift and leaves an unflagged one alone', () => {
+    const service = makeInjuryService({});
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press, squat], ''),
+      {
+        [keyed(press)]: recorded(press, 40),
+        [keyed(squat)]: recorded(squat, 100),
+      },
+    );
+    const [p, s] = session.recordedExercises as RecordedWeightedExercise[];
+    expect(
+      p!.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms')),
+    ).toBe(true);
+    expect(
+      s!.potentialSets[0]!.weight.equals(new Weight(102.5, 'kilograms')),
+    ).toBe(true);
+  });
+
+  it('appends the rehab block', () => {
+    const service = makeInjuryService({});
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      {},
+    );
+    expect(
+      session.recordedExercises.filter(
+        (x) => x.blueprint.group === REHAB_GROUP,
+      ),
+    ).toHaveLength(13);
+  });
+
+  it('does nothing when the injury is resolved', () => {
+    const service = makeInjuryService({ injury: { status: 'resolved' } });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      { [keyed(press)]: recorded(press, 40) },
+    );
+    expect(session.recordedExercises).toHaveLength(1);
+    expect(
+      (
+        session.recordedExercises[0] as RecordedWeightedExercise
+      ).potentialSets[0]!.weight.equals(new Weight(42.5, 'kilograms')),
+    ).toBe(true);
+  });
+
+  it('respects an override that unflags a lift', () => {
+    const key = new NormalizedName('Standing Military Press').toString();
+    const service = makeInjuryService({ overrides: { [key]: false } });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      { [keyed(press)]: recorded(press, 40) },
+    );
+    expect(
+      (
+        session.recordedExercises[0] as RecordedWeightedExercise
+      ).potentialSets[0]!.weight.equals(new Weight(42.5, 'kilograms')),
+    ).toBe(true);
+  });
+
+  it('does not throw when state has no injury slice', () => {
+    const session = makeService().hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      {},
+    );
+    expect(session.recordedExercises).toHaveLength(1);
+  });
+
+  it('cuts from the heaviest set of a ramped lift', () => {
+    const service = makeInjuryService({});
+    const ramped = new RecordedWeightedExercise(
+      press,
+      [40, 50, 60].map(
+        (kg) =>
+          new PotentialSet(
+            new RecordedSet(press.repsPerSet, tick()),
+            new Weight(kg, 'kilograms'),
+          ),
+      ),
+      undefined,
+    );
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      { [keyed(press)]: ramped },
+    );
+    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    expect(p.potentialSets.map((x) => x.weight.value.toNumber())).toEqual([
+      30, 30, 30,
+    ]);
+  });
+
+  it('cuts from the pre-overload weight', () => {
+    const service = makeInjuryService({});
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      { [keyed(press)]: recorded(press, 42.5) },
+    );
+    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    expect(p.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms'))).toBe(
+      true,
+    );
+  });
+
+  it('cuts an adjust-by-reps lift from the seeded weight, not the adjusted one', () => {
+    const byRepsPress = press.with({
+      progressiveOverload: new AdjustByRepsProgressiveOverload(BigNumber(2.5)),
+    });
+    const past = new Session(
+      'old',
+      new SessionBlueprint('Push', [byRepsPress], ''),
+      [recorded(byRepsPress, 50)],
+      LocalDate.parse('2026-04-20'),
+      undefined,
+      undefined,
+    );
+    const service = makeInjuryService({ sessions: [past] });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [byRepsPress], ''),
+      { [keyed(byRepsPress)]: recorded(byRepsPress, 42.5) },
+    );
+    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    expect(p.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms'))).toBe(
+      true,
+    );
+  });
+  it('gives the first cut when sessions since onset predate turning the mode on', () => {
+    const doneAt = OffsetDateTime.parse('2026-04-30T18:00:00Z');
+    const fullWeight = new RecordedWeightedExercise(
+      press,
+      Array.from(
+        { length: press.sets },
+        () =>
+          new PotentialSet(
+            new RecordedSet(press.repsPerSet, doneAt),
+            new Weight(40, 'kilograms'),
+          ),
+      ),
+      undefined,
+    );
+    const past = new Session(
+      'before-mode',
+      new SessionBlueprint('Push', [press], ''),
+      [fullWeight],
+      LocalDate.parse('2026-04-30'),
+      undefined,
+      undefined,
+    );
+    const service = makeInjuryService({
+      injury: { onsetDate: '2026-04-25', trackedFrom: '2026-05-11T09:00:00Z' },
+      sessions: [past],
+    });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      { [keyed(press)]: fullWeight },
+    );
+    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    expect(p.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms'))).toBe(
+      true,
+    );
+  });
+  it('drops a dumbbell rehab lift by 1 kg after a pain stop', () => {
+    const punch = blueprint('Supine punch', 3, 15).with({
+      group: REHAB_GROUP,
+    });
+    const doneAt = OffsetDateTime.parse('2026-05-12T18:00:00Z');
+    const painful = new RecordedWeightedExercise(
+      punch,
+      [
+        new PotentialSet(
+          new RecordedSet(15, doneAt, 7),
+          new Weight(5, 'kilograms'),
+        ),
+        new PotentialSet(undefined, new Weight(5, 'kilograms')),
+        new PotentialSet(undefined, new Weight(5, 'kilograms')),
+      ],
+      undefined,
+      true,
+    );
+    const past = new Session(
+      'rehab-day',
+      new SessionBlueprint('Push', [press, punch], ''),
+      [painful],
+      LocalDate.parse('2026-05-12'),
+      undefined,
+      undefined,
+    );
+    const service = makeInjuryService({ sessions: [past] });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      {},
+    );
+    const next = session.recordedExercises.find(
+      (x) => x.blueprint.name === 'Supine punch',
+    ) as RecordedWeightedExercise;
+    expect(
+      next.potentialSets[0]!.weight.equals(new Weight(4, 'kilograms')),
+    ).toBe(true);
+  });
+  it('leaves a bodyweight rehab lift where it is after two passed sessions', () => {
+    const slide = blueprint('Wall slide', 3, 15).with({ group: REHAB_GROUP });
+    const day = (id: string, date: string) =>
+      new Session(
+        id,
+        new SessionBlueprint('Push', [press, slide], ''),
+        [
+          new RecordedWeightedExercise(
+            slide,
+            Array.from(
+              { length: 3 },
+              () =>
+                new PotentialSet(
+                  new RecordedSet(
+                    15,
+                    OffsetDateTime.parse(`${date}T18:00:00Z`),
+                    1,
+                  ),
+                  new Weight(0, 'kilograms'),
+                ),
+            ),
+            undefined,
+          ),
+        ],
+        LocalDate.parse(date),
+        undefined,
+        undefined,
+      );
+    const service = makeInjuryService({
+      sessions: [day('b', '2026-05-14'), day('a', '2026-05-12')],
+    });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      {},
+    );
+    const next = session.recordedExercises.find(
+      (x) => x.blueprint.name === 'Wall slide',
+    ) as RecordedWeightedExercise;
+    expect(next.potentialSets[0]!.weight.value.toNumber()).toBe(0);
+  });
+  describe('steps from injury-era history', () => {
+    // Two workouts on one day, newest first as the repository returns them.
+    function day(id: string, time: string, kg: number, pain?: number) {
+      const at = OffsetDateTime.parse(time);
+      return new Session(
+        id,
+        new SessionBlueprint('Push', [press], ''),
+        [
+          new RecordedWeightedExercise(
+            press,
+            Array.from(
+              { length: press.sets },
+              (_, i) =>
+                new PotentialSet(
+                  new RecordedSet(
+                    press.repsPerSet,
+                    at.plusMinutes(i),
+                    i === 0 ? pain : 1,
+                  ),
+                  new Weight(kg, 'kilograms'),
+                ),
+            ),
+            undefined,
+            pain !== undefined && pain > 5 ? true : undefined,
+          ),
+        ],
+        at.toLocalDate(),
+        undefined,
+        undefined,
+      );
+    }
+
+    function nextPress(service: SessionService) {
+      const session = service.hydrateSessionFromBlueprint(
+        new SessionBlueprint('Push', [press], ''),
+        { [keyed(press)]: recorded(press, 20) },
+      );
+      return (
+        session.recordedExercises[0] as RecordedWeightedExercise
+      ).potentialSets[0]!.weight.value.toNumber();
+    }
+
+    it('drops a step when the later of two same-day workouts stopped for pain', () => {
+      const earlier = day('a', '2026-05-12T08:00:00Z', 20, 1);
+      const later = day('b', '2026-05-12T18:00:00Z', 20, 8);
+      expect(nextPress(makeInjuryService({ sessions: [later, earlier] }))).toBe(
+        17.5,
+      );
+    });
+
+    it('adds a step after two passed workouts at the same weight', () => {
+      const earlier = day('a', '2026-05-12T08:00:00Z', 20, 1);
+      const later = day('b', '2026-05-12T18:00:00Z', 20, 2);
+      expect(nextPress(makeInjuryService({ sessions: [later, earlier] }))).toBe(
+        22.5,
+      );
+    });
+
+    it('drops a step when the next day was worse after the latest workout', () => {
+      const earlier = day('a', '2026-05-12T08:00:00Z', 20, 1);
+      const later = day('b', '2026-05-12T18:00:00Z', 20, 2);
+      expect(
+        nextPress(
+          makeInjuryService({
+            sessions: [later, earlier],
+            answers: { b: 'worse' },
+          }),
+        ),
+      ).toBe(17.5);
+    });
+
+    it('holds the weight when only the earlier workout was worse the next day', () => {
+      const earlier = day('a', '2026-05-12T08:00:00Z', 20, 1);
+      const later = day('b', '2026-05-12T18:00:00Z', 20, 2);
+      expect(
+        nextPress(
+          makeInjuryService({
+            sessions: [later, earlier],
+            answers: { a: 'worse' },
+          }),
+        ),
+      ).toBe(20);
+    });
   });
 });

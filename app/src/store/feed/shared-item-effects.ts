@@ -1,3 +1,4 @@
+import { sharedItemWithoutPain } from '@/models/without-pain';
 import { AesKey } from '@/models/encryption-models';
 import { fromSharedItemJSON } from '@/models/feed-models';
 import { RemoteData } from '@/models/remote';
@@ -48,7 +49,7 @@ export function addSharedItemEffects(addEffect: AddEffectFn) {
       }
 
       const aesKey = await encryptionService.generateAesKey();
-      const payload = action.payload.item.toJSON();
+      const payload = sharedItemWithoutPain(action.payload.item).toJSON();
       const payloadBytes = toJsonBytes(payload);
 
       const encrypted =

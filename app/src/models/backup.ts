@@ -6,6 +6,7 @@ import {
   FollowRequestInboxMessage,
   SessionUserEvent,
 } from '@/models/feed-models';
+import { InjuryState } from '@/models/injury/injury';
 import { Session } from '@/models/session-models';
 
 export interface FeedBackupData {
@@ -21,4 +22,6 @@ export interface BackupData {
   programs: Record<string, ProgramBlueprint>;
   exerciseNotes?: Record<string, string>;
   feed?: FeedBackupData;
+  /** Absent in backups made before injury settings were included. */
+  injury?: InjuryState;
 }

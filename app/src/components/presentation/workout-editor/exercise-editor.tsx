@@ -23,11 +23,12 @@ import { assertUnreachable } from '@/utils/assert-unreachable';
 import { Duration } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import BigNumber from 'bignumber.js';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Divider, List, SegmentedButtons, TextInput } from 'react-native-paper';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
+import { groupFromInput, REHAB_GROUP } from '@/models/injury/rehab';
 import { FormRow } from '@/components/presentation/foundation/form-row';
 import {
   SegmentedList,
@@ -283,6 +284,7 @@ function SharedFieldsEditor({
   ) => void;
 }) {
   const { t } = useTranslate();
+  const startedAsRehab = useRef(exercise.group === REHAB_GROUP).current;
   return (
     <>
       <FormRow>
@@ -313,8 +315,20 @@ function SharedFieldsEditor({
           testID="exercise-group"
           label={t('plan.exercise_group.label')}
           style={{ marginBottom: spacing[2] }}
-          value={exercise.group ?? ''}
-          onChangeText={(group) => updateExercise({ group })}
+          value={
+            exercise.group === REHAB_GROUP
+              ? t('injury.rehab.group')
+              : (exercise.group ?? '')
+          }
+          onChangeText={(text) =>
+            updateExercise({
+              group: groupFromInput(
+                text,
+                startedAsRehab,
+                t('injury.rehab.group'),
+              ),
+            })
+          }
         />
       </FormRow>
     </>

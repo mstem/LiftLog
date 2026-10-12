@@ -7,6 +7,13 @@ import { deserializeDatabaseAsync, type SQLiteDatabase } from 'expo-sqlite';
 import { readFile } from 'fs/promises';
 import { resolve } from 'node:path';
 import { gunzipSync } from 'zlib';
+import { emptyInjuryState, InjuryState } from '@/models/injury/injury';
+
+const hydratedInjury: InjuryState = {
+  ...emptyInjuryState,
+  isHydrated: true,
+  flagOverrides: { dip: true },
+};
 
 function makeFileExportService(): MockedObject<FileExportService> {
   return {
@@ -26,6 +33,7 @@ describe('addExportBackupEffects', () => {
   it('calls exportBytes with a .sqlite.gz filename and application/octet-stream content type', async () => {
     const fileExportService = makeFileExportService();
     const testBed = createAddEffectTestBed({
+      initialState: { injury: hydratedInjury },
       services: { fileExportService, expoDb },
     });
     addExportBackupEffects(testBed.addEffect);
@@ -44,6 +52,7 @@ describe('addExportBackupEffects', () => {
   it('exports a non-empty gzip payload', async () => {
     const fileExportService = makeFileExportService();
     const testBed = createAddEffectTestBed({
+      initialState: { injury: hydratedInjury },
       services: { fileExportService, expoDb },
     });
     addExportBackupEffects(testBed.addEffect);
@@ -58,6 +67,7 @@ describe('addExportBackupEffects', () => {
   it('does not dispatch any actions', async () => {
     const fileExportService = makeFileExportService();
     const testBed = createAddEffectTestBed({
+      initialState: { injury: hydratedInjury },
       services: { fileExportService, expoDb },
     });
     addExportBackupEffects(testBed.addEffect);
@@ -70,6 +80,7 @@ describe('addExportBackupEffects', () => {
   it('with includeFeed=false, executes feed table deletions on the backup db', async () => {
     const fileExportService = makeFileExportService();
     const testBed = createAddEffectTestBed({
+      initialState: { injury: hydratedInjury },
       services: { fileExportService, expoDb },
     });
     addExportBackupEffects(testBed.addEffect);
@@ -84,6 +95,7 @@ describe('addExportBackupEffects', () => {
   it('with includeFeed=true, skips the feed table deletions', async () => {
     const fileExportService = makeFileExportService();
     const testBed = createAddEffectTestBed({
+      initialState: { injury: hydratedInjury },
       services: { fileExportService, expoDb },
     });
     addExportBackupEffects(testBed.addEffect);
@@ -91,5 +103,24 @@ describe('addExportBackupEffects', () => {
     await testBed.dispatchHandled(exportData({ includeFeed: true }));
 
     expect(fileExportService.exportBytes).toHaveBeenCalledOnce();
+  });
+
+  it('carries the injury settings in the backup file', async () => {
+    const fileExportService = makeFileExportService();
+    const testBed = createAddEffectTestBed({
+      initialState: { injury: hydratedInjury },
+      services: { fileExportService, expoDb },
+    });
+    addExportBackupEffects(testBed.addEffect);
+
+    await testBed.dispatchHandled(exportData({ includeFeed: true }));
+
+    const [, bytes] = fileExportService.exportBytes.mock.calls[0]!;
+    const backup = await deserializeDatabaseAsync(gunzipSync(bytes));
+    const row = await backup.getFirstAsync<{ payload: string }>(
+      'SELECT payload FROM injury_state WHERE id = 1',
+    );
+    const saved = JSON.parse(row!.payload) as Partial<InjuryState>;
+    expect(saved.flagOverrides).toEqual({ dip: true });
   });
 });

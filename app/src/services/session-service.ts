@@ -26,6 +26,15 @@ import { ProgressRepository } from '@/services/progress-repository';
 import type { RootState } from '@/store';
 import { uuid } from '@/utils/uuid';
 import { LocalDate } from '@js-joda/core';
+import { selectActiveInjury } from '@/store/injury';
+import { isShoulderLoaded } from '@/models/injury/flags';
+import { injuryWeight, InjuryHistoryEntry } from '@/models/injury/load';
+import { injuryEraStart } from '@/models/injury/injury';
+import {
+  rehabIncrement,
+  withRehabBlock,
+  REHAB_GROUP,
+} from '@/models/injury/rehab';
 
 export class SessionService {
   constructor(
@@ -111,7 +120,7 @@ export class SessionService {
   }
 
   private createNewSession(
-    sessionBlueprint: SessionBlueprint,
+    inputBlueprint: SessionBlueprint,
     latestRecordedExercises: Record<
       string, //KeyedExerciseBlueprint,
       RecordedExercise | undefined
@@ -119,6 +128,15 @@ export class SessionService {
   ): Session {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const $this = this;
+
+    // Older test fixtures have no injury slice, so treat that as no injury.
+    const state = this.getState();
+    const injury = state.injury ? selectActiveInjury(state) : undefined;
+    const onsetDate = injury ? LocalDate.parse(injury.onsetDate) : undefined;
+    const overrides = state.injury?.flagOverrides ?? {};
+    const sessionBlueprint = injury
+      ? withRehabBlock(inputBlueprint, injury.structures)
+      : inputBlueprint;
 
     // Fallback lookup so the previous weight carries forward by *movement* even
     // when the rep scheme (sets/reps) changed - the strict key above is
@@ -131,12 +149,15 @@ export class SessionService {
       if (!(ex instanceof RecordedWeightedExercise)) {
         continue;
       }
-      const nameKey = NormalizedName.fromExerciseBlueprint(ex.blueprint).toString();
+      const nameKey = NormalizedName.fromExerciseBlueprint(
+        ex.blueprint,
+      ).toString();
       const existing = latestWeightedByName.get(nameKey);
       const existingTime = existing?.latestTime;
       if (
         !existing ||
-        (ex.latestTime && (!existingTime || existingTime.isBefore(ex.latestTime)))
+        (ex.latestTime &&
+          (!existingTime || existingTime.isBefore(ex.latestTime)))
       ) {
         latestWeightedByName.set(nameKey, ex);
       }
@@ -144,9 +165,7 @@ export class SessionService {
 
     // History by movement for lifts that adjust by reps, built once and only
     // when one is present - it reads every stored workout.
-    let historyByName:
-      | Map<string, { date: LocalDate; exercise: RecordedWeightedExercise }[]>
-      | undefined;
+    let historyByName: Map<string, InjuryHistoryEntry[]> | undefined;
     const historyFor = (e: WeightedExerciseBlueprint) => {
       if (!historyByName) {
         historyByName = new Map();
@@ -159,7 +178,11 @@ export class SessionService {
               ex.blueprint,
             ).toString();
             const list = historyByName.get(key) ?? [];
-            list.push({ date: session.date, exercise: ex });
+            list.push({
+              sessionId: session.id,
+              date: session.date,
+              exercise: ex,
+            });
             historyByName.set(key, list);
           }
         }
@@ -218,6 +241,15 @@ export class SessionService {
                 new Weight(0, $this.getDefaultWeightUnit()),
               ),
           );
+      // Heaviest set before overload and adjust-by-reps: the injury cut
+      // starts here, the same basis the load rule uses for later sessions.
+      const seededWeight = potentialSets.length
+        ? Weight.max(
+            ...potentialSets.map((x) =>
+              x.weight.convertTo(potentialSets[0]!.weight.unit),
+            ),
+          )
+        : new Weight(0, $this.getDefaultWeightUnit());
       let newExercise = new RecordedWeightedExercise(
         e,
         potentialSets,
@@ -240,6 +272,28 @@ export class SessionService {
         if (weight) {
           newExercise = newExercise.withAllSets((s) => s.with({ weight }));
         }
+      }
+
+      if (
+        injury &&
+        onsetDate &&
+        (e.group === REHAB_GROUP || isShoulderLoaded(e.name, overrides))
+      ) {
+        const weight = injuryWeight({
+          // historyFor is newest first; injuryWeight wants oldest first.
+          history: [...historyFor(e)].reverse(),
+          onsetDate,
+          carried: seededWeight,
+          increment:
+            e.group === REHAB_GROUP
+              ? rehabIncrement(e)
+              : e.progressiveOverload.weightIncrement,
+          painLimit: injury.painLimit,
+          firstCut: injury.firstCut,
+          nextDayAnswers: $this.getState().injury?.nextDayAnswers ?? {},
+          trackedFrom: injuryEraStart(injury),
+        });
+        newExercise = newExercise.withAllSets((s) => s.with({ weight }));
       }
 
       return newExercise;
