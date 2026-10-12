@@ -290,7 +290,7 @@ function makeInjuryService(opts: {
 
 describe('injury mode', () => {
   const press = blueprint('Standing Military Press', 3, 8);
-  const squat = blueprint('Barbell Squat', 3, 5);
+  const legPress = blueprint('Leg Press', 3, 5);
 
   function recorded(bp: WeightedExerciseBlueprint, kg: number) {
     return new RecordedWeightedExercise(
@@ -310,10 +310,10 @@ describe('injury mode', () => {
   it('cuts a flagged lift and leaves an unflagged one alone', () => {
     const service = makeInjuryService({});
     const session = service.hydrateSessionFromBlueprint(
-      new SessionBlueprint('Push', [press, squat], ''),
+      new SessionBlueprint('Push', [press, legPress], ''),
       {
         [keyed(press)]: recorded(press, 40),
-        [keyed(squat)]: recorded(squat, 100),
+        [keyed(legPress)]: recorded(legPress, 100),
       },
     );
     const [p, s] = session.recordedExercises as RecordedWeightedExercise[];

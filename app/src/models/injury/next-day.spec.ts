@@ -31,7 +31,7 @@ const blueprint = (name: string, group?: string) =>
     group,
   );
 const press = blueprint('Standing Military Press');
-const squat = blueprint('Barbell Squat');
+const legPress = blueprint('Leg Press');
 const supinePunch = blueprint('Supine punch', REHAB_GROUP);
 
 const injury: Injury = {
@@ -109,14 +109,14 @@ describe('pendingNextDayCheck', () => {
   });
 
   it('does not return a session with only unflagged lifts', () => {
-    const s = session('a', '2026-05-05', [squat]);
+    const s = session('a', '2026-05-05', [legPress]);
     expect(
       pendingNextDayCheck({ ...base, sessions: [s], now: hoursAfter(13) }),
     ).toBeUndefined();
   });
 
   it('returns a session whose only tracked lift is in the Rehab group', () => {
-    const s = session('a', '2026-05-05', [squat, supinePunch]);
+    const s = session('a', '2026-05-05', [legPress, supinePunch]);
     expect(
       pendingNextDayCheck({ ...base, sessions: [s], now: hoursAfter(13) }),
     ).toBe(s);
