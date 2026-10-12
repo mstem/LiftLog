@@ -25,7 +25,6 @@ type Answer = 'yes' | 'no' | 'unsure';
 const questions = [
   { key: 'traumaWithWeakness', text: 'injury.screen.trauma' },
   { key: 'feverOrHotJoint', text: 'injury.screen.fever' },
-  { key: 'weightLossOrCancer', text: 'injury.screen.weight_loss' },
   { key: 'painfulArc', text: 'injury.screen.painful_arc' },
   { key: 'dropArm', text: 'injury.screen.drop_arm' },
   { key: 'passiveAsLimitedAsActive', text: 'injury.screen.passive' },
@@ -35,11 +34,7 @@ const questions = [
 
 type QuestionKey = (typeof questions)[number]['key'];
 
-const redFlagKeys: QuestionKey[] = [
-  'traumaWithWeakness',
-  'feverOrHotJoint',
-  'weightLossOrCancer',
-];
+const redFlagKeys: QuestionKey[] = ['traumaWithWeakness', 'feverOrHotJoint'];
 
 const toOptional = (a: Answer | undefined): boolean | undefined =>
   a === 'yes' ? true : a === 'no' ? false : undefined;
@@ -71,7 +66,6 @@ export default function InjurySelfScreen() {
     ? screenOutcome({
         traumaWithWeakness: toRedFlag(answers.traumaWithWeakness),
         feverOrHotJoint: toRedFlag(answers.feverOrHotJoint),
-        weightLossOrCancer: toRedFlag(answers.weightLossOrCancer),
         painfulArc: toOptional(answers.painfulArc),
         dropArm: toOptional(answers.dropArm),
         passiveAsLimitedAsActive: toOptional(answers.passiveAsLimitedAsActive),

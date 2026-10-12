@@ -56,7 +56,7 @@ Settings gets an Injury mode row: turn it on, enter or edit the injury, and mark
 
 The screen runs when injury mode is first turned on, and can be re-run from settings. Every page states that this is a screen, not a diagnosis, and that a physio's assessment comes first.
 
-1. Red flags: trauma followed by weakness or a sudden inability to lift the arm; fever or a hot, swollen joint; unexplained weight loss or a history of cancer. Any yes ends the flow with "see a clinician now" and leaves injury mode off. On a re-run over an active injury, injury mode stays on and the message says so, because turning it off would restore full loads.
+1. Red flags: trauma followed by weakness or a sudden inability to lift the arm; fever or a hot, swollen joint. Any yes ends the flow with "see a clinician now" and leaves injury mode off. On a re-run over an active injury, injury mode stays on and the message says so, because turning it off would restore full loads.
 2. Self-checks, each with a short instruction:
    - Painful arc: pain between about 60° and 120° when raising the arm sideways.
    - Drop arm: does the arm drop when lowered slowly from overhead?
