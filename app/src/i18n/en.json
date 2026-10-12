@@ -255,7 +255,7 @@
   "injury.screen.painful_arc.middle": "In the middle, about 60 to 120 degrees, easing above that",
   "injury.screen.painful_arc.top": "Near the top, about 120 to 180 degrees",
   "injury.screen.painful_arc.whole": "The whole way up",
-  "injury.screen.passive": "Lift the arm with your other hand. Does it go no further than when you lift it on its own?",
+  "injury.screen.passive": "Raise the arm as high as it goes on its own. Then push it up with your other hand. Does it stop at the same height both times?",
   "injury.screen.scapular": "Is the pain around or under the shoulder blade, or does the shoulder blade wing or click?",
   "injury.screen.trauma": "Did this start with a fall or blow, followed by weakness or sudden inability to lift the arm?",
   "injury.rehab.group": "Rehab",
