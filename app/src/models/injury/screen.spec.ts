@@ -4,7 +4,7 @@ import { screenOutcome, ScreenAnswers } from '@/models/injury/screen';
 const clear: ScreenAnswers = {
   traumaWithWeakness: false,
   feverOrHotJoint: false,
-  painfulArc: false,
+  arcPain: 'none',
   dropArm: false,
   passiveAsLimitedAsActive: false,
   neckSymptoms: false,
@@ -21,7 +21,8 @@ describe('screenOutcome', () => {
 
   it.each([
     { passiveAsLimitedAsActive: true },
-    { dropArm: true, painfulArc: true },
+    { dropArm: true, arcPain: 'middle' as const },
+    { arcPain: 'whole' as const },
     { neckSymptoms: true },
   ])('%o sends to a physio first', (a) => {
     expect(screenOutcome({ ...clear, ...a }).kind).toBe('physio');
@@ -33,7 +34,7 @@ describe('screenOutcome', () => {
 
   it('suggests structures', () => {
     expect(
-      screenOutcome({ ...clear, painfulArc: true, scapularSymptoms: true }),
+      screenOutcome({ ...clear, arcPain: 'middle', scapularSymptoms: true }),
     ).toEqual({
       kind: 'ok',
       suggestedStructures: [
@@ -46,10 +47,37 @@ describe('screenOutcome', () => {
     });
   });
 
+  it('pain near the top suggests the AC joint and shoulder blade rotators', () => {
+    expect(screenOutcome({ ...clear, arcPain: 'top' })).toEqual({
+      kind: 'ok',
+      suggestedStructures: ['AC joint', 'serratus anterior', 'lower trapezius'],
+    });
+  });
+
+  it('lists a structure once when two answers suggest it', () => {
+    expect(
+      screenOutcome({ ...clear, arcPain: 'top', scapularSymptoms: true }),
+    ).toEqual({
+      kind: 'ok',
+      suggestedStructures: [
+        'AC joint',
+        'serratus anterior',
+        'lower trapezius',
+        'middle trapezius',
+        'rhomboids',
+      ],
+    });
+  });
+
+  it('drop arm with pain near the top is not physio routing', () => {
+    expect(
+      screenOutcome({ ...clear, dropArm: true, arcPain: 'top' }).kind,
+    ).toBe('ok');
+  });
+
   it('unanswered checks count as no', () => {
     expect(
-      screenOutcome({ ...clear, painfulArc: undefined, dropArm: undefined })
-        .kind,
+      screenOutcome({ ...clear, arcPain: undefined, dropArm: undefined }).kind,
     ).toBe('ok');
   });
 });

@@ -20,18 +20,29 @@ function arc(from: number, to: number, radius: number) {
   return `M ${a.x} ${a.y} A ${radius} ${radius} 0 0 0 ${b.x} ${b.y}`;
 }
 
-/** Shades a band of the arm's sideways raise, e.g. the 60–120° painful arc. */
+function wedge(from: number, to: number) {
+  const start = point(from, armLength);
+  return `M ${shoulder.x} ${shoulder.y} L ${start.x} ${start.y} ${arc(
+    from,
+    to,
+    armLength,
+  ).replace(/^M [^A]+/, '')} Z`;
+}
+
+/** Shades labelled bands of the arm's sideways raise, e.g. 60–120°. */
 export default function ArmArcDiagram(props: {
-  from: number;
-  to: number;
-  painLabel: string;
-  noPainLabel: string;
+  bands: { from: number; to: number; label: string }[];
   accessibilityLabel: string;
 }) {
   const { colors } = useAppTheme();
-  const bandStart = point(props.from, armLength);
-  const raised = point((props.from + props.to) / 2, armLength);
-  const labels = [0, props.from, props.to, 180];
+  // Bands alternate colours so neighbours stay apart.
+  const tone = (i: number) =>
+    i % 2 === 0
+      ? { fill: colors.errorContainer, stroke: colors.error }
+      : { fill: colors.tertiaryContainer, stroke: colors.tertiary };
+  const labels = [
+    ...new Set([0, ...props.bands.flatMap((b) => [b.from, b.to]), 180]),
+  ];
 
   return (
     <Svg
@@ -41,16 +52,15 @@ export default function ArmArcDiagram(props: {
       accessible
       accessibilityLabel={props.accessibilityLabel}
     >
-      <Path
-        d={`M ${shoulder.x} ${shoulder.y} L ${bandStart.x} ${bandStart.y} ${arc(
-          props.from,
-          props.to,
-          armLength,
-        ).replace(/^M [^A]+/, '')} Z`}
-        fill={colors.errorContainer}
-        stroke={colors.error}
-        strokeWidth={1}
-      />
+      {props.bands.map((b, i) => (
+        <Path
+          key={`band-${b.from}`}
+          d={wedge(b.from, b.to)}
+          fill={tone(i).fill}
+          stroke={tone(i).stroke}
+          strokeWidth={1}
+        />
+      ))}
       <Path
         d={`${arc(0, 90, armLength)} ${arc(90, 180, armLength).replace(/^M/, 'L')}`}
         stroke={colors.onSurfaceVariant}
@@ -107,45 +117,29 @@ export default function ArmArcDiagram(props: {
         stroke={colors.onSurface}
         strokeWidth={3}
       />
-      {/* Raised arm, inside the band */}
+      {/* The arm being tested, hanging at the start of the raise */}
       <Line
         x1={shoulder.x}
         y1={shoulder.y}
-        x2={raised.x}
-        y2={raised.y}
-        stroke={colors.error}
+        x2={point(0, armLength).x}
+        y2={point(0, armLength).y}
+        stroke={colors.onSurface}
         strokeWidth={4}
         strokeLinecap="round"
       />
-      {[
-        {
-          deg: (props.from + props.to) / 2 + 12,
-          text: props.painLabel,
-          color: colors.error,
-        },
-        {
-          deg: props.from / 2,
-          text: props.noPainLabel,
-          color: colors.onSurfaceVariant,
-        },
-        {
-          deg: (props.to + 180) / 2,
-          text: props.noPainLabel,
-          color: colors.onSurfaceVariant,
-        },
-      ].map(({ deg, text, color }) => {
-        const p = point(deg, armLength * 0.68);
+      {props.bands.map((b, i) => {
+        const p = point((b.from + b.to) / 2, armLength * 0.68);
         return (
           <SvgText
-            key={`zone-${deg}`}
+            key={`label-${b.from}`}
             x={p.x}
             y={p.y + 4}
             fontSize={11}
             fontWeight="bold"
-            fill={color}
+            fill={tone(i).stroke}
             textAnchor="middle"
           >
-            {text}
+            {b.label}
           </SvgText>
         );
       })}
@@ -159,11 +153,7 @@ export default function ArmArcDiagram(props: {
             x={p.x + nudge}
             y={p.y + 4}
             fontSize={12}
-            fill={
-              deg === props.from || deg === props.to
-                ? colors.error
-                : colors.onSurfaceVariant
-            }
+            fill={colors.onSurfaceVariant}
             textAnchor="middle"
           >
             {`${deg}°`}

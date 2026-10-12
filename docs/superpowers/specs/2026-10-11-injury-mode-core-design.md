@@ -58,12 +58,12 @@ The screen runs when injury mode is first turned on, and can be re-run from sett
 
 1. Red flags: trauma followed by weakness or a sudden inability to lift the arm; fever or a hot, swollen joint. Any yes ends the flow with "see a clinician now" and leaves injury mode off. On a re-run over an active injury, injury mode stays on and the message says so, because turning it off would restore full loads.
 2. Self-checks, each with a short instruction:
-   - Painful arc: pain between about 60° and 120° when raising the arm sideways.
+   - Arc pain: where does raising the arm sideways hurt? Nowhere, in the middle (about 60° to 120°, easing above it, the classic painful arc), near the top (about 120° to 180°, the high arc), or the whole way up. A diagram shows both bands. Pain at about 170° to 180° is linked to the AC joint (https://www.physiotutors.com/wiki/painful-arc-sign/).
    - Drop arm: does the arm drop when lowered slowly from overhead?
    - Active versus passive range: does the arm go further when the other hand lifts it?
    - Neck: does the pain change with neck movement, or are there pins and needles below the elbow?
-3. Routing. If passive range is as limited as active range, if drop arm is positive together with a painful arc, or if the neck answer is yes, show "see a physio before loading". The user can still continue.
-4. Candidate structures. Painful arc points to supraspinatus. Scapular symptoms point to serratus anterior, lower and middle trapezius, and rhomboids. These are suggestions the user confirms or edits. Results are stored in `screenFindings` and `structures`.
+3. Routing. If passive range is as limited as active range, if drop arm is positive together with pain in the middle of the arc, if the arm hurts the whole way up, or if the neck answer is yes, show "see a physio before loading". The user can still continue.
+4. Candidate structures. Pain in the middle of the arc points to supraspinatus. Pain near the top points to the AC joint, serratus anterior and lower trapezius (the last two rotate the shoulder blade up at the top of the raise). Scapular symptoms point to serratus anterior, lower and middle trapezius, and rhomboids. These are suggestions the user confirms or edits. Results are stored in `screenFindings` and `structures`.
 
 ### 3. Position flags
 

@@ -1,4 +1,5 @@
 import { LocalDate, OffsetDateTime, ZoneId } from '@js-joda/core';
+import type { ArcPain } from '@/models/injury/screen';
 
 export type InjurySide = 'left' | 'right';
 export type InjuryStatus = 'active' | 'resolved';
@@ -6,7 +7,10 @@ export type NextDayAnswer = 'worse' | 'notWorse';
 
 export interface ScreenFindings {
   redFlags: boolean;
+  /** True for pain in the middle of the raise only; kept for older screens. */
   painfulArc: boolean | undefined;
+  /** Where raising the arm hurts. Absent on screens taken before it was asked. */
+  arcPain?: ArcPain;
   dropArm: boolean | undefined;
   passiveAsLimitedAsActive: boolean | undefined;
   neckSymptoms: boolean | undefined;

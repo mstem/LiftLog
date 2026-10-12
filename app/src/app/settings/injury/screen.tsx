@@ -10,7 +10,7 @@ import {
   ScreenFindings,
   shoulderInjurySlug,
 } from '@/models/injury/injury';
-import { screenOutcome } from '@/models/injury/screen';
+import { ArcPain, screenOutcome } from '@/models/injury/screen';
 import { RootState, useAppSelector } from '@/store';
 import { setInjury } from '@/store/injury';
 import { LocalDate, OffsetDateTime } from '@js-joda/core';
@@ -21,12 +21,14 @@ import { View } from 'react-native';
 import { Chip, RadioButton, SegmentedButtons, Text } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
 
-type Answer = 'yes' | 'no' | 'unsure';
+type Answer = 'yes' | 'no' | 'unsure' | ArcPain;
+
+const arcChoices: ArcPain[] = ['none', 'middle', 'top', 'whole'];
 
 const questions = [
   { key: 'traumaWithWeakness', text: 'injury.screen.trauma' },
   { key: 'feverOrHotJoint', text: 'injury.screen.fever' },
-  { key: 'painfulArc', text: 'injury.screen.painful_arc' },
+  { key: 'arcPain', text: 'injury.screen.painful_arc' },
   { key: 'dropArm', text: 'injury.screen.drop_arm' },
   { key: 'passiveAsLimitedAsActive', text: 'injury.screen.passive' },
   { key: 'neckSymptoms', text: 'injury.screen.neck' },
@@ -39,6 +41,9 @@ const redFlagKeys: QuestionKey[] = ['traumaWithWeakness', 'feverOrHotJoint'];
 
 const toOptional = (a: Answer | undefined): boolean | undefined =>
   a === 'yes' ? true : a === 'no' ? false : undefined;
+
+const toArcPain = (a: Answer | undefined): ArcPain | undefined =>
+  arcChoices.find((c) => c === a);
 
 // An unsure red flag is treated as present: the cautious reading.
 const toRedFlag = (a: Answer | undefined): boolean => a !== 'no';
@@ -67,7 +72,7 @@ export default function InjurySelfScreen() {
     ? screenOutcome({
         traumaWithWeakness: toRedFlag(answers.traumaWithWeakness),
         feverOrHotJoint: toRedFlag(answers.feverOrHotJoint),
-        painfulArc: toOptional(answers.painfulArc),
+        arcPain: toArcPain(answers.arcPain),
         dropArm: toOptional(answers.dropArm),
         passiveAsLimitedAsActive: toOptional(answers.passiveAsLimitedAsActive),
         neckSymptoms: toOptional(answers.neckSymptoms),
@@ -84,9 +89,11 @@ export default function InjurySelfScreen() {
 
   const start = () => {
     const today = LocalDate.now().toString();
+    const arcPain = toArcPain(answers.arcPain);
     const findings: ScreenFindings = {
       redFlags: redFlagKeys.some((k) => toRedFlag(answers[k])),
-      painfulArc: toOptional(answers.painfulArc),
+      painfulArc: arcPain && arcPain === 'middle',
+      arcPain,
       dropArm: toOptional(answers.dropArm),
       passiveAsLimitedAsActive: toOptional(answers.passiveAsLimitedAsActive),
       neckSymptoms: toOptional(answers.neckSymptoms),
@@ -132,12 +139,20 @@ export default function InjurySelfScreen() {
             <Text variant="titleMedium">
               <T keyName={question.text} />
             </Text>
-            {question.key === 'painfulArc' && (
+            {question.key === 'arcPain' && (
               <ArmArcDiagram
-                from={60}
-                to={120}
-                painLabel={t('injury.screen.painful_arc.pain')}
-                noPainLabel={t('injury.screen.painful_arc.no_pain')}
+                bands={[
+                  {
+                    from: 60,
+                    to: 120,
+                    label: t('injury.screen.painful_arc.middle_band'),
+                  },
+                  {
+                    from: 120,
+                    to: 180,
+                    label: t('injury.screen.painful_arc.top_band'),
+                  },
+                ]}
                 accessibilityLabel={t('injury.screen.painful_arc.diagram')}
               />
             )}
@@ -147,8 +162,23 @@ export default function InjurySelfScreen() {
                 setAnswers({ ...answers, [question.key]: value as Answer })
               }
             >
-              <RadioButton.Item label={t('generic.yes.button')} value="yes" />
-              <RadioButton.Item label={t('generic.no.button')} value="no" />
+              {question.key === 'arcPain' ? (
+                arcChoices.map((c) => (
+                  <RadioButton.Item
+                    key={c}
+                    label={t(`injury.screen.painful_arc.${c}`)}
+                    value={c}
+                  />
+                ))
+              ) : (
+                <>
+                  <RadioButton.Item
+                    label={t('generic.yes.button')}
+                    value="yes"
+                  />
+                  <RadioButton.Item label={t('generic.no.button')} value="no" />
+                </>
+              )}
               <RadioButton.Item label={t('injury.not_sure')} value="unsure" />
             </RadioButton.Group>
             {/* Next comes first so it stays in the same place on every page. */}
