@@ -44,7 +44,9 @@ function Stepper(props: {
         justifyContent: 'space-between',
       }}
     >
-      <Text variant="labelLarge">{props.label}</Text>
+      <Text variant="labelLarge" style={{ flexShrink: 1 }}>
+        {props.label}
+      </Text>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         <IconButton
           icon="minus"
@@ -229,7 +231,7 @@ function InjuryForm({ injury }: { injury: Injury }) {
       </View>
       <Stepper
         label={t('injury.pain_limit')}
-        display={`${draft.painLimit}`}
+        display={t('injury.pain_limit.value', { limit: draft.painLimit })}
         decrementDisabled={draft.painLimit <= 1}
         incrementDisabled={draft.painLimit >= 10}
         onDecrement={() =>
@@ -241,7 +243,7 @@ function InjuryForm({ injury }: { injury: Injury }) {
       />
       <Stepper
         label={t('injury.first_cut')}
-        display={`${tenths * 10}%`}
+        display={t('injury.first_cut.value', { percent: tenths * 10 })}
         decrementDisabled={tenths <= 1}
         incrementDisabled={tenths >= 9}
         onDecrement={() =>
@@ -325,6 +327,15 @@ function ShoulderFlags() {
       <List.Subheader>
         <T keyName="injury.flags.title" />
       </List.Subheader>
+      <Text
+        variant="bodySmall"
+        style={{
+          paddingHorizontal: spacing.pageHorizontalMargin,
+          paddingBottom: spacing[2],
+        }}
+      >
+        <T keyName="injury.flags.help" />
+      </Text>
       {names.map((name) => {
         const key = new NormalizedName(name).toString();
         return (
