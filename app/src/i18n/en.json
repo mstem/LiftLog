@@ -55,6 +55,8 @@
   "exercise.manage.subtitle": "Manage your exercise list",
   "exercise.manage.title": "Manage Exercises",
   "exercise.name.label": "Exercise name",
+  "exercise.rename.title": "Rename exercise",
+  "exercise.rename.body": "Renames it in every workout, past and planned, so its history and notes follow.",
   "exercise.notes.add.label": "Add notes",
   "exercise.notes_for.title": "Notes for {name}",
   "exercise.description.cardio_set.body": "Set <em>{setNumber}</em> - {targetType}: <em>{targetValue}</em>",
