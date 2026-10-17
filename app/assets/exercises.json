@@ -18249,6 +18249,423 @@
         "Repeat for the recommended amount of repetitions."
       ],
       "category": "strength"
+    },
+    {
+      "name": "TRX Row",
+      "force": "pull",
+      "level": "beginner",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "middle back"
+      ],
+      "secondaryMuscles": [
+        "lats",
+        "biceps",
+        "shoulders",
+        "traps"
+      ],
+      "instructions": [
+        "Hold the handles facing the anchor and walk your feet forward until your body leans back at the angle you want; the more upright you are, the easier it is.",
+        "Keep your body in one straight line from heels to head.",
+        "Pull your chest up to the handles, squeezing your shoulder blades together, then lower under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Single-Arm Row",
+      "force": "pull",
+      "level": "intermediate",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "middle back"
+      ],
+      "secondaryMuscles": [
+        "lats",
+        "biceps",
+        "abdominals"
+      ],
+      "instructions": [
+        "Hold one handle with a neutral grip and lean back with your body straight.",
+        "Pull your chest up to the handle without letting your hips or shoulders rotate.",
+        "Lower under control and repeat, then switch arms."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Y Fly",
+      "force": "pull",
+      "level": "beginner",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "shoulders"
+      ],
+      "secondaryMuscles": [
+        "traps",
+        "middle back"
+      ],
+      "instructions": [
+        "Hold the handles facing the anchor and walk your feet forward until your body leans back at the angle you want; the more upright you are, the easier it is.",
+        "With arms straight, raise them overhead into a Y shape, pulling your body up.",
+        "Lower under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX T Fly",
+      "force": "pull",
+      "level": "beginner",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "shoulders"
+      ],
+      "secondaryMuscles": [
+        "middle back",
+        "traps"
+      ],
+      "instructions": [
+        "Hold the handles facing the anchor and walk your feet forward until your body leans back at the angle you want; the more upright you are, the easier it is.",
+        "With arms straight, open them out to the sides into a T, pulling your body up.",
+        "Lower under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Face Pull",
+      "force": "pull",
+      "level": "beginner",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "shoulders"
+      ],
+      "secondaryMuscles": [
+        "traps",
+        "middle back"
+      ],
+      "instructions": [
+        "Hold the handles facing the anchor and walk your feet forward until your body leans back at the angle you want; the more upright you are, the easier it is.",
+        "Pull the handles toward your forehead, elbows high and wide, hands finishing beside your ears.",
+        "Lower under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Biceps Curl",
+      "force": "pull",
+      "level": "beginner",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "biceps"
+      ],
+      "secondaryMuscles": [
+        "forearms"
+      ],
+      "instructions": [
+        "Hold the handles palms up, arms straight in front of you, and lean back.",
+        "Keeping your elbows high and still, curl your hands toward your forehead.",
+        "Lower under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Chest Press",
+      "force": "push",
+      "level": "beginner",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "chest"
+      ],
+      "secondaryMuscles": [
+        "shoulders",
+        "triceps",
+        "abdominals"
+      ],
+      "instructions": [
+        "Face away from the anchor holding the handles at chest height and lean forward; the further you lean, the harder it is.",
+        "Lower your chest between your hands, keeping your body straight.",
+        "Press back up to straight arms."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Push-Up",
+      "force": "push",
+      "level": "intermediate",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "chest"
+      ],
+      "secondaryMuscles": [
+        "triceps",
+        "shoulders",
+        "abdominals"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles and set up in a push-up position, hands under your shoulders.",
+        "Lower your chest to the floor with your body straight.",
+        "Press back up."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Atomic Push-Up",
+      "force": "push",
+      "level": "expert",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "chest"
+      ],
+      "secondaryMuscles": [
+        "abdominals",
+        "triceps",
+        "shoulders"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles and set up in a push-up position.",
+        "Do a push-up, then pull your knees in to your chest.",
+        "Extend your legs and repeat."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Chest Fly",
+      "force": "push",
+      "level": "intermediate",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "chest"
+      ],
+      "secondaryMuscles": [
+        "shoulders"
+      ],
+      "instructions": [
+        "Face away from the anchor with arms straight in front at chest height and lean forward.",
+        "Open your arms out to the sides with a slight bend in the elbows, lowering your chest.",
+        "Bring your hands back together to rise."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Triceps Extension",
+      "force": "push",
+      "level": "beginner",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "triceps"
+      ],
+      "secondaryMuscles": [
+        "abdominals"
+      ],
+      "instructions": [
+        "Face away from the anchor, hands overhead holding the handles, and lean forward.",
+        "Bend only at the elbows to lower your head between your hands.",
+        "Straighten your arms to press back up."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Squat",
+      "force": "push",
+      "level": "beginner",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "instructions": [
+        "Face the anchor holding the handles with light tension and feet shoulder-width apart.",
+        "Sit back and down into a squat, using the straps only for balance.",
+        "Stand back up."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Pistol Squat",
+      "force": "push",
+      "level": "intermediate",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "instructions": [
+        "Face the anchor holding the handles and stand on one leg, the other leg held out in front.",
+        "Squat down on the standing leg as low as you can control.",
+        "Stand back up, then switch legs."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Suspended Lunge",
+      "force": "push",
+      "level": "intermediate",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "quadriceps"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "instructions": [
+        "Face away from the anchor with one foot in both foot cradles behind you.",
+        "Lower into a lunge on the front leg, letting the back leg travel back.",
+        "Drive up through the front foot, then switch legs."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Hamstring Curl",
+      "force": "pull",
+      "level": "intermediate",
+      "mechanic": "isolation",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "hamstrings"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "calves"
+      ],
+      "instructions": [
+        "Lie on your back with your heels in the foot cradles and lift your hips.",
+        "Keeping your hips high, curl your heels toward your glutes.",
+        "Extend your legs under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Hip Press",
+      "force": "push",
+      "level": "beginner",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "glutes"
+      ],
+      "secondaryMuscles": [
+        "hamstrings"
+      ],
+      "instructions": [
+        "Lie on your back with your heels in the foot cradles, knees bent.",
+        "Drive your hips up until your body is straight from knees to shoulders.",
+        "Lower under control."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Plank",
+      "force": "static",
+      "level": "beginner",
+      "mechanic": null,
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "abdominals"
+      ],
+      "secondaryMuscles": [
+        "shoulders"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles and hold a plank on your forearms or hands.",
+        "Keep your body in a straight line and hold."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Side Plank",
+      "force": "static",
+      "level": "beginner",
+      "mechanic": null,
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "abdominals"
+      ],
+      "secondaryMuscles": [
+        "glutes",
+        "shoulders"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles, stacked, and hold a side plank on one forearm.",
+        "Keep your hips lifted and your body straight, then switch sides."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Knee Tuck",
+      "force": "pull",
+      "level": "intermediate",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "abdominals"
+      ],
+      "secondaryMuscles": [
+        "shoulders"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles and hold a push-up position.",
+        "Pull your knees in to your chest without letting your hips sag.",
+        "Extend your legs back out."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Pike",
+      "force": "pull",
+      "level": "expert",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "abdominals"
+      ],
+      "secondaryMuscles": [
+        "shoulders"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles and hold a push-up position.",
+        "Keeping your legs straight, lift your hips high into a pike.",
+        "Lower back to the plank."
+      ],
+      "category": "strength"
+    },
+    {
+      "name": "TRX Mountain Climber",
+      "force": "push",
+      "level": "intermediate",
+      "mechanic": "compound",
+      "equipment": "suspension trainer",
+      "primaryMuscles": [
+        "abdominals"
+      ],
+      "secondaryMuscles": [
+        "quadriceps",
+        "shoulders"
+      ],
+      "instructions": [
+        "Put your feet in the foot cradles and hold a push-up position.",
+        "Drive one knee in to your chest, then switch legs, alternating quickly.",
+        "Keep your hips level throughout."
+      ],
+      "category": "strength"
     }
   ]
 }
