@@ -50,7 +50,27 @@ export class Session {
      * undefined rather than false so it stays out of the plaintext export.
      */
     readonly lightning?: boolean,
+    /**
+     * When the watch countdown said Go, so the rest pill's workout clock
+     * matches a watch started on it. Not saved with the session, like
+     * lightning; without it the clock runs from the first set.
+     */
+    readonly clockStart?: OffsetDateTime,
   ) {}
+
+  /** Zero on the workout clock: the countdown's Go, else the first set. */
+  get workoutClockStart(): OffsetDateTime | undefined {
+    if (this.clockStart) {
+      return this.clockStart;
+    }
+    const times = this.recordedExercises
+      .map((x) => x.earliestTime)
+      .filter((x): x is OffsetDateTime => !!x);
+    return times.reduce<OffsetDateTime | undefined>(
+      (min, x) => (!min || x.isBefore(min) ? x : min),
+      undefined,
+    );
+  }
   get duration(): Duration | undefined {
     return this.lastExercise?.latestTime && this.firstExercise?.earliestTime
       ? Duration.between(
@@ -161,6 +181,7 @@ export class Session {
         ? other.restTimerStartTime
         : this.restTimerStartTime,
       'lightning' in other ? other.lightning || undefined : this.lightning,
+      'clockStart' in other ? other.clockStart : this.clockStart,
     );
   }
 

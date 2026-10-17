@@ -10,8 +10,7 @@ import { AudioPlayer, setAudioModeAsync, useAudioPlayer } from 'expo-audio';
 import Holdable from '@/components/presentation/foundation/holdable';
 import { Jiggler } from '@/components/presentation/foundation/jiggler';
 import Button from '@/components/presentation/foundation/gesture-wrappers/button';
-import { restEndTimeOfDay } from '@/components/presentation/workout/rest-end-time';
-import { useAppSelector } from '@/store';
+import { restEndWorkoutClock } from '@/components/presentation/workout/rest-end-time';
 import clickSound from '../../../../assets/click.wav';
 
 // expo-audio exposes volume only as a settable property on the player object,
@@ -25,6 +24,8 @@ function setPlayerVolume(player: AudioPlayer, volume: number) {
 interface RestTimerProps {
   rest: Rest;
   startTime: OffsetDateTime;
+  /** Zero on the workout clock shown under the countdown */
+  clockStart: OffsetDateTime | undefined;
   failed: boolean;
   style?: ViewStyle;
   resetTimer: () => void;
@@ -34,13 +35,13 @@ interface RestTimerProps {
 export default function RestTimer({
   rest: restProp,
   startTime,
+  clockStart,
   failed,
   style,
   resetTimer,
   adjustRest,
 }: RestTimerProps) {
   const { colors } = useAppTheme();
-  const locale = useAppSelector((x) => x.settings.preferredLanguage);
   const rest = Rest.orDefault(restProp);
   const isSameMinMaxRest = rest.minRest.equals(rest.maxRest);
   const [jiggled, setJiggled] = useState([] as string[]);
@@ -82,9 +83,10 @@ export default function RestTimer({
       ? formatTimeSpan(nextMilestone.minus(diffMs), 'ceil')
       : `+${formatTimeSpan(diffMs.minus(finalMilestone))}`;
     // Nothing to show once the last milestone has passed: the rest has ended.
-    const restEndTime = nextMilestone
-      ? restEndTimeOfDay(startTime, nextMilestone, locale)
-      : undefined;
+    const restEndTime =
+      nextMilestone && clockStart
+        ? restEndWorkoutClock(clockStart, startTime, nextMilestone)
+        : undefined;
     // +15 straight after a set puts the start in the future, so elapsed time
     // can be negative; the ring starts empty rather than running backwards.
     const firstProgressBarProgress = Math.max(
@@ -115,7 +117,7 @@ export default function RestTimer({
       textColor,
       backgroundColor,
     };
-  }, [startTime, rest, failed, isSameMinMaxRest, locale]);
+  }, [startTime, clockStart, rest, failed, isSameMinMaxRest]);
 
   useEffect(() => {
     // A new rest clears every milestone. Nudging the running rest by 15s only

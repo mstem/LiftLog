@@ -1,39 +1,48 @@
 import { describe, expect, it } from 'vitest';
-import { Duration, OffsetDateTime, ZoneId } from '@js-joda/core';
-import { restEndTimeOfDay } from '@/components/presentation/workout/rest-end-time';
+import { Duration, OffsetDateTime } from '@js-joda/core';
+import { restEndWorkoutClock } from '@/components/presentation/workout/rest-end-time';
 
-// The clock face is in the phone's own time zone, so build the start there.
-const restStart = OffsetDateTime.parse('2026-09-28T18:50:00Z')
-  .atZoneSameInstant(ZoneId.SYSTEM)
-  .toOffsetDateTime();
-const expected = (iso: string, locale: string) =>
-  new Date(iso).toLocaleTimeString(locale, {
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
+const clockStart = OffsetDateTime.parse('2026-10-17T18:00:00Z');
+const at = (iso: string) => OffsetDateTime.parse(iso);
+
+describe('restEndWorkoutClock', () => {
+  it('gives the workout clock reading when the rest ends, with seconds', () => {
+    expect(
+      restEndWorkoutClock(
+        clockStart,
+        at('2026-10-17T18:40:05Z'),
+        Duration.ofSeconds(150),
+      ),
+    ).toBe('42:35');
   });
 
-describe('restEndTimeOfDay', () => {
-  it('adds the rest to the time it started', () => {
-    expect(restEndTimeOfDay(restStart, Duration.ofSeconds(150), 'en-GB')).toBe(
-      expected('2026-09-28T18:52:30Z', 'en-GB'),
-    );
+  it('pads seconds and shows minutes from zero', () => {
+    expect(
+      restEndWorkoutClock(
+        clockStart,
+        at('2026-10-17T18:00:00Z'),
+        Duration.ofSeconds(65),
+      ),
+    ).toBe('1:05');
   });
 
-  it('writes the time the way the app language does', () => {
-    const us = restEndTimeOfDay(restStart, Duration.ofSeconds(150), 'en-US');
-
-    expect(us).toBe(expected('2026-09-28T18:52:30Z', 'en-US'));
-    expect(us).toMatch(/[AP]M/);
+  it('adds hours after an hour', () => {
+    expect(
+      restEndWorkoutClock(
+        clockStart,
+        at('2026-10-17T19:02:00Z'),
+        Duration.ofSeconds(90),
+      ),
+    ).toBe('1:03:30');
   });
 
   it('rounds part seconds up, as the countdown does', () => {
     expect(
-      restEndTimeOfDay(
-        restStart.plusNanos(200_000_000),
+      restEndWorkoutClock(
+        clockStart,
+        at('2026-10-17T18:10:00.200Z'),
         Duration.ofSeconds(60),
-        'en-GB',
       ),
-    ).toBe(expected('2026-09-28T18:51:01Z', 'en-GB'));
+    ).toBe('11:01');
   });
 });
