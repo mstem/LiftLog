@@ -10,6 +10,7 @@ import { View } from 'react-native';
 import EmptyInfo from '@/components/presentation/foundation/empty-info';
 import { useAppTheme, spacing, font } from '@/hooks/useAppTheme';
 import { T, useTranslate } from '@tolgee/react';
+import WatchCountdown from '@/components/presentation/workout/watch-countdown';
 import ItemList from '@/components/presentation/foundation/item-list';
 import {
   RecordedCardioExercise,
@@ -171,6 +172,17 @@ export default function SessionComponent(props: {
       </Card.Content>
     </Card>
   ) : null;
+
+  // Before the first set, a countdown lines the workout clock up with a watch
+  const watchCountdown =
+    props.target === 'workoutSession' &&
+    !isReadonly &&
+    !session.isStarted &&
+    session.recordedExercises.length ? (
+      <WatchCountdown
+        onGo={(time) => updateSession((s) => s.with({ clockStart: time }))}
+      />
+    ) : null;
 
   const emptyInfo =
     session.recordedExercises.length === 0 ? (
@@ -352,6 +364,7 @@ export default function SessionComponent(props: {
       <RestTimer
         rest={session.restFor(lastExercise.blueprint.restBetweenSets)}
         startTime={session.restTimerStartTime}
+        clockStart={session.workoutClockStart}
         failed={!!lastSetFailed}
         resetTimer={() => resetTimer(OffsetDateTime.now())}
         adjustRest={(amount) =>
@@ -429,6 +442,7 @@ export default function SessionComponent(props: {
     <FullHeightScrollView floatingChildren={floatingBottomContainer}>
       {props.header}
       {notesComponent}
+      {watchCountdown}
       {emptyInfo}
       {groupExercises(session.recordedExercises).map((segment) =>
         segment.group === undefined ? (

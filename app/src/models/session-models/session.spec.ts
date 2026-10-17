@@ -805,3 +805,31 @@ describe('Session.withEditedExercise', () => {
     expect(updated.recordedExercises[1]!.blueprint.name).toBe('Bench');
   });
 });
+
+describe('workoutClockStart', () => {
+  const blueprint = createSessionBlueprint([
+    createExerciseBlueprint(0, false),
+    createExerciseBlueprint(1, false),
+  ]);
+
+  it('is the countdown Go time when there is one', () => {
+    const go = tickAt(9, 0);
+    const session = createSession(blueprint)
+      .withCycledExerciseReps(0, 0, tickAt(9, 5))
+      .with({ clockStart: go });
+
+    expect(session.workoutClockStart).toBe(go);
+  });
+
+  it('falls back to the earliest set of the workout', () => {
+    const session = createSession(blueprint)
+      .withCycledExerciseReps(1, 0, tickAt(9, 2))
+      .withCycledExerciseReps(0, 0, tickAt(9, 7));
+
+    expect(session.workoutClockStart?.equals(tickAt(9, 2))).toBe(true);
+  });
+
+  it('is unset before anything is done', () => {
+    expect(createSession(blueprint).workoutClockStart).toBeUndefined();
+  });
+});
