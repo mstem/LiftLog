@@ -5,6 +5,7 @@ import {
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
+import { REHAB_GROUP, unpaused } from '@/models/injury/rehab';
 
 /**
  * Group given to lifts carried over from the previous workout. Reusing the
@@ -66,11 +67,17 @@ export function withRolledOverExercises(
   });
 }
 
-/** The workout as planned, without anything carried over into it. */
+/**
+ * The workout as planned, without anything carried over into it and without
+ * the Rehab block injury mode adds. Both are one-offs that must never be
+ * written into the plan. Lifts injury mode paused get their planned group back.
+ */
 export function withoutRolledOverExercises(
   session: SessionBlueprint,
 ): SessionBlueprint {
   return session.with({
-    exercises: session.exercises.filter((x) => x.group !== ROLLED_OVER_GROUP),
+    exercises: session.exercises
+      .filter((x) => x.group !== ROLLED_OVER_GROUP && x.group !== REHAB_GROUP)
+      .map(unpaused),
   });
 }

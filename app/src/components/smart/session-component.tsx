@@ -44,6 +44,9 @@ import { swapExercise } from '@/models/exercise-swap';
 import { withOpacity } from '@/utils/color';
 import WeightFormat from '../presentation/foundation/weight-format';
 import { formatDuration } from '@/utils/format-date';
+import { selectActiveInjury } from '@/store/injury';
+import { isShoulderLoaded } from '@/models/injury/flags';
+import { REHAB_GROUP } from '@/models/injury/rehab';
 
 export default function SessionComponent(props: {
   target: SessionTarget;
@@ -61,6 +64,8 @@ export default function SessionComponent(props: {
     selectRecentlyCompletedExercises,
     10,
   );
+  const injury = useAppSelector(selectActiveInjury);
+  const flagOverrides = useAppSelector((x) => x.injury.flagOverrides);
   const weightedExercisePersonalBests = useAppSelectorWithArg(
     selectWeightedExercisePersonalBests,
     session?.id,
@@ -227,6 +232,13 @@ export default function SessionComponent(props: {
             withLatestSession((s) => resetTimer(s.lastExercise?.latestTime))
           }
           recordedExercise={item}
+          painTracked={
+            !!injury &&
+            (item.blueprint.group === REHAB_GROUP ||
+              isShoulderLoaded(item.blueprint.name, flagOverrides))
+          }
+          painLimit={injury?.painLimit}
+          askPain={props.target === 'workoutSession'}
           toStartNext={session.nextExercise === item}
           updateExercise={(ex) =>
             updateSession((s) => s.withExercise(index, ex))
@@ -443,6 +455,10 @@ export default function SessionComponent(props: {
             key={segment.key}
             name={segment.group}
             exerciseCount={segment.entries.length}
+            containsNext={
+              segment.group === REHAB_GROUP &&
+              segment.entries.some((x) => x.exercise === session.nextExercise)
+            }
           >
             <ItemList
               items={segment.entries}

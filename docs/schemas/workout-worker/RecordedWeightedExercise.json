@@ -17,6 +17,9 @@
     },
     "notes": {
       "type": "string"
+    },
+    "stoppedForPain": {
+      "type": "boolean"
     }
   },
   "required": [

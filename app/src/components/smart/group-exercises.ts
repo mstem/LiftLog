@@ -1,4 +1,5 @@
 import { RecordedExercise } from '@/models/session-models';
+import { isPausedGroup } from '@/models/injury/rehab';
 
 export interface ExerciseSegment {
   key: string;
@@ -19,6 +20,10 @@ export function groupExercises(
 ): ExerciseSegment[] {
   const segments: ExerciseSegment[] = [];
   exercises.forEach((exercise, index) => {
+    // Lifts injury mode paused on a pull day are not shown at all
+    if (isPausedGroup(exercise.blueprint.group)) {
+      return;
+    }
     // Empty string means ungrouped - the editor clears the field to ''.
     const group = exercise.blueprint.group || undefined;
     const current = segments.at(-1);

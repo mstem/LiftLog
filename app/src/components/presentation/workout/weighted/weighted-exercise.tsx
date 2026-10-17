@@ -15,6 +15,8 @@ import { Text, View } from 'react-native';
 import ExerciseSection from '@/components/presentation/workout/exercise-section';
 import { OffsetDateTime } from '@js-joda/core';
 import { isBarbellExercise } from '@/utils/plate-math';
+import PainPickerDialog from '@/components/presentation/workout/pain-picker-dialog';
+import { useTranslate } from '@tolgee/react';
 
 interface WeightedExerciseProps {
   recordedExercise: RecordedWeightedExercise;
@@ -24,6 +26,10 @@ interface WeightedExerciseProps {
   showPreviousButton: boolean;
   personalBests?: WeightedExercisePersonalBests;
   backgroundColor?: string;
+  painTracked?: boolean;
+  painLimit?: number;
+  /** Ask for pain after a set is ticked; only in the live workout */
+  askPain?: boolean;
 
   timeProvider: () => OffsetDateTime;
   updateExercise: (ex: RecordedWeightedExercise) => void;
@@ -44,7 +50,20 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
   const { updateExercise, timeProvider, resetSetTimer } = props;
   const { recordedExercise } = props;
   const { colors } = useAppTheme();
+  const { t } = useTranslate();
   useState(false);
+  // Set index awaiting a pain score, open only right after a set is ticked
+  const [painSetIndex, setPainSetIndex] = useState<number | undefined>();
+  const askPainFor = (setIndex: number) => {
+    if (props.painTracked && props.askPain) {
+      setPainSetIndex(setIndex);
+    }
+  };
+  // Keeps stoppedForPain in step with the sets' pain after any set change
+  const withPainStop = (ex: RecordedWeightedExercise) =>
+    props.painTracked && props.painLimit !== undefined
+      ? ex.withPainStop(props.painLimit)
+      : ex;
 
   const [prFlash, setPrFlash] = useState<PersonalRecordFlashState | undefined>(
     undefined,
@@ -132,18 +151,36 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
       weight: weightRecord,
       reps: repsRecord,
     }));
+  };
+
+  // The pain picker opens over the set as soon as it is ticked, so the flash
+  // waits for it to close and only then runs its full duration
+  const prFlashVisible = prFlash !== undefined && painSetIndex === undefined;
+  useEffect(() => {
+    if (!prFlashVisible) {
+      return;
+    }
     clearTimeout(prFlashTimeout.current);
     prFlashTimeout.current = setTimeout(
       () => setPrFlash(undefined),
       personalRecordFlashDurationMs,
     );
-  };
+  }, [prFlashVisible, prFlash?.id]);
 
   const setToStartNext = recordedExercise.potentialSets.findIndex(
     (x) => !x.set,
   );
 
   const isBarbell = isBarbellExercise(recordedExercise.blueprint.name);
+
+  const stoppedAt =
+    props.painTracked && props.painLimit !== undefined
+      ? recordedExercise.stoppedForPainAt(props.painLimit)
+      : undefined;
+  const isSetLocked = (setIndex: number) =>
+    props.isReadonly ||
+    (stoppedAt !== undefined &&
+      recordedExercise.isSetLockedForPain(setIndex, props.painLimit!));
 
   const headerStyle = {
     color: colors.onSurfaceVariant,
@@ -165,6 +202,18 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
       onSwapExercise={props.onSwapExercise}
     >
       <View style={{ flexDirection: 'column' }}>
+        {stoppedAt !== undefined ? (
+          <Text
+            style={{
+              color: colors.error,
+              ...font['text-sm'],
+              paddingBottom: spacing[1],
+              paddingHorizontal: spacing[1],
+            }}
+          >
+            {t('injury.pain.stopped')}
+          </Text>
+        ) : null}
         {/* Column headers */}
         <View
           style={{
@@ -192,7 +241,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
         {recordedExercise.potentialSets.map((set, index) => (
           <View key={index}>
             <PotentialSetCounter
-              isReadonly={props.isReadonly}
+              isReadonly={isSetLocked(index)}
               isBarbell={isBarbell}
               weightAbove={recordedExercise.potentialSets[index - 1]?.weight}
               setIndex={index}
@@ -208,6 +257,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                 updateExercise(newExercise);
                 checkForPersonalRecord(newExercise, index);
                 resetSetTimer();
+                askPainFor(index);
               }}
               onUncheck={() => {
                 const reps = set.set?.repsCompleted;
@@ -215,10 +265,12 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                   setPendingReps((pending) => ({ ...pending, [index]: reps }));
                 }
                 updateExercise(
-                  recordedExercise.withRepCount(
-                    index,
-                    undefined,
-                    timeProvider(),
+                  withPainStop(
+                    recordedExercise.withRepCount(
+                      index,
+                      undefined,
+                      timeProvider(),
+                    ),
                   ),
                 );
                 resetSetTimer();
@@ -234,7 +286,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                   timeProvider(),
                 );
                 clearPendingReps(index);
-                updateExercise(newExercise);
+                updateExercise(withPainStop(newExercise));
                 if (
                   reps !== undefined &&
                   (previousReps === undefined || reps > previousReps)
@@ -242,6 +294,9 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                   checkForPersonalRecord(newExercise, index);
                 }
                 resetSetTimer();
+                if (previousReps === undefined && reps !== undefined) {
+                  askPainFor(index);
+                }
               }}
               onUpdateWeight={(w, applyTo) => {
                 updateExercise(recordedExercise.withWeight(index, w, applyTo));
@@ -260,7 +315,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
               toStartNext={
                 props.toStartNext &&
                 setToStartNext === index &&
-                !props.isReadonly
+                !isSetLocked(index)
               }
               weightIncrement={
                 recordedExercise.blueprint.progressiveOverload.weightIncrement
@@ -272,7 +327,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                 increase={weightFloat.increase}
               />
             ) : null}
-            {prFlash?.setIndex === index ? (
+            {prFlashVisible && prFlash.setIndex === index ? (
               <PersonalRecordFlash
                 key={prFlash.id}
                 weight={prFlash.weight}
@@ -282,6 +337,18 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
           </View>
         ))}
       </View>
+      <PainPickerDialog
+        visible={painSetIndex !== undefined}
+        onPick={(pain) => {
+          if (painSetIndex !== undefined) {
+            updateExercise(
+              withPainStop(recordedExercise.withSetPain(painSetIndex, pain)),
+            );
+          }
+          setPainSetIndex(undefined);
+        }}
+        onSkip={() => setPainSetIndex(undefined)}
+      />
     </ExerciseSection>
   );
 }

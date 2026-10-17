@@ -111,5 +111,15 @@ function withSerialize(
     execAsync: async (sql: string): Promise<void> => {
       await client.execute(sql);
     },
+    runAsync: async (sql: string, ...args: (string | number | null)[]) => {
+      await client.execute({ sql, args });
+    },
+    getFirstAsync: async <T>(
+      sql: string,
+      ...args: (string | number | null)[]
+    ): Promise<T | null> => {
+      const result = await client.execute({ sql, args });
+      return (result.rows[0] as T | undefined) ?? null;
+    },
   });
 }

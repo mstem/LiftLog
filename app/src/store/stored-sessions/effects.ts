@@ -28,6 +28,7 @@ import {
   sessionsSchema,
 } from '@/db/schema';
 import { NormalizedName } from '@/models/blueprint-models';
+import { rehabDescriptors } from '@/models/injury/rehab';
 import { eq, sql } from 'drizzle-orm';
 import { toRecord } from '@/utils/reduce';
 import {
@@ -100,6 +101,21 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           },
           {} as Record<string, ExerciseDescriptor>,
         );
+
+      const knownExerciseNames = new Set(
+        [
+          ...Object.values(savedExercises),
+          ...Object.values(builtInExercisesNotAlreadyAdded),
+        ].map((x) => x.name.toLowerCase()),
+      );
+      for (const rehab of rehabDescriptors()) {
+        if (
+          !knownExerciseNames.has(rehab.name.toLowerCase()) &&
+          !builtinExercisesAddedInThePast.includes(rehab.name)
+        ) {
+          builtInExercisesNotAlreadyAdded[rehab.name] = rehab;
+        }
+      }
 
       const currentExercises = Object.entries({
         ...builtInExercisesNotAlreadyAdded,

@@ -7,7 +7,9 @@ import {
 } from '@js-joda/core';
 import { v4 as uuid } from 'uuid';
 import {
+  selectArchivedWeightedExerciseBests,
   selectExerciseNotes,
+  selectWeightedExercisePersonalBests,
   selectRecentlyCompletedExercises,
   selectSessionsInMonth,
   setExerciseNotes,
@@ -184,5 +186,107 @@ describe('recently completed exercises', () => {
     const lookup = selectRecentlyCompletedExercises(state, 10);
 
     expect(lookup(timedPigeon)).toEqual([timedRecord]);
+  });
+});
+
+describe('bests since injury', () => {
+  const pressBlueprint = new WeightedExerciseBlueprint(
+    'Standing Military Press',
+    3,
+    5,
+    new NoProgressiveOverload(),
+    Rest.medium,
+    false,
+    '',
+    '',
+  );
+
+  function pressSession(date: LocalDate, kg: number) {
+    const sessionBlueprint = new SessionBlueprint(
+      'Press Day',
+      [pressBlueprint],
+      '',
+    );
+    return new Session(
+      uuid(),
+      sessionBlueprint,
+      [
+        new RecordedWeightedExercise(
+          pressBlueprint,
+          [
+            new PotentialSet(
+              new RecordedSet(
+                5,
+                OffsetDateTime.of(
+                  date.year(),
+                  date.monthValue(),
+                  date.dayOfMonth(),
+                  9,
+                  0,
+                  0,
+                  0,
+                  ZoneOffset.UTC,
+                ),
+              ),
+              new Weight(kg, 'kilograms'),
+            ),
+          ],
+          undefined,
+        ),
+      ],
+      date,
+      undefined,
+      undefined,
+    );
+  }
+
+  function buildState(status: 'active' | 'resolved') {
+    const before = pressSession(LocalDate.of(2026, 4, 20), 40);
+    const after = pressSession(LocalDate.of(2026, 5, 1), 20);
+    return {
+      storedSessions: {
+        sessions: { [before.id]: before, [after.id]: after },
+      },
+      injury: {
+        injury: {
+          slug: 'shoulder',
+          name: 'Shoulder',
+          side: 'left',
+          structures: [],
+          onsetDate: '2026-04-25',
+          painLimit: 3,
+          firstCut: 1,
+          status,
+          screenFindings: undefined,
+          trackedFrom: '2026-04-25T00:00:00Z',
+        },
+      },
+    } as never;
+  }
+
+  it('counts only sessions since onset while the injury is active', () => {
+    const best = selectWeightedExercisePersonalBests(
+      buildState('active'),
+      undefined,
+    )(pressBlueprint);
+    expect(best?.maxWeight?.value.toNumber()).toBe(20);
+  });
+
+  it('counts all sessions once the injury is resolved', () => {
+    const best = selectWeightedExercisePersonalBests(
+      buildState('resolved'),
+      undefined,
+    )(pressBlueprint);
+    expect(best?.maxWeight?.value.toNumber()).toBe(40);
+  });
+
+  it('archives all-time bests only while the injury is active', () => {
+    const archived = selectArchivedWeightedExerciseBests(buildState('active'));
+    expect(archived).toHaveLength(1);
+    expect(archived[0]?.name).toBe('Standing Military Press');
+    expect(archived[0]?.best.maxWeight?.value.toNumber()).toBe(40);
+    expect(selectArchivedWeightedExerciseBests(buildState('resolved'))).toEqual(
+      [],
+    );
   });
 });
