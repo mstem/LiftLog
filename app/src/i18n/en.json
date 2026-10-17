@@ -262,6 +262,7 @@
   "injury.screen.scapular": "Is the pain around or under the shoulder blade, or does the shoulder blade wing or click?",
   "injury.screen.trauma": "Did this start with a fall or blow, followed by weakness or sudden inability to lift the arm?",
   "injury.rehab.group": "Rehab",
+  "injury.rehab.frequency": "Best done about 3 times a week",
   "injury.save_blocked": "Injury settings could not be loaded, so this change is not saved. Restart the app and try again.",
   "injury.saved": "Injury settings saved",
   "injury.side": "Which side?",

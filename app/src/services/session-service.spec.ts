@@ -23,7 +23,7 @@ import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 import Enumerable from 'linq';
 import { LocalDate, OffsetDateTime } from '@js-joda/core';
 import type { Injury } from '@/models/injury/injury';
-import { REHAB_GROUP } from '@/models/injury/rehab';
+import { PAUSED_GROUP, REHAB_GROUP } from '@/models/injury/rehab';
 import { NormalizedName } from '@/models/blueprint-models';
 
 const overload = () => new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5));
@@ -289,6 +289,11 @@ function makeInjuryService(opts: {
 }
 
 describe('injury mode', () => {
+  // The Rehab block now sits above the workout's first lift
+  const firstPlanned = (session: Session) =>
+    session.recordedExercises.find(
+      (x) => x.blueprint.group !== REHAB_GROUP,
+    ) as RecordedWeightedExercise;
   const press = blueprint('Standing Military Press', 3, 8);
   const legPress = blueprint('Leg Press', 3, 5);
 
@@ -316,13 +321,31 @@ describe('injury mode', () => {
         [keyed(legPress)]: recorded(legPress, 100),
       },
     );
-    const [p, s] = session.recordedExercises as RecordedWeightedExercise[];
+    const [p, s] = session.recordedExercises.filter(
+      (x) => x.blueprint.group !== REHAB_GROUP,
+    ) as RecordedWeightedExercise[];
     expect(
       p!.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms')),
     ).toBe(true);
     expect(
       s!.potentialSets[0]!.weight.equals(new Weight(102.5, 'kilograms')),
     ).toBe(true);
+  });
+
+  it('pauses the shoulder-loaded lifts of a pull day', () => {
+    const service = makeInjuryService({});
+    const row = blueprint('Seated Cable Rows', 3, 10);
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Pull', [row, legPress], ''),
+      {},
+    );
+    const groups = session.recordedExercises
+      .filter((x) => x.blueprint.group !== REHAB_GROUP)
+      .map((x) => [x.blueprint.name, x.blueprint.group]);
+    expect(groups).toEqual([
+      ['Seated Cable Rows', PAUSED_GROUP],
+      ['Leg Press', undefined],
+    ]);
   });
 
   it('appends the rehab block', () => {
@@ -346,9 +369,9 @@ describe('injury mode', () => {
     );
     expect(session.recordedExercises).toHaveLength(1);
     expect(
-      (
-        session.recordedExercises[0] as RecordedWeightedExercise
-      ).potentialSets[0]!.weight.equals(new Weight(42.5, 'kilograms')),
+      firstPlanned(session).potentialSets[0]!.weight.equals(
+        new Weight(42.5, 'kilograms'),
+      ),
     ).toBe(true);
   });
 
@@ -360,9 +383,9 @@ describe('injury mode', () => {
       { [keyed(press)]: recorded(press, 40) },
     );
     expect(
-      (
-        session.recordedExercises[0] as RecordedWeightedExercise
-      ).potentialSets[0]!.weight.equals(new Weight(42.5, 'kilograms')),
+      firstPlanned(session).potentialSets[0]!.weight.equals(
+        new Weight(42.5, 'kilograms'),
+      ),
     ).toBe(true);
   });
 
@@ -391,7 +414,7 @@ describe('injury mode', () => {
       new SessionBlueprint('Push', [press], ''),
       { [keyed(press)]: ramped },
     );
-    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    const p = firstPlanned(session);
     expect(p.potentialSets.map((x) => x.weight.value.toNumber())).toEqual([
       30, 30, 30,
     ]);
@@ -403,7 +426,7 @@ describe('injury mode', () => {
       new SessionBlueprint('Push', [press], ''),
       { [keyed(press)]: recorded(press, 42.5) },
     );
-    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    const p = firstPlanned(session);
     expect(p.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms'))).toBe(
       true,
     );
@@ -426,7 +449,7 @@ describe('injury mode', () => {
       new SessionBlueprint('Push', [byRepsPress], ''),
       { [keyed(byRepsPress)]: recorded(byRepsPress, 42.5) },
     );
-    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    const p = firstPlanned(session);
     expect(p.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms'))).toBe(
       true,
     );
@@ -461,7 +484,7 @@ describe('injury mode', () => {
       new SessionBlueprint('Push', [press], ''),
       { [keyed(press)]: fullWeight },
     );
-    const p = session.recordedExercises[0] as RecordedWeightedExercise;
+    const p = firstPlanned(session);
     expect(p.potentialSets[0]!.weight.equals(new Weight(20, 'kilograms'))).toBe(
       true,
     );
@@ -581,9 +604,7 @@ describe('injury mode', () => {
         new SessionBlueprint('Push', [press], ''),
         { [keyed(press)]: recorded(press, 20) },
       );
-      return (
-        session.recordedExercises[0] as RecordedWeightedExercise
-      ).potentialSets[0]!.weight.value.toNumber();
+      return firstPlanned(session).potentialSets[0]!.weight.value.toNumber();
     }
 
     it('drops a step when the later of two same-day workouts stopped for pain', () => {

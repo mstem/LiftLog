@@ -3,6 +3,7 @@ import { spacing, useAppTheme } from '@/hooks/useAppTheme';
 import { Session } from '@/models/session-models';
 import { View } from 'react-native';
 import { groupExercises } from '@/components/smart/group-exercises';
+import { isPausedGroup } from '@/models/injury/rehab';
 import { AccordionItem } from '@/components/presentation/foundation/accordion-item';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import TouchableRipple from '@/components/presentation/foundation/gesture-wrappers/touchable-ripple';
@@ -27,7 +28,7 @@ export default function SessionSummary({
   collapseGroups,
 }: SessionSummaryProps) {
   const visibleExercises = session.recordedExercises.filter(
-    (x) => x.isStarted || !isFilled,
+    (x) => (x.isStarted || !isFilled) && !isPausedGroup(x.blueprint.group),
   );
 
   const renderExercise = (exercise: (typeof visibleExercises)[number], key: number) => (

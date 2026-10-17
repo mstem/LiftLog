@@ -3,6 +3,7 @@ import { groupExercises } from '@/components/smart/group-exercises';
 import { RecordedExercise } from '@/models/session-models';
 import { RecordedWeightedExercise } from '@/models/session-models/recorded-weighted-exercise';
 import { makeWeightedBlueprint } from '@/models/session-models/__test__/helpers';
+import { PAUSED_GROUP } from '@/models/injury/rehab';
 
 function exercise(name: string, group?: string): RecordedExercise {
   return new RecordedWeightedExercise(
@@ -64,11 +65,16 @@ describe('groupExercises', () => {
       undefined,
       'Mobility',
     ]);
-    expect(segments.map((s) => s.key)).toHaveLength(new Set(segments.map((s) => s.key)).size);
+    expect(segments.map((s) => s.key)).toHaveLength(
+      new Set(segments.map((s) => s.key)).size,
+    );
   });
 
   it('treats an empty group string as ungrouped', () => {
-    const segments = groupExercises([exercise('Squat', ''), exercise('Leg Press')]);
+    const segments = groupExercises([
+      exercise('Squat', ''),
+      exercise('Leg Press'),
+    ]);
 
     expect(segments).toHaveLength(1);
     expect(segments[0]!.group).toBeUndefined();
@@ -76,5 +82,16 @@ describe('groupExercises', () => {
 
   it('returns nothing for an empty session', () => {
     expect(groupExercises([])).toEqual([]);
+  });
+
+  it("leaves out lifts paused by injury mode, keeping the others' indexes", () => {
+    const segments = groupExercises([
+      exercise('Warm Up'),
+      exercise('Pullups', PAUSED_GROUP),
+      exercise('Hack Squat'),
+    ]);
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]!.entries.map((e) => e.index)).toEqual([0, 2]);
   });
 });

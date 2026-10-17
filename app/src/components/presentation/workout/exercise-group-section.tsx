@@ -50,9 +50,16 @@ export default function ExerciseGroupSection(props: {
             gap: spacing[3],
           }}
         >
-          <SurfaceText font="text-base" weight="bold" style={{ flexShrink: 1 }}>
-            {label}
-          </SurfaceText>
+          <View style={{ flexShrink: 1 }}>
+            <SurfaceText font="text-base" weight="bold">
+              {label}
+            </SurfaceText>
+            {props.name === REHAB_GROUP ? (
+              <SurfaceText font="text-sm" color="onSurfaceVariant">
+                {t('injury.rehab.frequency')}
+              </SurfaceText>
+            ) : null}
+          </View>
           <View
             style={{
               flexDirection: 'row',

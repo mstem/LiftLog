@@ -1,5 +1,7 @@
 import BigNumber from 'bignumber.js';
 import {
+  CardioExerciseBlueprint,
+  ExerciseBlueprint,
   IncreaseAllEvenlyProgressiveOverload,
   NormalizedName,
   Rest,
@@ -8,12 +10,27 @@ import {
 } from '@/models/blueprint-models';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { ExerciseDescriptor } from '@/models/exercise-models';
+import { isShoulderLoaded } from '@/models/injury/flags';
+import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 
 /**
  * Group id of the injected rehab block. Reserved so a group the user names
  * "Rehab" is never mistaken for it; shown as the translated "Rehab" label.
  */
 export const REHAB_GROUP = 'injury-mode:rehab';
+
+/**
+ * Groups given to a pull day's shoulder-loaded lifts while injury mode is on.
+ * The lifts stay in the workout, in place, so the plan never sees them as
+ * removed; they are just not shown and never roll over. Two ids so the
+ * original group (unset, or cleared to '' by the editor) comes back exactly.
+ */
+export const PAUSED_GROUP = 'injury-mode:paused';
+const PAUSED_BLANK_GROUP = 'injury-mode:paused-blank';
+
+export function isPausedGroup(group: string | undefined): boolean {
+  return group === PAUSED_GROUP || group === PAUSED_BLANK_GROUP;
+}
 
 /**
  * Group typed into the exercise editor's group box, which shows the rehab
@@ -246,7 +263,67 @@ export function withRehabBlock(
     .filter(
       (x) => !planned.has(NormalizedName.fromExerciseBlueprint(x).toString()),
     );
-  return blueprint.with({ exercises: [...blueprint.exercises, ...toAdd] });
+  // At the top of the workout proper: after the Mobility block and Warm Up,
+  // ahead of any lifts rolled over from the last workout.
+  const insertAt = blueprint.exercises.findIndex(
+    (x) =>
+      !(x instanceof CardioExerciseBlueprint) &&
+      (!x.group || x.group === ROLLED_OVER_GROUP || isPausedGroup(x.group)),
+  );
+  const at = insertAt === -1 ? blueprint.exercises.length : insertAt;
+  return blueprint.with({
+    exercises: [
+      ...blueprint.exercises.slice(0, at),
+      ...toAdd,
+      ...blueprint.exercises.slice(at),
+    ],
+  });
+}
+
+/**
+ * On a pull day the Rehab block works the same shoulder-blade muscles as most
+ * of the workout, so its shoulder-loaded main lifts (rows, pull-aparts and rear
+ * delt flys that repeat the rehab, and pull-ups, pulldowns and stretches that
+ * load the injury) are paused. A pull day is a workout with "pull" as a word in
+ * its name. Grouped lifts (Mobility, rolled over, Rehab) are left alone.
+ */
+export function withPullLiftsPaused(
+  blueprint: SessionBlueprint,
+  overrides: Record<string, boolean>,
+): SessionBlueprint {
+  if (!/\bpull\b/i.test(blueprint.name)) {
+    return blueprint;
+  }
+  return blueprint.with({
+    exercises: blueprint.exercises.map((x) =>
+      x instanceof WeightedExerciseBlueprint &&
+      !x.group &&
+      isShoulderLoaded(x.name, overrides)
+        ? x.with({
+            group: x.group === '' ? PAUSED_BLANK_GROUP : PAUSED_GROUP,
+          })
+        : x,
+    ),
+  });
+}
+
+/** A paused lift with its planned group back. */
+export function unpaused(x: ExerciseBlueprint): ExerciseBlueprint {
+  if (!(x instanceof WeightedExerciseBlueprint) || !isPausedGroup(x.group)) {
+    return x;
+  }
+  // Built directly: `with` cannot set a group back to undefined.
+  return new WeightedExerciseBlueprint(
+    x.name,
+    x.sets,
+    x.repsPerSet,
+    x.progressiveOverload,
+    x.restBetweenSets,
+    x.supersetWithNext,
+    x.notes,
+    x.link,
+    x.group === PAUSED_BLANK_GROUP ? '' : undefined,
+  );
 }
 
 export function isRehabDone(session: Session): boolean {

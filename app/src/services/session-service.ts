@@ -32,6 +32,7 @@ import { injuryWeight, InjuryHistoryEntry } from '@/models/injury/load';
 import { injuryEraStart } from '@/models/injury/injury';
 import {
   rehabIncrement,
+  withPullLiftsPaused,
   withRehabBlock,
   REHAB_GROUP,
 } from '@/models/injury/rehab';
@@ -135,7 +136,10 @@ export class SessionService {
     const onsetDate = injury ? LocalDate.parse(injury.onsetDate) : undefined;
     const overrides = state.injury?.flagOverrides ?? {};
     const sessionBlueprint = injury
-      ? withRehabBlock(inputBlueprint, injury.structures)
+      ? withRehabBlock(
+          withPullLiftsPaused(inputBlueprint, overrides),
+          injury.structures,
+        )
       : inputBlueprint;
 
     // Fallback lookup so the previous weight carries forward by *movement* even
