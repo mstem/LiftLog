@@ -281,11 +281,27 @@ export function withRehabBlock(
 }
 
 /**
- * On a pull day the Rehab block works the same shoulder-blade muscles as most
- * of the workout, so its shoulder-loaded main lifts (rows, pull-aparts and rear
- * delt flys that repeat the rehab, and pull-ups, pulldowns and stretches that
- * load the injury) are paused. A pull day is a workout with "pull" as a word in
- * its name. Grouped lifts (Mobility, rolled over, Rehab) are left alone.
+ * Pull-day lifts the Rehab block replaces: rows, pull-aparts and rear delt or
+ * face-pull work repeat the rehab's shoulder-blade muscles, and pull-ups,
+ * pulldowns, hanging and pullovers load the arm overhead.
+ */
+const pausedOnPullDay = [
+  /\brows?\b/,
+  /pull ?-?apart/,
+  /rear delt|reverse fly|face pull/,
+  /(pull|chin) ?-?ups?\b/,
+  /pull ?-?down/,
+  /\bhang(ing)?\b/,
+  /pullover/,
+  /overhead/,
+];
+
+/**
+ * On a pull day the Rehab block stands in for the lifts that repeat it or
+ * load the arm overhead, so those are paused. Curls, stretches and anything
+ * the user switched off in the injury settings stay. A pull day is a workout
+ * with "pull" as a word in its name. Grouped lifts (Mobility, rolled over,
+ * Rehab) are left alone.
  */
 export function withPullLiftsPaused(
   blueprint: SessionBlueprint,
@@ -298,7 +314,8 @@ export function withPullLiftsPaused(
     exercises: blueprint.exercises.map((x) =>
       x instanceof WeightedExerciseBlueprint &&
       !x.group &&
-      isShoulderLoaded(x.name, overrides)
+      isShoulderLoaded(x.name, overrides) &&
+      pausedOnPullDay.some((p) => p.test(x.name.toLowerCase()))
         ? x.with({
             group: x.group === '' ? PAUSED_BLANK_GROUP : PAUSED_GROUP,
           })

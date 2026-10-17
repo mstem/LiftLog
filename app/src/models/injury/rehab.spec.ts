@@ -149,35 +149,55 @@ describe('withPullLiftsPaused', () => {
       lift('Bird Dog', 'Mobility'),
       warmUp,
       lift('Isometric abduction, wall', REHAB_GROUP),
+      lift('Band Pull Apart'),
+      lift('Cable Rear Delt Fly'),
       lift('Pullups'),
+      lift('Inverted Row'),
+      lift('Wide-Grip Lat Pulldown'),
       lift('Seated Cable Rows'),
+      lift('Dumbbell Bicep Curl'),
+      lift('Standing Biceps Stretch'),
       lift('Hack Squat'),
       lift('Curl', ROLLED_OVER_GROUP),
     ],
     '',
   );
+  const pausedNames = (bp: SessionBlueprint) =>
+    bp.exercises.filter((x) => x.group === PAUSED_GROUP).map((x) => x.name);
 
-  it('pauses the shoulder-loaded main lifts of a pull day in place', () => {
-    const groups = withPullLiftsPaused(pull, {}).exercises.map((x) => [
-      x.name,
-      x.group,
+  it('pauses lifts that repeat the rehab or load the arm overhead, in place', () => {
+    const out = withPullLiftsPaused(pull, {});
+    expect(pausedNames(out)).toEqual([
+      'Band Pull Apart',
+      'Cable Rear Delt Fly',
+      'Pullups',
+      'Inverted Row',
+      'Wide-Grip Lat Pulldown',
+      'Seated Cable Rows',
     ]);
-    expect(groups).toEqual([
-      ['Bird Dog', 'Mobility'],
-      ['Warm Up', undefined],
-      ['Isometric abduction, wall', REHAB_GROUP],
-      ['Pullups', PAUSED_GROUP],
-      ['Seated Cable Rows', PAUSED_GROUP],
-      ['Hack Squat', undefined],
-      ['Curl', ROLLED_OVER_GROUP],
-    ]);
+    expect(out.exercises.map((x) => x.name)).toEqual(
+      pull.exercises.map((x) => x.name),
+    );
+  });
+
+  it('keeps curls, stretches and lifts away from the shoulder', () => {
+    const kept = withPullLiftsPaused(pull, {}).exercises.filter(
+      (x) => x.group !== PAUSED_GROUP,
+    );
+    expect(kept.map((x) => x.name)).toEqual(
+      expect.arrayContaining([
+        'Dumbbell Bicep Curl',
+        'Standing Biceps Stretch',
+        'Hack Squat',
+        'Curl',
+      ]),
+    );
   });
 
   it('keeps a lift the user switched off in the injury settings', () => {
-    const out = withPullLiftsPaused(pull, { pullup: false });
-    expect(out.exercises.find((x) => x.name === 'Pullups')!.group).toBe(
-      undefined,
-    );
+    expect(
+      pausedNames(withPullLiftsPaused(pull, { pullup: false })),
+    ).not.toContain('Pullups');
   });
 
   it('leaves other workouts alone', () => {
@@ -187,12 +207,10 @@ describe('withPullLiftsPaused', () => {
 
   it('matches a pull day by word, not by substring', () => {
     expect(
-      withPullLiftsPaused(pull.with({ name: 'Pullover day' }), {}).exercises[3]!
-        .group,
-    ).toBe(undefined);
+      pausedNames(withPullLiftsPaused(pull.with({ name: 'Pullover day' }), {})),
+    ).toEqual([]);
     expect(
-      withPullLiftsPaused(pull.with({ name: 'Upper pull' }), {}).exercises[3]!
-        .group,
-    ).toBe(PAUSED_GROUP);
+      pausedNames(withPullLiftsPaused(pull.with({ name: 'Upper pull' }), {})),
+    ).toContain('Pullups');
   });
 });
