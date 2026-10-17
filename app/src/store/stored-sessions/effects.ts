@@ -6,6 +6,7 @@ import {
   deleteStoredSession,
   initializeStoredSessionsStateSlice,
   migrateExerciseWeights,
+  renameExercise,
   selectSessions,
   setAllExerciseNotes,
   setExerciseNotes,
@@ -18,7 +19,10 @@ import {
   upsertStoredSessions,
   WeightMigrateableExercise,
 } from './index';
-import { fetchUpcomingSessions } from '@/store/program';
+import { fetchUpcomingSessions, upsertSavedPlans } from '@/store/program';
+import { ProgramBlueprint } from '@/models/blueprint-models';
+import { renameInProgram, renameInSession } from '@/models/rename-exercise';
+import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { setCurrentSession } from '@/store/current-session';
@@ -206,6 +210,82 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(upsertStoredSessions(newSessions));
     dispatch(fetchUpcomingSessions());
     dispatch(setExercisesRequiringWeightMigration([]));
+  });
+
+  addEffect(renameExercise, (action, { dispatch, stateAfterReduce }) => {
+    const rename = action.payload;
+    const from = new NormalizedName(rename.from);
+    const to = new NormalizedName(rename.to);
+    if (!rename.to.trim() || rename.to === rename.from) {
+      return;
+    }
+    // Only capitals or a plural changed: notes and history keys stay put
+    const sameKey = from.equals(to);
+
+    const renamedSessions = selectSessions(stateAfterReduce)
+      .map((x) => [x, renameInSession(x, rename)] as const)
+      .filter(([before, after]) => before !== after)
+      .map(([, after]) => after);
+    dispatch(upsertStoredSessions(renamedSessions));
+
+    const renamedPlans = Object.fromEntries(
+      Object.entries(stateAfterReduce.program.savedPrograms)
+        .map(([id, pojo]) => {
+          const program = ProgramBlueprint.fromPOJO(pojo);
+          return [id, program, renameInProgram(program, rename)] as const;
+        })
+        .filter(([, before, after]) => before !== after)
+        .map(([id, , after]) => [id, after]),
+    );
+    if (Object.keys(renamedPlans).length) {
+      dispatch(upsertSavedPlans(renamedPlans));
+    }
+
+    const targets: SessionTarget[] = [
+      'workoutSession',
+      'historySession',
+      'feedSession',
+    ];
+    for (const target of targets) {
+      const session = stateAfterReduce.currentSession[target];
+      const renamed = session && renameInSession(session, rename);
+      if (session && renamed !== session) {
+        dispatch(setCurrentSession({ target, session: renamed }));
+      }
+    }
+
+    // Notes are keyed by name; an existing note under the new name wins
+    const notes = stateAfterReduce.storedSessions.exerciseNotes;
+    const fromNotes = notes[from.toString()];
+    if (fromNotes && !sameKey) {
+      if (!notes[to.toString()]) {
+        dispatch(
+          setExerciseNotes({ exerciseName: rename.to, notes: fromNotes }),
+        );
+      }
+      dispatch(setExerciseNotes({ exerciseName: rename.from, notes: '' }));
+    }
+
+    // The library entry takes the new name unless one already has it
+    const library = Object.entries(
+      stateAfterReduce.storedSessions.savedExercises,
+    );
+    const hasTo =
+      !sameKey &&
+      library.some(([, x]) => new NormalizedName(x.name).equals(to));
+    const fromEntry = library.find(([, x]) =>
+      new NormalizedName(x.name).equals(from),
+    );
+    if (fromEntry && !hasTo) {
+      dispatch(
+        updateExercise({
+          id: fromEntry[0],
+          exercise: { ...fromEntry[1], name: rename.to },
+        }),
+      );
+    }
+
+    dispatch(fetchUpcomingSessions());
   });
 
   addEffect(

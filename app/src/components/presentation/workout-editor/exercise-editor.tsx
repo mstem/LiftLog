@@ -26,6 +26,10 @@ import BigNumber from 'bignumber.js';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Divider, List, SegmentedButtons, TextInput } from 'react-native-paper';
+import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
+import { useDispatch } from 'react-redux';
+import RenameExerciseDialog from '@/components/presentation/workout-editor/rename-exercise-dialog';
+import { renameExercise } from '@/store/stored-sessions';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { FormRow } from '@/components/presentation/foundation/form-row';
@@ -57,6 +61,9 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
   const { exercise: propsExercise, updateExercise: updatePropsExercise } =
     props;
   const [exercise, setExercise] = useState(propsExercise);
+  const [renameOpen, setRenameOpen] = useState(false);
+  const dispatch = useDispatch();
+  const { t } = useTranslate();
 
   // Bit of a hack to let us update exercise immediately without going through the whole props loop
   useEffect(() => {
@@ -107,11 +114,38 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
     <View style={{ paddingVertical: spacing.pageHorizontalMargin }}>
       <Form>
         <FormRow>
-          <ExerciseSearcher
-            currentExercise={exercise}
-            onSelectExercise={selectExerciseFromSearch}
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing[2],
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <ExerciseSearcher
+                currentExercise={exercise}
+                onSelectExercise={selectExerciseFromSearch}
+              />
+            </View>
+            <IconButton
+              icon={'edit'}
+              testID="rename-exercise-button"
+              accessibilityLabel={t('exercise.rename.title')}
+              disabled={!exercise.name.trim()}
+              onPress={() => setRenameOpen(true)}
+            />
+          </View>
         </FormRow>
+        <RenameExerciseDialog
+          visible={renameOpen}
+          name={exercise.name}
+          onDismiss={() => setRenameOpen(false)}
+          onRename={(name) => {
+            dispatch(renameExercise({ from: exercise.name, to: name }));
+            updateExercise({ name });
+            setRenameOpen(false);
+          }}
+        />
         <FormRow>
           <SegmentedButtons
             value={
