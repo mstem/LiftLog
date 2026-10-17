@@ -4,6 +4,7 @@ import { Rest } from '@/models/blueprint-models';
 import { Duration, OffsetDateTime } from '@js-joda/core';
 import Svg, { Path } from 'react-native-svg';
 import { Animated, View, ViewStyle } from 'react-native';
+import { Icon } from 'react-native-paper';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { impactAsync, ImpactFeedbackStyle } from 'expo-haptics';
 import { AudioPlayer, setAudioModeAsync, useAudioPlayer } from 'expo-audio';
@@ -270,14 +271,27 @@ export default function RestTimer({
               {timerState.displayTime}
             </SurfaceText>
             {timerState.restEndTime ? (
-              <SurfaceText
-                testID="rest-timer-end-time"
-                style={{ fontVariant: ['tabular-nums'] }}
-                font="text-xs"
-                color={timerState.textColor}
+              <View
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: spacing[0.5],
+                }}
               >
-                {timerState.restEndTime}
-              </SurfaceText>
+                <Icon
+                  source="watch"
+                  size={12}
+                  color={colors[timerState.textColor]}
+                />
+                <SurfaceText
+                  testID="rest-timer-end-time"
+                  style={{ fontVariant: ['tabular-nums'] }}
+                  font="text-xs"
+                  color={timerState.textColor}
+                >
+                  {timerState.restEndTime}
+                </SurfaceText>
+              </View>
             ) : undefined}
           </Jiggler>
         </Holdable>
