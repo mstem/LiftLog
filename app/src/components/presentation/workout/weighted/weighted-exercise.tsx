@@ -151,12 +151,21 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
       weight: weightRecord,
       reps: repsRecord,
     }));
+  };
+
+  // The pain picker opens over the set as soon as it is ticked, so the flash
+  // waits for it to close and only then runs its full duration
+  const prFlashVisible = prFlash !== undefined && painSetIndex === undefined;
+  useEffect(() => {
+    if (!prFlashVisible) {
+      return;
+    }
     clearTimeout(prFlashTimeout.current);
     prFlashTimeout.current = setTimeout(
       () => setPrFlash(undefined),
       personalRecordFlashDurationMs,
     );
-  };
+  }, [prFlashVisible, prFlash?.id]);
 
   const setToStartNext = recordedExercise.potentialSets.findIndex(
     (x) => !x.set,
@@ -318,7 +327,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
                 increase={weightFloat.increase}
               />
             ) : null}
-            {prFlash?.setIndex === index ? (
+            {prFlashVisible && prFlash.setIndex === index ? (
               <PersonalRecordFlash
                 key={prFlash.id}
                 weight={prFlash.weight}
