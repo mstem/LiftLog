@@ -14,10 +14,14 @@ import {
   DistanceUnits,
   ExerciseBlueprint,
   matchCardioTarget,
+  NormalizedName,
   TimeCardioTarget,
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
-import { useAppSelector } from '@/store';
+import { RootState, useAppSelector } from '@/store';
+import { setFlagOverride, selectActiveInjury } from '@/store/injury';
+import { isShoulderLoaded } from '@/models/injury/flags';
+import { useDispatch } from 'react-redux';
 
 import { assertUnreachable } from '@/utils/assert-unreachable';
 import { Duration } from '@js-joda/core';
@@ -460,7 +464,12 @@ function WeightedExerciseEditor({
 }) {
   const { t } = useTranslate();
   const { colors } = useAppTheme();
+  const dispatch = useDispatch();
   const [restDialogOpen, setRestDialogOpen] = useState(false);
+  const injuryActive = !!useAppSelector(selectActiveInjury);
+  const flagOverrides = useAppSelector(
+    (state: RootState) => state.injury.flagOverrides,
+  );
 
   const setSets = (value: number) =>
     updateExercise({ sets: Math.max(value, 1) });
@@ -529,6 +538,25 @@ function WeightedExerciseEditor({
                 updateExercise({ supersetWithNext })
               }
             />,
+            ...(injuryActive
+              ? [
+                  <SegmentedListSwitch
+                    key="pain-check"
+                    label={t('injury.flags.exercise.label')}
+                    icon={'heartCheck'}
+                    value={isShoulderLoaded(exercise.name, flagOverrides)}
+                    testID="exercise-pain-check"
+                    onValueChange={(flagged) =>
+                      dispatch(
+                        setFlagOverride({
+                          name: new NormalizedName(exercise.name).toString(),
+                          flagged,
+                        }),
+                      )
+                    }
+                  />,
+                ]
+              : []),
             <SegmentListFormElement
               label={t('exercise.progressive_overload.label')}
               icon={'trendingUp'}

@@ -226,6 +226,7 @@
   "injury.first_cut": "Starting weight for flagged lifts",
   "injury.first_cut.value": "{percent}% of usual",
   "injury.flags.title": "Shoulder-loaded lifts",
+  "injury.flags.exercise.label": "Pain check and lighter start",
   "injury.flags.help": "Switched on: starts lighter, asks about pain after each set, and stops when pain passes your limit.",
   "injury.leave.confirm.body": "The name is empty or the start date is in the future, so these changes can't be saved.",
   "injury.leave.confirm.discard.button": "Discard",
