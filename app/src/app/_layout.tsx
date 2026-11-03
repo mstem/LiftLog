@@ -15,6 +15,9 @@ import { selectFollowRequestCount } from '@/store/feed';
 import { useTranslate } from '@tolgee/react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { StatusBar } from 'expo-status-bar';
+import { useLastNotificationResponse } from 'expo-notifications';
+import { useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 
 install();
 
@@ -47,7 +50,27 @@ export default function RootLayout() {
   );
 }
 
+/** Opens the screen a tapped notification points at, such as the monthly report. */
+function useOpenNotificationLinks() {
+  const response = useLastNotificationResponse();
+  const router = useRouter();
+  const handled = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!response) {
+      return;
+    }
+    const key = `${response.notification.request.identifier}-${response.notification.date}`;
+    const url = response.notification.request.content.data?.url;
+    if (handled.current === key || typeof url !== 'string') {
+      return;
+    }
+    handled.current = key;
+    router.push(url);
+  }, [response, router]);
+}
+
 function Layout() {
+  useOpenNotificationLinks();
   const { t } = useTranslate();
   const { colors } = useAppTheme();
   const followRequestCount = useAppSelector(selectFollowRequestCount);

@@ -10,6 +10,7 @@ import {
   setIsHydrated,
   setKeepScreenAwakeDuringWorkout,
   setLastBackup,
+  setMonthlyReportNotifications,
   setNotesExpandedByDefault,
   setPreferredLanguage,
   setRemoteBackupSettings,
@@ -50,6 +51,7 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
         tipToShow,
         showFeed,
         restNotifications,
+        monthlyReportNotifications,
         crashReportsEnabled,
         welcomeWizardCompleted,
         remoteBackupSettings,
@@ -70,6 +72,7 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
         preferenceService.getTipToShow(),
         preferenceService.getShowFeed(),
         preferenceService.getRestNotifications(),
+        preferenceService.getMonthlyReportNotifications(),
         preferenceService.getCrashReportsEnabled(),
         preferenceService.getWelcomeWizardCompleted(),
         preferenceService.getRemoteBackupSettings(),
@@ -91,6 +94,7 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
       dispatch(setTipToShow(tipToShow));
       dispatch(setShowFeed(showFeed));
       dispatch(setRestNotifications(restNotifications));
+      dispatch(setMonthlyReportNotifications(monthlyReportNotifications));
       dispatch(setCrashReportsEnabled(crashReportsEnabled));
       dispatch(setWelcomeWizardCompleted(welcomeWizardCompleted));
       dispatch(setRemoteBackupSettings(remoteBackupSettings));
@@ -190,6 +194,14 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
     async (action, { stateAfterReduce, extra: { preferenceService } }) => {
       if (stateAfterReduce.settings.isHydrated) {
         await preferenceService.setRestNotifications(action.payload);
+      }
+    },
+  );
+  addEffect(
+    setMonthlyReportNotifications,
+    async (action, { stateAfterReduce, extra: { preferenceService } }) => {
+      if (stateAfterReduce.settings.isHydrated) {
+        await preferenceService.setMonthlyReportNotifications(action.payload);
       }
     },
   );

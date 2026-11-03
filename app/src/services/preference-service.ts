@@ -41,6 +41,20 @@ export class PreferenceService {
     return fromBooleanString(value, true);
   }
 
+  async getMonthlyReportNotifications(): Promise<boolean> {
+    const value = await this.keyValueStore.getItem(
+      'monthlyReportNotifications',
+    );
+    return fromBooleanString(value, true);
+  }
+
+  async setMonthlyReportNotifications(value: boolean): Promise<void> {
+    await this.keyValueStore.setItem(
+      'monthlyReportNotifications',
+      toBooleanString(value),
+    );
+  }
+
   async setRestNotifications(restNotifications: boolean): Promise<void> {
     await this.keyValueStore.setItem(
       'restNotifications',

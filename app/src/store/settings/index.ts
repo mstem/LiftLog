@@ -23,6 +23,7 @@ interface SettingsState {
   tipToShow: number;
   showFeed: boolean;
   restNotifications: boolean;
+  monthlyReportNotifications: boolean;
   crashReportsEnabled: boolean;
   showPostWorkoutSummary: boolean;
   welcomeWizardCompleted: boolean;
@@ -52,6 +53,7 @@ const initialState: SettingsState = {
   tipToShow: 1,
   showFeed: true,
   restNotifications: true,
+  monthlyReportNotifications: true,
   crashReportsEnabled: true,
   showPostWorkoutSummary: false,
   trueBlackDarkTheme: false,
@@ -94,6 +96,9 @@ const settingsSlice = createSlice({
     },
     setRestNotifications(state, action: PayloadAction<boolean>) {
       state.restNotifications = action.payload;
+    },
+    setMonthlyReportNotifications(state, action: PayloadAction<boolean>) {
+      state.monthlyReportNotifications = action.payload;
     },
     setCrashReportsEnabled(state, action: PayloadAction<boolean>) {
       state.crashReportsEnabled = action.payload;
@@ -181,6 +186,7 @@ export const {
   setTipToShow,
   setShowFeed,
   setRestNotifications,
+  setMonthlyReportNotifications,
   setCrashReportsEnabled,
   setWelcomeWizardCompleted,
   setRemoteBackupSettings,

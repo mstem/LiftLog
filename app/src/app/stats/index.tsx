@@ -18,7 +18,8 @@ import {
 } from '@/store/stats';
 import { formatDuration } from '@/utils/format-date';
 import { useTranslate } from '@tolgee/react';
-import { Stack, useFocusEffect } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
+import Button from '@/components/presentation/foundation/gesture-wrappers/button';
 import { View, Text } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { match } from 'ts-pattern';
@@ -31,6 +32,7 @@ export default function StatsPage() {
     dispatch(fetchOverallStats());
   });
   const stats = useAppSelector(selectOverallView);
+  const { push } = useRouter();
   return (
     <FullHeightScrollView contentContainerStyle={{ gap: spacing[2] }}>
       <Stack.Screen
@@ -38,6 +40,15 @@ export default function StatsPage() {
           title: t('stats.statistics.title'),
         }}
       />
+      <Button
+        mode="outlined"
+        icon={'calendar'}
+        testID="monthly-report-button"
+        style={{ marginHorizontal: spacing.pageHorizontalMargin }}
+        onPress={() => push('/stats/monthly-report')}
+      >
+        {t('stats.monthly_report.open.button')}
+      </Button>
       <MuscleGapsCard />
       <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
         <TimePeriodSelector

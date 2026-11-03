@@ -24,6 +24,10 @@ import { DatabaseMigrationService } from './database-migration-service';
 import { ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
 import { SQLiteDatabase } from 'expo-sqlite';
 import { DatabaseImportService } from '@/services/database-import-service';
+import {
+  cancelMonthlyReport,
+  scheduleMonthlyReport,
+} from '@/services/monthly-report-notification';
 
 export type Services = Awaited<ReturnType<typeof resolveServicesInternal>>;
 
@@ -99,6 +103,10 @@ function resolveServicesInternal(
     aiChatService,
     workoutWorkerService,
     tolgee,
+    monthlyReportNotifier: {
+      schedule: scheduleMonthlyReport,
+      cancel: cancelMonthlyReport,
+    },
     db,
     expoDb,
     databaseMigrationService,

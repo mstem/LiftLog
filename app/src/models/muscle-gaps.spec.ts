@@ -232,4 +232,20 @@ describe('muscleGapLevel', () => {
     expect(muscleGapLevel(20)).toBe(5);
     expect(muscleGapLevel(50)).toBe(5);
   });
+
+  it('counts only the given dates when a start is set', () => {
+    const result = muscleGaps({
+      sessions: [
+        session('2026-08-31', [lift('Barbell Squat', [60])]),
+        session('2026-09-01', [lift('Barbell Squat', [60, 60])]),
+        session('2026-09-30', [lift('Barbell Squat', [60])]),
+        session('2026-10-01', [lift('Barbell Squat', [60])]),
+      ],
+      library,
+      from: LocalDate.parse('2026-09-01'),
+      today: LocalDate.parse('2026-09-30'),
+    });
+
+    expect(result.quadriceps).toBe(3);
+  });
 });

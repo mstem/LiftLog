@@ -136,14 +136,16 @@ export function musclesForExercise(
 }
 
 /**
- * Weighted sets per diagram region over the last 30 days: each ticked set
- * counts once for every region its exercise works, bodyweight, timed and
- * Mobility sets at half, stretches at a quarter.
+ * Weighted sets per diagram region over the last 30 days, or from `from` to
+ * `today` when given: each ticked set counts once for every region its
+ * exercise works, bodyweight, timed and Mobility sets at half, stretches at a
+ * quarter.
  */
 export function muscleGaps({
   sessions,
   library,
   today,
+  from,
 }: {
   sessions: readonly Session[];
   library: readonly {
@@ -152,15 +154,16 @@ export function muscleGaps({
     category?: string;
   }[];
   today: LocalDate;
+  from?: LocalDate;
 }): Record<MuscleGapRegion, number> {
   const libraryByName = new Map(library.map((x) => [nameKey(x.name), x]));
   const totals = Object.fromEntries(
     muscleGapRegions.map((r) => [r, 0]),
   ) as Record<MuscleGapRegion, number>;
-  const since = today.minusDays(windowDays);
+  const since = from ? from.minusDays(1) : today.minusDays(windowDays);
 
   for (const session of sessions) {
-    if (!session.date.isAfter(since)) {
+    if (!session.date.isAfter(since) || session.date.isAfter(today)) {
       continue;
     }
     for (const exercise of session.recordedExercises) {

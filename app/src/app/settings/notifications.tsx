@@ -11,7 +11,10 @@ import {
   getCurrentExerciseDetails,
   getTimerInfo,
 } from '@/store/current-session/helpers';
-import { setRestNotifications } from '@/store/settings';
+import {
+  setMonthlyReportNotifications,
+  setRestNotifications,
+} from '@/store/settings';
 import { Duration } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import { Stack } from 'expo-router';
@@ -59,6 +62,16 @@ export default function AppConfiguration() {
               );
             }
           }}
+        />
+        <ListSwitch
+          headline={<T keyName="settings.monthly_report.notifications.title" />}
+          supportingText={
+            <T keyName="settings.monthly_report.notifications.subtitle" />
+          }
+          value={settings.monthlyReportNotifications}
+          onValueChange={(value) =>
+            dispatch(setMonthlyReportNotifications(value))
+          }
         />
       </List.Section>
     </FullHeightScrollView>

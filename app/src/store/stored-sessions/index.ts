@@ -259,6 +259,11 @@ export const initializeStoredSessionsStateSlice = createAction(
 );
 
 export const migrateExerciseWeights = createAction('migrateExerciseWeights');
+
+/** Reschedules (or cancels) the 1st-of-the-month report for this month. */
+export const refreshMonthlyReportNotification = createAction(
+  'refreshMonthlyReportNotification',
+);
 export const checkIfWeightMigrationRequired = createAction(
   'checkIfWeightMigrationRequired',
 );
@@ -379,9 +384,7 @@ const selectAllTimeWeightedExerciseBests = createSelector(
 export const selectWeightedExercisePersonalBests = createSelector(
   [selectAllTimeWeightedExerciseBests],
   (bests) =>
-    (
-      blueprint: ExerciseBlueprint,
-    ): WeightedExercisePersonalBests | undefined =>
+    (blueprint: ExerciseBlueprint): WeightedExercisePersonalBests | undefined =>
       bests[NormalizedName.fromExerciseBlueprint(blueprint).toString()],
 );
 

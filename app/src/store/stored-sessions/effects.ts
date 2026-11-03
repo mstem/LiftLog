@@ -6,6 +6,7 @@ import {
   deleteStoredSession,
   initializeStoredSessionsStateSlice,
   migrateExerciseWeights,
+  refreshMonthlyReportNotification,
   selectSessions,
   setAllExerciseNotes,
   setExerciseNotes,
@@ -19,6 +20,10 @@ import {
   WeightMigrateableExercise,
 } from './index';
 import { fetchUpcomingSessions } from '@/store/program';
+import { setMonthlyReportNotifications } from '@/store/settings';
+import { LocalDate, YearMonth } from '@js-joda/core';
+import { monthlyReport } from '@/models/monthly-report';
+import { monthlyReportDeliveryTime } from '@/models/monthly-report-schedule';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { setCurrentSession } from '@/store/current-session';
@@ -207,6 +212,63 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(fetchUpcomingSessions());
     dispatch(setExercisesRequiringWeightMigration([]));
   });
+
+  addEffect(
+    [addStoredSession, setMonthlyReportNotifications],
+    (_, { dispatch }) => {
+      dispatch(refreshMonthlyReportNotification());
+    },
+  );
+
+  addEffect(
+    refreshMonthlyReportNotification,
+    async (
+      _,
+      { stateAfterReduce, extra: { monthlyReportNotifier, tolgee, logger } },
+    ) => {
+      try {
+        const { settings } = stateAfterReduce;
+        if (!settings.monthlyReportNotifications) {
+          await monthlyReportNotifier.cancel();
+          return;
+        }
+        const today = LocalDate.now();
+        const month = YearMonth.from(today);
+        const at = monthlyReportDeliveryTime(month, today);
+        const report = monthlyReport({
+          sessions: selectSessions(stateAfterReduce),
+          month,
+          unit: settings.useImperialUnits ? 'pounds' : 'kilograms',
+          library: Object.values(
+            stateAfterReduce.storedSessions.savedExercises,
+          ),
+          firstDayOfWeek: settings.firstDayOfWeek,
+        });
+        if (!at || !report.workouts) {
+          return;
+        }
+        const monthName = new Date(
+          month.year(),
+          month.monthValue() - 1,
+          1,
+        ).toLocaleDateString(settings.preferredLanguage, { month: 'long' });
+        await monthlyReportNotifier.schedule({
+          month,
+          at,
+          title: tolgee.t('stats.monthly_report.notification.title', {
+            month: monthName,
+          }),
+          body: tolgee.t('stats.monthly_report.notification.body', {
+            workouts: report.workouts,
+            sets: report.sets,
+            bests: report.bests.length,
+          }),
+        });
+      } catch (e) {
+        logger.error('Failed to schedule the monthly report notification', e);
+      }
+    },
+  );
 
   addEffect(
     addStoredSession,
