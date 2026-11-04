@@ -5,6 +5,7 @@ import {
   NextDayAnswer,
 } from '@/models/injury/injury';
 import { createAction, createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { ReturnOverride } from '@/models/injury/return';
 import type { RootState } from '@/store';
 
 export const initializeInjuryStateSlice = createAction(
@@ -40,6 +41,19 @@ const injurySlice = createSlice({
         state.flagOverrides[action.payload.name] = action.payload.flagged;
       }
     },
+    setReturnOverride(
+      state,
+      action: PayloadAction<{
+        name: string;
+        override: ReturnOverride | undefined;
+      }>,
+    ) {
+      if (action.payload.override === undefined) {
+        delete state.returnOverrides[action.payload.name];
+      } else {
+        state.returnOverrides[action.payload.name] = action.payload.override;
+      }
+    },
     answerNextDay(
       state,
       action: PayloadAction<{ sessionId: string; answer: NextDayAnswer }>,
@@ -55,6 +69,7 @@ export const {
   setInjury,
   resolveInjury,
   setFlagOverride,
+  setReturnOverride,
   answerNextDay,
 } = injurySlice.actions;
 export const injuryReducer = injurySlice.reducer;

@@ -30,6 +30,7 @@ import { selectActiveInjury } from '@/store/injury';
 import { isShoulderLoaded } from '@/models/injury/flags';
 import { injuryWeight, InjuryHistoryEntry } from '@/models/injury/load';
 import { injuryEraStart } from '@/models/injury/injury';
+import { isPullDay, returnedLiftCount } from '@/models/injury/return';
 import {
   rehabIncrement,
   withPullLiftsPaused,
@@ -135,9 +136,22 @@ export class SessionService {
     const injury = state.injury ? selectActiveInjury(state) : undefined;
     const onsetDate = injury ? LocalDate.parse(injury.onsetDate) : undefined;
     const overrides = state.injury?.flagOverrides ?? {};
+    // The graded return reads every stored workout, so only a pull day pays.
+    const returned =
+      injury && isPullDay(inputBlueprint.name)
+        ? {
+            count: returnedLiftCount({
+              sessions: $this.progressRepository.getOrderedSessions().toArray(),
+              injury,
+              overrides,
+              answers: state.injury?.nextDayAnswers ?? {},
+            }),
+            overrides: state.injury?.returnOverrides ?? {},
+          }
+        : undefined;
     const sessionBlueprint = injury
       ? withRehabBlock(
-          withPullLiftsPaused(inputBlueprint, overrides),
+          withPullLiftsPaused(inputBlueprint, overrides, returned),
           injury.structures,
         )
       : inputBlueprint;

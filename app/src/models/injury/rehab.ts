@@ -12,6 +12,7 @@ import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { isShoulderLoaded } from '@/models/injury/flags';
 import { ROLLED_OVER_GROUP } from '@/models/roll-over';
+import { isPullDay, ReturnOverride, returnRank } from '@/models/injury/return';
 
 /**
  * Group id of the injected rehab block. Reserved so a group the user names
@@ -306,22 +307,71 @@ const pausedOnPullDay = [
 export function withPullLiftsPaused(
   blueprint: SessionBlueprint,
   overrides: Record<string, boolean>,
+  returned: ReturnedLifts = { count: 0, overrides: {} },
 ): SessionBlueprint {
-  if (!/\bpull\b/i.test(blueprint.name)) {
+  if (!isPullDay(blueprint.name)) {
     return blueprint;
   }
+  const back = new Set(returnedLiftNames(blueprint, overrides, returned));
   return blueprint.with({
     exercises: blueprint.exercises.map((x) =>
-      x instanceof WeightedExerciseBlueprint &&
-      !x.group &&
-      isShoulderLoaded(x.name, overrides) &&
-      pausedOnPullDay.some((p) => p.test(x.name.toLowerCase()))
+      pausable(x, overrides) && !back.has(new NormalizedName(x.name).toString())
         ? x.with({
             group: x.group === '' ? PAUSED_BLANK_GROUP : PAUSED_GROUP,
           })
         : x,
     ),
   });
+}
+
+/** Lifts the rehab block would stand in for, hand overrides aside. */
+export function pausable(
+  x: ExerciseBlueprint,
+  overrides: Record<string, boolean>,
+): x is WeightedExerciseBlueprint {
+  return (
+    x instanceof WeightedExerciseBlueprint &&
+    !x.group &&
+    isShoulderLoaded(x.name, overrides) &&
+    pausedOnPullDay.some((p) => p.test(x.name.toLowerCase()))
+  );
+}
+
+/** What the graded return has decided for a pull day. */
+export interface ReturnedLifts {
+  /** lifts the rule has brought back, taken in return order */
+  count: number;
+  /** normalized name -> hand override */
+  overrides: Record<string, ReturnOverride>;
+}
+
+/**
+ * Normalized names of the pausable lifts that are back in a pull day: the
+ * ones switched back by hand, plus the first `count` of the rest in return
+ * order (rows first, overhead last, plan order breaking ties). A lift paused
+ * by hand never counts.
+ */
+export function returnedLiftNames(
+  blueprint: SessionBlueprint,
+  overrides: Record<string, boolean>,
+  returned: ReturnedLifts,
+): string[] {
+  const candidates = blueprint.exercises
+    .filter((x) => pausable(x, overrides))
+    .map((x, index) => ({
+      key: new NormalizedName(x.name).toString(),
+      rank: returnRank(x.name),
+      index,
+    }));
+  const byHand = candidates
+    .filter((c) => returned.overrides[c.key] === 'returned')
+    .map((c) => c.key);
+  const byRule = candidates
+    .filter((c) => returned.overrides[c.key] === undefined)
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .slice(0, Math.max(0, returned.count))
+    .map((c) => c.key);
+  return [...byHand, ...byRule];
 }
 
 /** A paused lift with its planned group back. */

@@ -6,10 +6,22 @@ import IconButton from '@/components/presentation/foundation/gesture-wrappers/ic
 import { spacing } from '@/hooks/useAppTheme';
 import { NormalizedName } from '@/models/blueprint-models';
 import { isShoulderLoaded } from '@/models/injury/flags';
+import { pausable, returnedLiftNames } from '@/models/injury/rehab';
+import {
+  isPullDay,
+  returnedLiftCount,
+  ReturnOverride,
+} from '@/models/injury/return';
+import { selectSessions } from '@/store/stored-sessions';
 import { Injury } from '@/models/injury/injury';
 import { RootState, useAppSelector } from '@/store';
 import { showSnackbar } from '@/store/app';
-import { setFlagOverride, setInjury } from '@/store/injury';
+import {
+  selectActiveInjury,
+  setFlagOverride,
+  setInjury,
+  setReturnOverride,
+} from '@/store/injury';
 import { selectActiveProgram } from '@/store/program';
 import { LocalDate } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
@@ -310,6 +322,14 @@ function ShoulderFlags() {
   const overrides = useAppSelector(
     (state: RootState) => state.injury.flagOverrides,
   );
+  const injury = useAppSelector(selectActiveInjury);
+  const answers = useAppSelector(
+    (state: RootState) => state.injury.nextDayAnswers,
+  );
+  const returnOverrides = useAppSelector(
+    (state: RootState) => state.injury.returnOverrides,
+  );
+  const sessions = useAppSelector(selectSessions);
   const names = useMemo(() => {
     const seen = new Map<string, string>();
     for (const session of program.sessions) {
@@ -321,6 +341,35 @@ function ShoulderFlags() {
     }
     return [...seen.values()];
   }, [program]);
+  // Where each pull-day lift stands with the graded return: paused, or back.
+  const pullState = useMemo(() => {
+    const state = new Map<string, 'paused' | 'returned'>();
+    if (!injury) return state;
+    const count = returnedLiftCount({
+      sessions: Object.values(sessions),
+      injury,
+      overrides,
+      answers,
+    });
+    for (const session of program.sessions) {
+      if (!isPullDay(session.name)) continue;
+      const back = new Set(
+        returnedLiftNames(session, overrides, {
+          count,
+          overrides: returnOverrides,
+        }),
+      );
+      for (const exercise of session.exercises) {
+        if (!pausable(exercise, overrides)) continue;
+        const key = new NormalizedName(exercise.name).toString();
+        state.set(key, back.has(key) ? 'returned' : 'paused');
+      }
+    }
+    return state;
+  }, [injury, sessions, program, overrides, answers, returnOverrides]);
+  const { t } = useTranslate();
+  const setReturn = (name: string, override: ReturnOverride | undefined) =>
+    dispatch(setReturnOverride({ name, override }));
 
   return (
     <List.Section>
@@ -336,12 +385,68 @@ function ShoulderFlags() {
       >
         <T keyName="injury.flags.help" />
       </Text>
+      <Text
+        variant="bodySmall"
+        style={{
+          paddingHorizontal: spacing.pageHorizontalMargin,
+          paddingBottom: spacing[2],
+        }}
+      >
+        <T keyName="injury.return.help" />
+      </Text>
       {names.map((name) => {
         const key = new NormalizedName(name).toString();
+        const pull = pullState.get(key);
+        const override = returnOverrides[key];
         return (
           <List.Item
             key={key}
             title={name}
+            description={
+              pull
+                ? () => (
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                      }}
+                    >
+                      <Text variant="bodySmall">
+                        {t(
+                          pull === 'paused'
+                            ? 'injury.return.paused'
+                            : 'injury.return.returned',
+                        )}
+                      </Text>
+                      <Button
+                        compact
+                        testID={`return-${key}`}
+                        onPress={() =>
+                          setReturn(
+                            key,
+                            pull === 'paused' ? 'returned' : 'paused',
+                          )
+                        }
+                      >
+                        {t(
+                          pull === 'paused'
+                            ? 'injury.return.bring_back'
+                            : 'injury.return.pause',
+                        )}
+                      </Button>
+                      {override ? (
+                        <Button
+                          compact
+                          onPress={() => setReturn(key, undefined)}
+                        >
+                          {t('injury.return.automatic')}
+                        </Button>
+                      ) : null}
+                    </View>
+                  )
+                : undefined
+            }
             onLongPress={() =>
               dispatch(setFlagOverride({ name: key, flagged: undefined }))
             }

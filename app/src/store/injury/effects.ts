@@ -7,6 +7,7 @@ import {
   restoreInjuryState,
   setFlagOverride,
   setInjury,
+  setReturnOverride,
 } from '@/store/injury';
 import { parseInjuryState, serializeInjuryState } from '@/models/injury/injury';
 import { fetchUpcomingSessions } from '@/store/program';
@@ -51,6 +52,7 @@ export function applyInjuryEffects(addEffect: AddEffectFn) {
       setInjury,
       resolveInjury,
       setFlagOverride,
+      setReturnOverride,
       answerNextDay,
       restoreInjuryState,
     ],
@@ -79,6 +81,7 @@ export function applyInjuryEffects(addEffect: AddEffectFn) {
       setInjury,
       resolveInjury,
       setFlagOverride,
+      setReturnOverride,
       hydrateInjuryState,
       restoreInjuryState,
     ],

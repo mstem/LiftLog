@@ -1,5 +1,6 @@
 import { LocalDate, OffsetDateTime, ZoneId } from '@js-joda/core';
 import type { ArcPain } from '@/models/injury/screen';
+import type { ReturnOverride } from '@/models/injury/return';
 
 export type InjurySide = 'left' | 'right';
 export type InjuryStatus = 'active' | 'resolved';
@@ -46,6 +47,8 @@ export interface InjuryState {
   flagOverrides: Record<string, boolean>;
   /** session id -> answer to "worse than before that session?" */
   nextDayAnswers: Record<string, NextDayAnswer>;
+  /** normalized exercise name -> hand decision on a paused pull-day lift */
+  returnOverrides: Record<string, ReturnOverride>;
   /**
    * Set when stored settings could not be read at startup. Saving is held
    * back until the next start so the unread settings are not overwritten.
@@ -58,6 +61,7 @@ export const emptyInjuryState: InjuryState = {
   injury: undefined,
   flagOverrides: {},
   nextDayAnswers: {},
+  returnOverrides: {},
 };
 
 /**
@@ -93,6 +97,7 @@ export function parseInjuryState(json: string | undefined): InjuryState {
       injury,
       flagOverrides: raw.flagOverrides ?? {},
       nextDayAnswers: raw.nextDayAnswers ?? {},
+      returnOverrides: raw.returnOverrides ?? {},
     };
   } catch {
     return { ...emptyInjuryState, isHydrated: true };
