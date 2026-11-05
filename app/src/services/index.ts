@@ -24,6 +24,10 @@ import { DatabaseMigrationService } from './database-migration-service';
 import { ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
 import { SQLiteDatabase } from 'expo-sqlite';
 import { DatabaseImportService } from '@/services/database-import-service';
+import {
+  NativeTrainerWidgetService,
+  TrainerWidgetService,
+} from '@/services/trainer-widget-service';
 
 export type Services = Awaited<ReturnType<typeof resolveServicesInternal>>;
 
@@ -74,6 +78,8 @@ function resolveServicesInternal(
     tolgee,
   );
   const healthExportService: HES = new HealthExportService();
+  const trainerWidgetService: TrainerWidgetService =
+    new NativeTrainerWidgetService();
   const databaseMigrationService = new DatabaseMigrationService(
     db,
     logger,
@@ -98,6 +104,7 @@ function resolveServicesInternal(
     preferenceService,
     aiChatService,
     workoutWorkerService,
+    trainerWidgetService,
     tolgee,
     db,
     expoDb,
