@@ -25,9 +25,14 @@ class WidgetFetchWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
         val ctx = applicationContext
         val url = WidgetConfig.url(ctx)
         val key = WidgetConfig.key(ctx)
-        if (url.isNullOrBlank() || key.isNullOrBlank()) return Result.success()
         val ids = GlanceAppWidgetManager(ctx).getGlanceIds(TrainerWidget::class.java)
         if (ids.isEmpty()) return Result.success()
+        if (url.isNullOrBlank() || key.isNullOrBlank()) {
+            // Config cleared: redraw so the widget asks for the backup setup instead of
+            // keeping the last numbers.
+            TrainerWidget().updateAll(ctx)
+            return Result.success()
+        }
 
         val outcome = try { fetch(url, key) } catch (e: Exception) { Fetch.Error }
         val now = System.currentTimeMillis()

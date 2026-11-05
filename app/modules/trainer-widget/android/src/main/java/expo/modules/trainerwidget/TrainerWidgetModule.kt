@@ -17,9 +17,8 @@ class TrainerWidgetModule : Module() {
             }
         }
 
-        // After a backup lands the trainer needs up to a minute or two to rewrite the file.
         Function("refresh") {
-            appContext.reactContext?.applicationContext?.let { WidgetWork.refreshNow(it, delaySeconds = 90) }
+            appContext.reactContext?.applicationContext?.let { WidgetWork.refreshAfterBackup(it) }
         }
 
         // A tap on the widget opens the app, so this is the refresh on tap too.

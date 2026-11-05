@@ -25,6 +25,22 @@ class WidgetModelTest {
         assertEquals(copy.waiting, widgetView(true, "{\"next\": 1", at("2026-11-04T20:00:00Z"), copy).headline)
     }
 
+    @Test fun badDateIsRejectedByTheParser() {
+        // A file whose fields are present but wrong must be rejected before it replaces
+        // the last good one; the view then falls back to waiting, never throws.
+        val bad = payload.replace("\"date\":\"2026-11-05\"", "\"date\":\"tomorrow\"")
+        assertEquals(null, WidgetState.parsePayload(bad))
+        assertEquals(copy.waiting, widgetView(true, bad, at("2026-11-04T20:00:00Z"), copy).headline)
+        val badStamp = payload.replace("\"generated_at\":\"2026-11-04T19:40:00Z\"", "\"generated_at\":5")
+        assertEquals(null, WidgetState.parsePayload(badStamp))
+    }
+
+    @Test fun missingWeekIsRejectedByTheParser() {
+        val noWeek = payload.substringBefore(",\n        \"week\"") + "}"
+        assertEquals(null, WidgetState.parsePayload(noWeek))
+        assertEquals(copy.waiting, widgetView(true, noWeek, at("2026-11-04T20:00:00Z"), copy).headline)
+    }
+
     @Test fun tomorrowWithTotals() {
         val v = widgetView(true, payload, at("2026-11-04T20:00:00Z"), copy)
         assertEquals("Tomorrow", v.caption)

@@ -2,8 +2,6 @@ package expo.modules.trainerwidget
 
 import java.text.NumberFormat
 import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -41,18 +39,15 @@ fun widgetView(configured: Boolean, payload: String?, nowMs: Long, copy: Copy): 
     val p = payload?.let { WidgetState.parsePayload(it) }
         ?: return WidgetView(null, copy.waiting, null, emptyList())
 
-    val zone = try { ZoneId.of(p.timezone) } catch (e: Exception) { ZoneId.of("UTC") }
-    val now = Instant.ofEpochMilli(nowMs)
-    val today = now.atZone(zone).toLocalDate()
-    val next = LocalDate.parse(p.next.date)
+    val today = Instant.ofEpochMilli(nowMs).atZone(p.zone).toLocalDate()
+    val next = p.next.date
     var caption = when (next) {
         today -> copy.today
         today.plusDays(1) -> copy.tomorrow
         else -> next.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.US)
     }
-    val generatedAt = Instant.parse(p.generatedAt)
-    if (nowMs - generatedAt.toEpochMilli() > STALE_MS) {
-        caption += " · " + String.format(Locale.US, copy.updated, UPDATED_AT.format(generatedAt.atZone(zone)))
+    if (nowMs - p.generatedAt.toEpochMilli() > STALE_MS) {
+        caption += " · " + String.format(Locale.US, copy.updated, UPDATED_AT.format(p.generatedAt.atZone(p.zone)))
     }
 
     val whole = NumberFormat.getIntegerInstance(Locale.US)
