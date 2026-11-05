@@ -55,10 +55,8 @@ class TrainerWidget : GlanceAppWidget() {
         provideContent {
             val prefs = currentState<Preferences>()
             val ctx = LocalContext.current
-            val view = widgetView(
-                WidgetConfig.configured(ctx), prefs[WidgetState.PAYLOAD], System.currentTimeMillis(),
-                copyFrom(ctx.resources),
-            )
+            val payload = currentPayload(prefs[WidgetState.PAYLOAD], prefs[WidgetState.PAYLOAD_URL], WidgetConfig.url(ctx))
+            val view = widgetView(WidgetConfig.configured(ctx), payload, System.currentTimeMillis(), copyFrom(ctx.resources))
             val wide = LocalSize.current.width >= WIDE.width
             Column(
                 modifier = GlanceModifier.fillMaxSize().appWidgetBackground().background(BACKGROUND)
@@ -72,6 +70,11 @@ class TrainerWidget : GlanceAppWidget() {
     override fun onCompositionError(context: Context, glanceId: GlanceId, appWidgetId: Int, throwable: Throwable) {
         val views = RemoteViews(context.packageName, android.R.layout.simple_list_item_1)
         views.setTextViewText(android.R.id.text1, context.getString(R.string.widget_waiting))
+        val open = android.app.PendingIntent.getActivity(
+            context, 0, openIntent(context),
+            android.app.PendingIntent.FLAG_IMMUTABLE or android.app.PendingIntent.FLAG_UPDATE_CURRENT,
+        )
+        views.setOnClickPendingIntent(android.R.id.text1, open)
         android.appwidget.AppWidgetManager.getInstance(context).updateAppWidget(appWidgetId, views)
     }
 }

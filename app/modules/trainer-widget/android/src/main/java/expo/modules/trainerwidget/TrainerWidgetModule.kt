@@ -12,8 +12,12 @@ class TrainerWidgetModule : Module() {
         Function("setConfig") { url: String?, apiKey: String? ->
             appContext.reactContext?.applicationContext?.let { ctx ->
                 WidgetConfig.save(ctx, url, apiKey)
-                WidgetWork.schedulePeriodic(ctx)
-                WidgetWork.refreshNow(ctx)
+                if (WidgetConfig.configured(ctx)) {
+                    WidgetWork.schedulePeriodic(ctx)
+                    WidgetWork.refreshNow(ctx)
+                } else {
+                    WidgetWork.redraw(ctx)
+                }
             }
         }
 

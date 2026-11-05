@@ -14,7 +14,10 @@ import java.net.URL
 private sealed class Fetch {
     data class Ok(val body: String) : Fetch()
     object Missing : Fetch()
+    /** Worth retrying: no connection, a timeout, a 5xx. */
     object Error : Fetch()
+    /** Not worth retrying until something changes: a wrong key, a body that is not the file. */
+    object Rejected : Fetch()
 }
 
 /** Fetches widget.json and writes the Glance state. A bad key, a down box or a body that
@@ -27,28 +30,38 @@ class WidgetFetchWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
         val key = WidgetConfig.key(ctx)
         val ids = GlanceAppWidgetManager(ctx).getGlanceIds(TrainerWidget::class.java)
         if (ids.isEmpty()) return Result.success()
+        val now = System.currentTimeMillis()
         if (url.isNullOrBlank() || key.isNullOrBlank()) {
             // Config cleared: redraw so the widget asks for the backup setup instead of
             // keeping the last numbers.
+            writeAll(ids, now) { }
             TrainerWidget().updateAll(ctx)
             return Result.success()
         }
 
         val outcome = try { fetch(url, key) } catch (e: Exception) { Fetch.Error }
-        val now = System.currentTimeMillis()
-        for (id in ids) {
-            updateAppWidgetState(ctx, PreferencesGlanceStateDefinition, id) { prefs ->
-                prefs.toMutablePreferences().apply { record(this, outcome, now) }
-            }
-        }
+        writeAll(ids, now) { record(it, outcome, now, url) }
         TrainerWidget().updateAll(ctx)
         return if (outcome is Fetch.Error) Result.retry() else Result.success()
     }
 
-    private fun record(prefs: MutablePreferences, outcome: Fetch, now: Long) {
+    /** Every write stamps LAST_RUN, so the state changes and a live Glance session redraws. */
+    private suspend fun writeAll(ids: List<androidx.glance.GlanceId>, now: Long, change: (MutablePreferences) -> Unit) {
+        for (id in ids) {
+            updateAppWidgetState(applicationContext, PreferencesGlanceStateDefinition, id) { prefs ->
+                prefs.toMutablePreferences().apply {
+                    this[WidgetState.LAST_RUN] = now
+                    change(this)
+                }
+            }
+        }
+    }
+
+    private fun record(prefs: MutablePreferences, outcome: Fetch, now: Long, url: String) {
         when (outcome) {
             is Fetch.Ok -> {
                 prefs[WidgetState.PAYLOAD] = outcome.body
+                prefs[WidgetState.PAYLOAD_URL] = url
                 prefs[WidgetState.FETCHED_AT] = now
                 prefs[WidgetState.STATUS] = "ok"
             }
@@ -57,6 +70,7 @@ class WidgetFetchWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
                 prefs[WidgetState.STATUS] = "missing"
             }
             Fetch.Error -> prefs[WidgetState.STATUS] = "error"
+            Fetch.Rejected -> prefs[WidgetState.STATUS] = "rejected"
         }
     }
 
@@ -71,10 +85,11 @@ class WidgetFetchWorker(ctx: Context, params: WorkerParameters) : CoroutineWorke
             return when (conn.responseCode) {
                 200 -> {
                     val body = conn.inputStream.bufferedReader().readText()
-                    if (WidgetState.parsePayload(body) != null) Fetch.Ok(body) else Fetch.Error
+                    if (WidgetState.parsePayload(body) != null) Fetch.Ok(body) else Fetch.Rejected
                 }
                 404 -> Fetch.Missing
-                else -> Fetch.Error
+                in 500..599 -> Fetch.Error
+                else -> Fetch.Rejected
             }
         } finally {
             conn.disconnect()

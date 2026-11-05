@@ -30,6 +30,10 @@ data class WidgetView(val caption: String?, val headline: String, val line: Stri
 
 const val STALE_MS = 6 * 60 * 60 * 1000L
 
+/** The stored payload, only when it came from the host the widget is configured for now. */
+fun currentPayload(payload: String?, payloadUrl: String?, configuredUrl: String?): String? =
+    payload?.takeIf { payloadUrl != null && payloadUrl == configuredUrl }
+
 private val UPDATED_AT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE HH:mm", Locale.US)
 
 /** Decides the view from the Glance state. Today and tomorrow are judged in the trainer's
@@ -46,7 +50,11 @@ fun widgetView(configured: Boolean, payload: String?, nowMs: Long, copy: Copy): 
         today.plusDays(1) -> copy.tomorrow
         else -> next.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.US)
     }
-    if (nowMs - p.generatedAt.toEpochMilli() > STALE_MS) {
+    // Out of date: old, or its next day has already gone, or it was written for an earlier week.
+    val monday = today.minusDays((today.dayOfWeek.value - 1).toLong())
+    val outOfDate = nowMs - p.generatedAt.toEpochMilli() > STALE_MS || next.isBefore(today) ||
+        java.time.LocalDate.parse(p.weekStart).isBefore(monday)
+    if (outOfDate) {
         caption += " · " + String.format(Locale.US, copy.updated, UPDATED_AT.format(p.generatedAt.atZone(p.zone)))
     }
 

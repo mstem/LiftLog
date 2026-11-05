@@ -32,12 +32,15 @@ object WidgetWork {
 
     fun refreshNow(ctx: Context) = enqueue(ctx, NOW, 0)
 
+    /** After the config is cleared: redraw only, so no network is needed. */
+    fun redraw(ctx: Context) = enqueue(ctx, NOW, 0, Constraints.NONE)
+
     /** The trainer needs up to a minute or two to rewrite the file after a backup lands. */
     fun refreshAfterBackup(ctx: Context) = enqueue(ctx, AFTER_BACKUP, AFTER_BACKUP_DELAY_S)
 
-    private fun enqueue(ctx: Context, name: String, delaySeconds: Long) {
+    private fun enqueue(ctx: Context, name: String, delaySeconds: Long, constraints: Constraints = online) {
         val request = OneTimeWorkRequestBuilder<WidgetFetchWorker>()
-            .setConstraints(online)
+            .setConstraints(constraints)
             .setInitialDelay(delaySeconds, TimeUnit.SECONDS)
             .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 10, TimeUnit.MINUTES)
             .build()

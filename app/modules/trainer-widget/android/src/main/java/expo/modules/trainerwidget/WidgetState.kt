@@ -16,6 +16,10 @@ data class Payload(val generatedAt: Instant, val weekStart: String, val zone: Zo
  * recorded for a later "last fetch failed" surface; the stale rule reads generated_at. */
 object WidgetState {
     val PAYLOAD = stringPreferencesKey("payload")
+    /** The widget URL the payload came from; a payload from another host is not shown. */
+    val PAYLOAD_URL = stringPreferencesKey("payload_url")
+    /** Written on every worker run so the stored state always changes and Glance redraws. */
+    val LAST_RUN = longPreferencesKey("last_run")
     val FETCHED_AT = longPreferencesKey("fetched_at")
     val STATUS = stringPreferencesKey("status")
 
@@ -27,13 +31,18 @@ object WidgetState {
         val n = o.getJSONObject("next")
         val w = o.getJSONObject("week")
         Payload(
-            Instant.parse(o.getString("generated_at")),
-            o.getString("week_start"),
-            ZoneId.of(o.getString("timezone")),
-            Next(LocalDate.parse(n.getString("date")), n.getString("title"), n.optString("line", ""), n.getBoolean("is_run")),
+            Instant.parse(str(o, "generated_at")),
+            LocalDate.parse(str(o, "week_start")).toString(),
+            ZoneId.of(str(o, "timezone")),
+            Next(LocalDate.parse(str(n, "date")), str(n, "title"), n.opt("line") as? String ?: "", n.getBoolean("is_run")),
             Week(w.getDouble("run_km"), w.getLong("lifted_kg"), w.getLong("active_min")),
         )
     } catch (e: Exception) {
         null
     }
+
+    /** A field that must be a JSON string. Android's org.json turns null and numbers into
+     * text ("null", "5") in getString, so the type is checked here instead. */
+    private fun str(o: JSONObject, key: String): String =
+        o.opt(key) as? String ?: throw IllegalArgumentException("$key is not a string")
 }

@@ -23,5 +23,6 @@ describe('trainerWidgetUrl', () => {
     expect(trainerWidgetUrl('   ')).toBeNull();
     expect(trainerWidgetUrl('not a url')).toBeNull();
     expect(trainerWidgetUrl('ftp://x')).toBeNull();
+    expect(trainerWidgetUrl('http://lifts.mindshine.io')).toBeNull();
   });
 });

@@ -41,6 +41,37 @@ class WidgetModelTest {
         assertEquals(copy.waiting, widgetView(true, noWeek, at("2026-11-04T20:00:00Z"), copy).headline)
     }
 
+    @Test fun nullLineIsEmptyAndWrongTypesAreRejected() {
+        val nullLine = payload.replace("\"line\":\"Fri Base run 45 min · Sun 10K race\"", "\"line\":null")
+        assertEquals(null, widgetView(true, nullLine, at("2026-11-04T20:00:00Z"), copy).line)
+        val numberTitle = payload.replace("\"title\":\"Pull\"", "\"title\":5")
+        assertEquals(null, WidgetState.parsePayload(numberTitle))
+        val nullTitle = payload.replace("\"title\":\"Pull\"", "\"title\":null")
+        assertEquals(null, WidgetState.parsePayload(nullTitle))
+    }
+
+    @Test fun payloadFromAnotherHostIsNotShown() {
+        assertEquals(payload, currentPayload(payload, "https://a/widget", "https://a/widget"))
+        assertEquals(null, currentPayload(payload, "https://a/widget", "https://b/widget"))
+        assertEquals(null, currentPayload(payload, null, "https://b/widget"))
+        assertEquals(null, currentPayload(null, "https://a/widget", "https://a/widget"))
+    }
+
+    @Test fun pastNextSessionIsMarkedOutOfDate() {
+        // Generated Monday for Monday, read Wednesday morning, under six hours later is impossible,
+        // so use a fresh file whose next day has already gone: it must still show its age.
+        val past = payload.replace("\"date\":\"2026-11-05\"", "\"date\":\"2026-11-04\"")
+            .replace("2026-11-04T19:40:00Z", "2026-11-05T00:30:00Z")
+        assertEquals("Wed · updated Thu 00:30", widgetView(true, past, at("2026-11-05T01:00:00Z"), copy).caption)
+    }
+
+    @Test fun lastWeeksFileIsMarkedOutOfDate() {
+        // Monday 9 Nov 00:30 in Lisbon, file written Sunday 23:50 for the week of 2 Nov.
+        val lastWeek = payload.replace("\"date\":\"2026-11-05\"", "\"date\":\"2026-11-09\"")
+            .replace("2026-11-04T19:40:00Z", "2026-11-08T23:50:00Z")
+        assertEquals("Today · updated Sun 23:50", widgetView(true, lastWeek, at("2026-11-09T00:30:00Z"), copy).caption)
+    }
+
     @Test fun tomorrowWithTotals() {
         val v = widgetView(true, payload, at("2026-11-04T20:00:00Z"), copy)
         assertEquals("Tomorrow", v.caption)
