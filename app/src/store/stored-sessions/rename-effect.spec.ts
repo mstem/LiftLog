@@ -5,13 +5,21 @@ import { applyStoredSessionsEffects } from '@/store/stored-sessions/effects';
 import {
   deleteExercise,
   renameExercise,
+  setIsHydrated,
   setExerciseNotes,
   updateExercise,
   upsertStoredSessions,
 } from '@/store/stored-sessions';
-import { upsertSavedPlans } from '@/store/program';
+import {
+  setIsHydrated as setProgramIsHydrated,
+  upsertSavedPlans,
+} from '@/store/program';
 import { setStatsIsDirty } from '@/store/stats';
-import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
+import {
+  setCurrentSession,
+  setExerciseSwaps,
+  setIsHydrated as setCurrentSessionIsHydrated,
+} from '@/store/current-session';
 import { setEditingSession } from '@/store/session-editor';
 import { ProgramBlueprint, SessionBlueprint } from '@/models/blueprint-models';
 import {
@@ -227,5 +235,109 @@ describe('renameExercise', () => {
     await bed.dispatchHandled(renameExercise({ ...rename, to: ' ' }));
 
     bed.expectNotDispatched(upsertStoredSessions);
+  });
+});
+
+describe('library renames at startup', () => {
+  function startupBed(hydrated: {
+    sessions: boolean;
+    plans: boolean;
+    workout?: boolean;
+    notes?: Record<string, string>;
+    stored?: Record<string, string>;
+  }) {
+    const kv = new Map(Object.entries(hydrated.stored ?? {}));
+    const suspendedRow = makeWeightedBlueprint('Suspended Row');
+    const past = makeSession([suspendedRow]);
+    const bed = createAddEffectTestBed({
+      initialState: {
+        storedSessions: {
+          isHydrated: hydrated.sessions,
+          sessions: { [past.id]: past },
+          exerciseNotes: hydrated.notes ?? {},
+          savedExercises: {
+            'Suspended Row': descriptor('Suspended Row'),
+            'TRX Row': descriptor('TRX Row'),
+            'Suspended Fallout': descriptor('Suspended Fallout'),
+          },
+        },
+        program: { isHydrated: hydrated.plans, savedPrograms: {} },
+        currentSession: {
+          isHydrated: hydrated.workout ?? true,
+          exerciseSwaps: {},
+        },
+      },
+      services: {
+        keyValueStore: {
+          getItem: (key: string) => Promise.resolve(kv.get(key) ?? null),
+          setItem: (key: string, value: string) => {
+            kv.set(key, value);
+            return Promise.resolve();
+          },
+        },
+      },
+    });
+    applyStoredSessionsEffects(bed.addEffect);
+    return Object.assign(bed, { kv });
+  }
+
+  it('folds old Suspended lifts and their history into the TRX names', async () => {
+    const bed = startupBed({ sessions: true, plans: true });
+    await bed.dispatchHandled(setProgramIsHydrated(true));
+
+    expect(
+      bed.dispatchedActions.filter(renameExercise.match).map((x) => x.payload),
+    ).toEqual([
+      { from: 'Suspended Row', to: 'TRX Row' },
+      { from: 'Suspended Fallout', to: 'TRX Fallout' },
+    ]);
+  });
+
+  it('runs when workouts load after the plans', async () => {
+    const bed = startupBed({ sessions: true, plans: true });
+    await bed.dispatchHandled(setIsHydrated(true));
+
+    expect(bed.dispatchedActions.filter(renameExercise.match)).toHaveLength(2);
+  });
+
+  it('waits until the workout in progress has loaded', async () => {
+    const bed = startupBed({ sessions: true, plans: true, workout: false });
+    await bed.dispatchHandled(setProgramIsHydrated(true));
+
+    bed.expectNotDispatched(renameExercise);
+  });
+
+  it('folds a lift that only notes still name', async () => {
+    const bed = startupBed({
+      sessions: true,
+      plans: true,
+      notes: { 'suspended push-up': 'Feet wide' },
+    });
+    await bed.dispatchHandled(setCurrentSessionIsHydrated(true));
+
+    expect(
+      bed.dispatchedActions.filter(renameExercise.match).map((x) => x.payload),
+    ).toContainEqual({ from: 'Suspended Push-Up', to: 'TRX Push-Up' });
+  });
+
+  it('runs once: a later lift given an old name keeps it', async () => {
+    const bed = startupBed({ sessions: true, plans: true });
+    await bed.dispatchHandled(setProgramIsHydrated(true));
+    expect(bed.kv.get('LibraryRenamesDone')).toBe('1');
+
+    const later = startupBed({
+      sessions: true,
+      plans: true,
+      stored: { LibraryRenamesDone: '1' },
+    });
+    await later.dispatchHandled(setProgramIsHydrated(true));
+    later.expectNotDispatched(renameExercise);
+  });
+
+  it('waits until the plans have loaded', async () => {
+    const bed = startupBed({ sessions: true, plans: false });
+    await bed.dispatchHandled(setProgramIsHydrated(false));
+
+    bed.expectNotDispatched(renameExercise);
   });
 });
