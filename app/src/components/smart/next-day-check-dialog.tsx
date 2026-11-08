@@ -6,7 +6,8 @@ import { answerNextDay, selectActiveInjury } from '@/store/injury';
 import { selectSessions } from '@/store/stored-sessions';
 import { OffsetDateTime } from '@js-joda/core';
 import { useTranslate } from '@tolgee/react';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { AppState } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { Dialog, Portal } from 'react-native-paper';
 import { useDispatch } from 'react-redux';
@@ -21,9 +22,18 @@ export function NextDayCheckDialog() {
   const overrides = useAppSelector((x) => x.injury.flagOverrides);
   // Dismissing hides the question for that workout only; a newer one asks again.
   const [dismissedId, setDismissedId] = useState<string>();
-  // Refreshed on focus so a session crossing 12 hours prompts without a restart
+  // Refreshed on focus and on return from the background, so a workout
+  // crossing 12 hours prompts the next morning without a restart
   const [now, setNow] = useState(() => OffsetDateTime.now());
   useFocusEffect(useCallback(() => setNow(OffsetDateTime.now()), []));
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        setNow(OffsetDateTime.now());
+      }
+    });
+    return () => subscription.remove();
+  }, []);
 
   const pending = useMemo(
     () =>
