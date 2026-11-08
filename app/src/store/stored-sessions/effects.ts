@@ -25,12 +25,13 @@ import {
   renameInProgram,
   renameInSession,
   renameInSessionBlueprint,
+  renameInSwaps,
 } from '@/models/rename-exercise';
 import { setEditingSession } from '@/store/session-editor';
 import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
-import { setCurrentSession } from '@/store/current-session';
+import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
 import {
   exerciseNotesSchema,
   exercisesSchema,
@@ -231,7 +232,9 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       .map((x) => [x, renameInSession(x, rename)] as const)
       .filter(([before, after]) => before !== after)
       .map(([, after]) => after);
-    dispatch(upsertStoredSessions(renamedSessions));
+    if (renamedSessions.length) {
+      dispatch(upsertStoredSessions(renamedSessions));
+    }
 
     const renamedPlans = Object.fromEntries(
       Object.entries(stateAfterReduce.program.savedPrograms)
@@ -256,6 +259,16 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       const renamed = session && renameInSession(session, rename);
       if (session && renamed !== session) {
         dispatch(setCurrentSession({ target, session: renamed }));
+      }
+    }
+
+    // Finish undoes swaps by name, so they follow the rename too
+    for (const [sessionId, swaps] of Object.entries(
+      stateAfterReduce.currentSession.exerciseSwaps,
+    )) {
+      const renamed = renameInSwaps(swaps, rename);
+      if (renamed !== swaps) {
+        dispatch(setExerciseSwaps({ sessionId, swaps: renamed }));
       }
     }
 
@@ -288,21 +301,20 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     const hasTo =
       !sameKey &&
       library.some(([, x]) => new NormalizedName(x.name).equals(to));
-    const fromEntry = library.find(([, x]) =>
+    const fromEntries = library.filter(([, x]) =>
       new NormalizedName(x.name).equals(from),
     );
-    if (fromEntry && hasTo) {
-      // Merged into a lift the library already has; the old entry would
-      // offer a lift with no history left under it
-      dispatch(deleteExercise(fromEntry[0]));
-    } else if (fromEntry) {
-      dispatch(
-        updateExercise({
-          id: fromEntry[0],
-          exercise: { ...fromEntry[1], name: rename.to },
-        }),
-      );
-    }
+    fromEntries.forEach(([id, entry], i) => {
+      if (hasTo || i > 0) {
+        // The lift lives on under the new name; an entry left with the old
+        // name would offer a lift with no history behind it
+        dispatch(deleteExercise(id));
+      } else {
+        dispatch(
+          updateExercise({ id, exercise: { ...entry, name: rename.to } }),
+        );
+      }
+    });
 
     dispatch(fetchUpcomingSessions());
   });

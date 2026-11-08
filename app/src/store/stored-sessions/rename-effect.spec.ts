@@ -10,7 +10,7 @@ import {
   upsertStoredSessions,
 } from '@/store/stored-sessions';
 import { upsertSavedPlans } from '@/store/program';
-import { setCurrentSession } from '@/store/current-session';
+import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
 import { setEditingSession } from '@/store/session-editor';
 import { ProgramBlueprint, SessionBlueprint } from '@/models/blueprint-models';
 import {
@@ -18,6 +18,7 @@ import {
   makeWeightedBlueprint,
 } from '@/models/session-models/__test__/helpers';
 import type { ExerciseDescriptor } from '@/models/exercise-models';
+import type { ExerciseSwap } from '@/models/exercise-swap';
 
 const rows = makeWeightedBlueprint('Seated Cable Rows');
 const squat = makeWeightedBlueprint('Hack Squat');
@@ -43,6 +44,7 @@ function testBed(extra?: {
   notes?: Record<string, string>;
   library?: Record<string, ExerciseDescriptor>;
   draft?: SessionBlueprint;
+  swaps?: Record<string, ExerciseSwap[]>;
 }) {
   const bed = createAddEffectTestBed({
     initialState: {
@@ -55,7 +57,10 @@ function testBed(extra?: {
       },
       program: { savedPrograms: { p1: plan.toPOJO() } },
       sessionEditor: { sessionBlueprint: extra?.draft },
-      currentSession: { workoutSession: makeSession([rows]) },
+      currentSession: {
+        workoutSession: makeSession([rows]),
+        exerciseSwaps: extra?.swaps ?? {},
+      },
     },
   });
   applyStoredSessionsEffects(bed.addEffect);
@@ -137,6 +142,37 @@ describe('renameExercise', () => {
 
     expect(bed.getDispatchedAction(deleteExercise).payload).toBe('lib1');
     bed.expectNotDispatched(updateExercise);
+  });
+
+  it('moves every library entry with the old name, keeping one', async () => {
+    const bed = testBed({
+      library: {
+        lib1: descriptor('Seated Cable Rows'),
+        lib3: descriptor('Seated Cable Row'),
+      },
+    });
+    await bed.dispatchHandled(renameExercise(rename));
+
+    expect(bed.getDispatchedAction(updateExercise).payload.id).toBe('lib1');
+    expect(bed.getDispatchedAction(deleteExercise).payload).toBe('lib3');
+  });
+
+  it('writes no sessions when none name the lift', async () => {
+    const bed = testBed();
+    await bed.dispatchHandled(renameExercise({ from: 'Deadlift', to: 'X' }));
+
+    bed.expectNotDispatched(upsertStoredSessions);
+  });
+
+  it('renames the lift in the workout swaps, so Finish still undoes them', async () => {
+    const bed = testBed({
+      swaps: { w1: [{ swappedIn: 'Seated Cable Rows', original: squat }] },
+    });
+    await bed.dispatchHandled(renameExercise(rename));
+
+    const written = bed.getDispatchedAction(setExerciseSwaps).payload;
+    expect(written.sessionId).toBe('w1');
+    expect(written.swaps[0]!.swappedIn).toBe('Cable Row (seated)');
   });
 
   it('renames every entry of the lift in the plan being edited', async () => {

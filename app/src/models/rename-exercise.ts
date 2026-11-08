@@ -4,11 +4,8 @@ import {
   ProgramBlueprint,
   SessionBlueprint,
 } from '@/models/blueprint-models';
-import {
-  RecordedExercise,
-  RecordedWeightedExercise,
-  Session,
-} from '@/models/session-models';
+import { ExerciseSwap } from '@/models/exercise-swap';
+import { RecordedExercise, Session } from '@/models/session-models';
 
 /**
  * Renaming a lift rewrites every place it is named, so its history, PREVIOUS,
@@ -37,9 +34,9 @@ function renamedRecorded(
   if (!matches(x.blueprint.name, rename)) {
     return x;
   }
-  return x instanceof RecordedWeightedExercise
-    ? x.with({ blueprint: renamedBlueprint(x.blueprint, rename) })
-    : x.with({ blueprint: renamedBlueprint(x.blueprint, rename) });
+  return x.with({
+    blueprint: renamedBlueprint(x.blueprint, rename),
+  } as never);
 }
 
 export function renameInSessionBlueprint(
@@ -59,8 +56,10 @@ export function renameInSession(
   session: Session,
   rename: ExerciseRename,
 ): Session {
+  // A lift swapped out of the workout stays in the blueprint only
   if (
-    !session.recordedExercises.some((x) => matches(x.blueprint.name, rename))
+    !session.recordedExercises.some((x) => matches(x.blueprint.name, rename)) &&
+    !session.blueprint.exercises.some((x) => matches(x.name, rename))
   ) {
     return session;
   }
@@ -83,4 +82,22 @@ export function renameInProgram(
   return sessions.every((x, i) => x === program.sessions[i])
     ? program
     : program.with({ sessions });
+}
+
+/** The same list when the lift is in none of the swaps. */
+export function renameInSwaps(
+  swaps: ExerciseSwap[],
+  rename: ExerciseRename,
+): ExerciseSwap[] {
+  if (
+    !swaps.some(
+      (x) => matches(x.swappedIn, rename) || matches(x.original.name, rename),
+    )
+  ) {
+    return swaps;
+  }
+  return swaps.map((x) => ({
+    swappedIn: matches(x.swappedIn, rename) ? rename.to : x.swappedIn,
+    original: renamedBlueprint(x.original, rename),
+  }));
 }

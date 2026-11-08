@@ -7,7 +7,11 @@ import {
   makeWeightedBlueprint,
   tick,
 } from '@/models/session-models/__test__/helpers';
-import { renameInProgram, renameInSession } from '@/models/rename-exercise';
+import {
+  renameInProgram,
+  renameInSession,
+  renameInSwaps,
+} from '@/models/rename-exercise';
 
 const rename = { from: 'Seated Cable Rows', to: 'Cable Row (seated)' };
 
@@ -81,5 +85,41 @@ describe('renameInProgram', () => {
     expect(renameInProgram(program, { from: 'Curl', to: 'Bicep Curl' })).toBe(
       program,
     );
+  });
+});
+
+describe('renameInSession with a swap', () => {
+  it('renames the planned lift that was swapped out of the workout', () => {
+    const session = makeSession([makeWeightedBlueprint('Hack Squat')]).with({
+      blueprint: new SessionBlueprint(
+        'Legs',
+        [makeWeightedBlueprint('Squat')],
+        '',
+      ),
+    });
+
+    const out = renameInSession(session, { from: 'Squat', to: 'Back Squat' });
+
+    expect(out.blueprint.exercises.map((x) => x.name)).toEqual(['Back Squat']);
+  });
+});
+
+describe('renameInSwaps', () => {
+  const swaps = [
+    { swappedIn: 'Hack Squat', original: makeWeightedBlueprint('Squat') },
+  ];
+
+  it('renames the lift swapped in', () => {
+    const out = renameInSwaps(swaps, { from: 'Hack Squat', to: 'Machine' });
+    expect(out[0]!.swappedIn).toBe('Machine');
+  });
+
+  it('renames the planned lift it stands in for', () => {
+    const out = renameInSwaps(swaps, { from: 'Squat', to: 'Back Squat' });
+    expect(out[0]!.original.name).toBe('Back Squat');
+  });
+
+  it('returns the same list when the lift is not in it', () => {
+    expect(renameInSwaps(swaps, { from: 'Deadlift', to: 'X' })).toBe(swaps);
   });
 });

@@ -12,3 +12,16 @@ export function renameFrom(
     ? savedName
     : undefined;
 }
+
+/**
+ * The name to offer a rename on in the plan editor: only a lift the saved
+ * plan already has. Adding a lift puts a placeholder such as 'Exercise 4'
+ * into the plan being edited first, and renaming that would rewrite every
+ * past lift sharing the placeholder name.
+ */
+export function savedNameInPlan(
+  savedNames: readonly string[],
+  name: string | undefined,
+): string | undefined {
+  return name !== undefined && savedNames.includes(name) ? name : undefined;
+}
