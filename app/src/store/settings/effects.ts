@@ -28,6 +28,7 @@ import { addExportBackupEffects } from '@/store/settings/export-backup-effects';
 import { addExportPlaintextEffects } from '@/store/settings/export-plaintext-effects';
 import { addImportBackupEffects } from '@/store/settings/import-backup-effects';
 import { addRemoteBackupEffects } from '@/store/settings/remote-backup-effects';
+import { addTrainerWidgetEffects } from '@/store/settings/trainer-widget-effects';
 import { I18nManager } from 'react-native';
 import { detectLanguageFromDateLocale } from '@/utils/language-detector';
 import { supportedLanguages } from '@/services/tolgee';
@@ -329,4 +330,5 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
   addExportBackupEffects(addEffect);
   addImportBackupEffects(addEffect);
   addRemoteBackupEffects(addEffect);
+  addTrainerWidgetEffects(addEffect);
 }

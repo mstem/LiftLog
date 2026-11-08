@@ -1,0 +1,44 @@
+// The trainer's home-screen widget: a Jetpack Glance widget fed by a WorkManager
+// worker. Glance composables need the Compose compiler, applied the way
+// @expo/ui's build.gradle does it. The module's own manifest registers the widget
+// receiver; nothing under app/android is edited.
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath("org.jetbrains.kotlin.plugin.compose:org.jetbrains.kotlin.plugin.compose.gradle.plugin:${kotlinVersion}")
+  }
+}
+
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
+
+group = 'expo.modules.trainerwidget'
+version = '0.1.0'
+
+android {
+  namespace "expo.modules.trainerwidget"
+  defaultConfig {
+    versionCode 1
+    versionName "0.1.0"
+  }
+  buildFeatures {
+    compose true
+  }
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  implementation "androidx.glance:glance-appwidget:1.2.0"
+  implementation "androidx.glance:glance-material3:1.2.0"
+  implementation "androidx.work:work-runtime-ktx:2.12.0"
+  implementation "androidx.datastore:datastore-preferences-core:1.2.1"
+  testImplementation 'junit:junit:4.13.2'
+  // android.jar's org.json classes are stubs on the JVM; the real ones make
+  // WidgetState.parsePayload testable.
+  testImplementation 'org.json:json:20250107'
+}

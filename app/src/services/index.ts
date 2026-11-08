@@ -28,6 +28,10 @@ import {
   cancelMonthlyReport,
   scheduleMonthlyReport,
 } from '@/services/monthly-report-notification';
+import {
+  NativeTrainerWidgetService,
+  TrainerWidgetService,
+} from '@/services/trainer-widget-service';
 
 export type Services = Awaited<ReturnType<typeof resolveServicesInternal>>;
 
@@ -78,6 +82,8 @@ function resolveServicesInternal(
     tolgee,
   );
   const healthExportService: HES = new HealthExportService();
+  const trainerWidgetService: TrainerWidgetService =
+    new NativeTrainerWidgetService();
   const databaseMigrationService = new DatabaseMigrationService(
     db,
     logger,
@@ -102,6 +108,7 @@ function resolveServicesInternal(
     preferenceService,
     aiChatService,
     workoutWorkerService,
+    trainerWidgetService,
     tolgee,
     monthlyReportNotifier: {
       schedule: scheduleMonthlyReport,
