@@ -14,6 +14,7 @@ import {
 } from '@/models/session-models';
 import { Weight } from '@/models/weight';
 import { withPainLimit } from '@/models/injury/pain-limit';
+import { NormalizedName } from '@/models/blueprint-models';
 
 const press = new WeightedExerciseBlueprint(
   'Standing Military Press',
@@ -53,6 +54,18 @@ describe('withPainLimit', () => {
     const out = withPainLimit(session, undefined);
     const lift = out.recordedExercises[0] as RecordedWeightedExercise;
     expect(lift.stoppedForPain).toBeUndefined();
+  });
+
+  it('reopens a lift whose pain check was switched off', () => {
+    const off = { [new NormalizedName(press.name).toString()]: false };
+    const out = withPainLimit(session, 5, off);
+    const lift = out.recordedExercises[0] as RecordedWeightedExercise;
+    expect(lift.stoppedForPain).toBeUndefined();
+  });
+
+  it('keeps the stop on a lift still pain-checked', () => {
+    const on = { [new NormalizedName(press.name).toString()]: true };
+    expect(withPainLimit(session, 5, on)).toBe(session);
   });
 
   it('returns the same session when nothing changes', () => {

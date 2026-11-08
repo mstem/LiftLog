@@ -89,10 +89,10 @@ export function applyInjuryEffects(addEffect: AddEffectFn) {
       dispatch(fetchUpcomingSessions());
     },
   );
-  // A changed pain limit, or the injury ending, re-checks the workout in
-  // progress, so a lift is not left stopped (or open) under the old limit.
+  // A changed pain limit, the injury ending, or a pain check switched off
+  // re-checks the workout in progress, so no lift stays stopped by mistake.
   addEffect(
-    [setInjury, resolveInjury, restoreInjuryState],
+    [setInjury, resolveInjury, restoreInjuryState, setFlagOverride],
     (_, { dispatch, stateAfterReduce }) => {
       const session = stateAfterReduce.currentSession.workoutSession;
       if (!session) {
@@ -102,6 +102,7 @@ export function applyInjuryEffects(addEffect: AddEffectFn) {
       const updated = withPainLimit(
         session,
         injury?.status === 'active' ? injury.painLimit : undefined,
+        stateAfterReduce.injury.flagOverrides,
       );
       if (updated !== session) {
         dispatch(

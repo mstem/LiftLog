@@ -1,4 +1,4 @@
-import { LocalDate } from '@js-joda/core';
+import { LocalDate, OffsetDateTime } from '@js-joda/core';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { Injury, injuryEraStart, NextDayAnswer } from '@/models/injury/injury';
 import { isShoulderLoaded } from '@/models/injury/flags';
@@ -83,7 +83,11 @@ export function returnedLiftCount(args: {
         ),
       ),
     )
-    .sort((a, b) => a.s.date.compareTo(b.s.date));
+    .sort(
+      (a, b) =>
+        a.s.date.compareTo(b.s.date) ||
+        firstSetTime(a.lifts).compareTo(firstSetTime(b.lifts)),
+    );
 
   let count = 0;
   let streak = 0;
@@ -116,4 +120,12 @@ export function returnedLiftCount(args: {
     }
   });
   return count + (streak >= quietSessionsNeeded ? 1 : 0);
+}
+
+/** When the first ticked set of these lifts was done, to order same-day workouts. */
+function firstSetTime(lifts: RecordedWeightedExercise[]): OffsetDateTime {
+  return lifts
+    .flatMap((l) => l.potentialSets.flatMap((p) => (p.set ? [p.set] : [])))
+    .map((x) => x.completionDateTime)
+    .reduce((min, x) => (x.isBefore(min) ? x : min));
 }

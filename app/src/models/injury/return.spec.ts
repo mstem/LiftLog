@@ -60,8 +60,9 @@ function session(
   date: string,
   lifts: [WeightedExerciseBlueprint, (number | undefined)[]][],
   stoppedForPain = false,
+  time = '18:00',
 ): Session {
-  const at = OffsetDateTime.parse(`${date}T18:00:00Z`);
+  const at = OffsetDateTime.parse(`${date}T${time}:00Z`);
   const exercises = lifts.map(
     ([bp, pains]) =>
       new RecordedWeightedExercise(
@@ -155,6 +156,27 @@ describe('returnedLiftCount', () => {
       session('c', 'Push', '2026-05-05', [[press, [1, 4]]]),
     ];
     expect(count(s, notWorse('a', 'b'))).toBe(0);
+  });
+
+  it('orders two workouts on one day by time, so the evening one is the latest', () => {
+    const morning = session(
+      'm',
+      'Push',
+      '2026-05-03',
+      [[press, [1]]],
+      false,
+      '09:00',
+    );
+    const evening = session(
+      'e',
+      'Push',
+      '2026-05-03',
+      [[press, [1]]],
+      false,
+      '19:00',
+    );
+    // Newest first, as the stored history comes in
+    expect(count([evening, morning], notWorse('m'))).toBe(0);
   });
 
   it('treats an older unanswered session as quiet', () => {
