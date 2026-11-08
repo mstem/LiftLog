@@ -19,7 +19,7 @@ import {
   clearLastNotificationResponse,
   useLastNotificationResponse,
 } from 'expo-notifications';
-import { useRouter } from 'expo-router';
+import { useRootNavigationState, useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 install();
@@ -57,9 +57,11 @@ export default function RootLayout() {
 function useOpenNotificationLinks() {
   const response = useLastNotificationResponse();
   const router = useRouter();
+  // A tap that cold-starts the app arrives before the navigator mounts
+  const navigatorReady = !!useRootNavigationState()?.key;
   const handled = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!response) {
+    if (!response || !navigatorReady) {
       return;
     }
     const key = `${response.notification.request.identifier}-${response.notification.date}`;
@@ -72,7 +74,7 @@ function useOpenNotificationLinks() {
     // cold start would open the report again
     clearLastNotificationResponse();
     router.push(url);
-  }, [response, router]);
+  }, [response, router, navigatorReady]);
 }
 
 function Layout() {

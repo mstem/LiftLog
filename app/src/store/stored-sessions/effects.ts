@@ -436,6 +436,7 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       deleteStoredSession,
       setStoredSessions,
       upsertStoredSessions,
+      setIsHydrated,
       setMonthlyReportNotifications,
     ],
     (_, { dispatch }) => {

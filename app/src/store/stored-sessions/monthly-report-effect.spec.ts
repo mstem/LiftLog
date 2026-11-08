@@ -5,6 +5,7 @@ import { applyStoredSessionsEffects } from '@/store/stored-sessions/effects';
 import {
   deleteStoredSession,
   refreshMonthlyReportNotification,
+  setIsHydrated,
   setStoredSessions,
   upsertStoredSessions,
 } from '@/store/stored-sessions';
@@ -134,6 +135,7 @@ describe('refreshMonthlyReportNotification', () => {
     ['deleting a workout', () => deleteStoredSession('legs-2026-10-02')],
     ['loading history', () => setStoredSessions({})],
     ['changing stored workouts', () => upsertStoredSessions([])],
+    ['finishing startup', () => setIsHydrated(true)],
   ])('refreshes the report after %s', async (_, action) => {
     const { bed } = testBed({ enabled: true, sessions: [] });
     await bed.dispatchHandled(action());
