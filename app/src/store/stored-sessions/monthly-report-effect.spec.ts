@@ -52,7 +52,11 @@ function workout(date: string) {
   );
 }
 
-function testBed(opts: { enabled: boolean; sessions: Session[] }) {
+function testBed(opts: {
+  enabled: boolean;
+  sessions: Session[];
+  hydrated?: boolean;
+}) {
   const schedule = vi.fn(async () => {});
   const cancel = vi.fn(async () => {});
   const bed = createAddEffectTestBed({
@@ -64,6 +68,7 @@ function testBed(opts: { enabled: boolean; sessions: Session[] }) {
         preferredLanguage: 'en',
       },
       storedSessions: {
+        isHydrated: opts.hydrated ?? true,
         sessions: Object.fromEntries(opts.sessions.map((s) => [s.id, s])),
         savedExercises: {},
       },
@@ -136,6 +141,18 @@ describe('refreshMonthlyReportNotification', () => {
     expect(
       bed.dispatchedActions.some(refreshMonthlyReportNotification.match),
     ).toBe(true);
+  });
+
+  it('leaves the queued report alone until history has loaded', async () => {
+    const { bed, schedule, cancel } = testBed({
+      enabled: true,
+      sessions: [],
+      hydrated: false,
+    });
+    await bed.dispatchHandled(refreshMonthlyReportNotification());
+
+    expect(schedule).not.toHaveBeenCalled();
+    expect(cancel).not.toHaveBeenCalled();
   });
 
   it('cancels pending reports when switched off', async () => {

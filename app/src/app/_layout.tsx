@@ -15,7 +15,10 @@ import { selectFollowRequestCount } from '@/store/feed';
 import { useTranslate } from '@tolgee/react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { StatusBar } from 'expo-status-bar';
-import { useLastNotificationResponse } from 'expo-notifications';
+import {
+  clearLastNotificationResponse,
+  useLastNotificationResponse,
+} from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
@@ -65,6 +68,9 @@ function useOpenNotificationLinks() {
       return;
     }
     handled.current = key;
+    // The response outlives a restart until cleared, so without this every
+    // cold start would open the report again
+    clearLastNotificationResponse();
     router.push(url);
   }, [response, router]);
 }

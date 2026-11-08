@@ -449,6 +449,11 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       _,
       { stateAfterReduce, extra: { monthlyReportNotifier, tolgee, logger } },
     ) => {
+      // Before history loads every month looks empty; deciding then would
+      // cancel a report that is still due
+      if (!stateAfterReduce.storedSessions.isHydrated) {
+        return;
+      }
       try {
         const { settings } = stateAfterReduce;
         if (!settings.monthlyReportNotifications) {
