@@ -59,6 +59,7 @@ import {
 // We keep track of added builting exerciseIds (which are the exercise name for builtins)
 // Then we make sure builtins don't get re-added if they are deleted
 const addedBuiltInExerciseIdsStorageKey = 'AddedBuiltInExerciseIdList';
+const libraryRenamesDoneKey = 'LibraryRenamesDone';
 export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
   // Dispatched AFTER settings, so we can safely access settings
   addEffect(
@@ -233,7 +234,7 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
   let libraryRenamesChecked = false;
   addEffect(
     [setIsHydrated, setProgramIsHydrated, setCurrentSessionIsHydrated],
-    (_, { dispatch, stateAfterReduce }) => {
+    async (_, { dispatch, stateAfterReduce, extra: { keyValueStore } }) => {
       if (
         libraryRenamesChecked ||
         !stateAfterReduce.storedSessions.isHydrated ||
@@ -243,6 +244,10 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
         return;
       }
       libraryRenamesChecked = true;
+      // Once only: a lift given an old name later is the user's own choice
+      if ((await keyValueStore.getItem(libraryRenamesDoneKey)) === '1') {
+        return;
+      }
       const names = [
         ...Object.values(stateAfterReduce.storedSessions.savedExercises).map(
           (x) => x.name,
@@ -266,6 +271,7 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       for (const rename of pendingLibraryRenames(names)) {
         dispatch(renameExercise(rename));
       }
+      await keyValueStore.setItem(libraryRenamesDoneKey, '1');
     },
   );
 

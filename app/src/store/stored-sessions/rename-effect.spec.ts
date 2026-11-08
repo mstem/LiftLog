@@ -244,7 +244,9 @@ describe('library renames at startup', () => {
     plans: boolean;
     workout?: boolean;
     notes?: Record<string, string>;
+    stored?: Record<string, string>;
   }) {
+    const kv = new Map(Object.entries(hydrated.stored ?? {}));
     const suspendedRow = makeWeightedBlueprint('Suspended Row');
     const past = makeSession([suspendedRow]);
     const bed = createAddEffectTestBed({
@@ -265,9 +267,18 @@ describe('library renames at startup', () => {
           exerciseSwaps: {},
         },
       },
+      services: {
+        keyValueStore: {
+          getItem: (key: string) => Promise.resolve(kv.get(key) ?? null),
+          setItem: (key: string, value: string) => {
+            kv.set(key, value);
+            return Promise.resolve();
+          },
+        },
+      },
     });
     applyStoredSessionsEffects(bed.addEffect);
-    return bed;
+    return Object.assign(bed, { kv });
   }
 
   it('folds old Suspended lifts and their history into the TRX names', async () => {
@@ -307,6 +318,20 @@ describe('library renames at startup', () => {
     expect(
       bed.dispatchedActions.filter(renameExercise.match).map((x) => x.payload),
     ).toContainEqual({ from: 'Suspended Push-Up', to: 'TRX Push-Up' });
+  });
+
+  it('runs once: a later lift given an old name keeps it', async () => {
+    const bed = startupBed({ sessions: true, plans: true });
+    await bed.dispatchHandled(setProgramIsHydrated(true));
+    expect(bed.kv.get('LibraryRenamesDone')).toBe('1');
+
+    const later = startupBed({
+      sessions: true,
+      plans: true,
+      stored: { LibraryRenamesDone: '1' },
+    });
+    await later.dispatchHandled(setProgramIsHydrated(true));
+    later.expectNotDispatched(renameExercise);
   });
 
   it('waits until the plans have loaded', async () => {
