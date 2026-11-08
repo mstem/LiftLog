@@ -40,6 +40,11 @@ describe('isSkiPrepActive', () => {
   it('is off with no end date', () => {
     expect(isSkiPrepActive(undefined, today)).toBe(false);
   });
+
+  it('is off, not an error, when the stored date is malformed', () => {
+    expect(isSkiPrepActive('2027-1-3', today)).toBe(false);
+    expect(isSkiPrepActive('garbage', today)).toBe(false);
+  });
 });
 
 describe('withSkiBlock', () => {

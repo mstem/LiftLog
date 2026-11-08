@@ -157,6 +157,21 @@ describe('refreshMonthlyReportNotification', () => {
     expect(cancel).not.toHaveBeenCalled();
   });
 
+  it("refreshes last month's report on the 1st before it goes out", async () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 7, 0));
+    const { bed, schedule } = testBed({
+      enabled: true,
+      sessions: [workout('2026-10-02'), workout('2026-10-31')],
+    });
+    await bed.dispatchHandled(refreshMonthlyReportNotification());
+
+    const months = (
+      schedule.mock.calls as unknown as [{ month: YearMonth; body: string }][]
+    ).map(([x]) => x);
+    const october = months.find((x) => x.month.toString() === '2026-10');
+    expect(october?.body).toContain('"workouts":2');
+  });
+
   it('cancels pending reports when switched off', async () => {
     const { bed, schedule, cancel } = testBed({
       enabled: false,

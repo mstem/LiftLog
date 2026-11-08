@@ -1,4 +1,4 @@
-import { LocalDate, LocalTime, YearMonth, ZoneId } from '@js-joda/core';
+import { LocalTime, YearMonth, ZoneId, ZonedDateTime } from '@js-joda/core';
 
 const deliveryTime = LocalTime.of(9, 0);
 
@@ -11,14 +11,14 @@ export const monthlyReportUrl = (month: YearMonth) =>
  */
 export function monthlyReportDeliveryTime(
   month: YearMonth,
-  today: LocalDate,
+  now: ZonedDateTime,
 ): Date | undefined {
   const at = month
     .plusMonths(1)
     .atDay(1)
     .atTime(deliveryTime)
     .atZone(ZoneId.systemDefault());
-  if (!today.isBefore(at.toLocalDate())) {
+  if (!now.isBefore(at)) {
     return undefined;
   }
   return new Date(at.toInstant().toEpochMilli());

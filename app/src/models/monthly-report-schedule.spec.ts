@@ -1,41 +1,52 @@
 import { describe, expect, it } from 'vitest';
-import { LocalDate, YearMonth } from '@js-joda/core';
+import { LocalDateTime, YearMonth, ZoneId, ZonedDateTime } from '@js-joda/core';
 import {
   monthlyReportDeliveryTime,
   monthlyReportUrl,
 } from '@/models/monthly-report-schedule';
 
+const at = (iso: string): ZonedDateTime =>
+  LocalDateTime.parse(iso).atZone(ZoneId.systemDefault());
+
 describe('monthlyReportDeliveryTime', () => {
   it('is 09:00 local time on the 1st of the next month', () => {
-    const at = monthlyReportDeliveryTime(
+    const when = monthlyReportDeliveryTime(
       YearMonth.of(2026, 9),
-      LocalDate.of(2026, 9, 17),
+      at('2026-09-17T12:00'),
     )!;
 
-    expect([at.getFullYear(), at.getMonth(), at.getDate()]).toEqual([
+    expect([when.getFullYear(), when.getMonth(), when.getDate()]).toEqual([
       2026, 9, 1,
     ]);
-    expect([at.getHours(), at.getMinutes()]).toEqual([9, 0]);
+    expect([when.getHours(), when.getMinutes()]).toEqual([9, 0]);
   });
 
   it('rolls December over into January', () => {
-    const at = monthlyReportDeliveryTime(
+    const when = monthlyReportDeliveryTime(
       YearMonth.of(2026, 12),
-      LocalDate.of(2026, 12, 31),
+      at('2026-12-31T12:00'),
     )!;
 
-    expect([at.getFullYear(), at.getMonth(), at.getDate()]).toEqual([
+    expect([when.getFullYear(), when.getMonth(), when.getDate()]).toEqual([
       2027, 0, 1,
     ]);
   });
 
-  it('is undefined for a month whose report day has come', () => {
+  it('is undefined for a month whose report day has passed', () => {
     expect(
-      monthlyReportDeliveryTime(
-        YearMonth.of(2026, 9),
-        LocalDate.of(2026, 10, 1),
-      ),
+      monthlyReportDeliveryTime(YearMonth.of(2026, 9), at('2026-10-01T09:00')),
     ).toBeUndefined();
+  });
+
+  it('is still 09:00 on the 1st earlier that morning', () => {
+    const when = monthlyReportDeliveryTime(
+      YearMonth.of(2026, 9),
+      at('2026-10-01T07:00'),
+    )!;
+
+    expect([when.getMonth(), when.getDate(), when.getHours()]).toEqual([
+      9, 1, 9,
+    ]);
   });
 });
 

@@ -85,7 +85,16 @@ export function isSkiPrepActive(
   until: string | undefined,
   today: LocalDate,
 ): boolean {
-  return !!until && today.isBefore(LocalDate.parse(until));
+  if (!until) {
+    return false;
+  }
+  try {
+    return today.isBefore(LocalDate.parse(until));
+  } catch {
+    // A malformed stored date switches it off rather than breaking every
+    // workout and the screen that could clear it
+    return false;
+  }
 }
 
 /** The end date the switch starts with: the coming 3 January. */
