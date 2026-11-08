@@ -3,6 +3,7 @@ import { LocalDate } from '@js-joda/core';
 import { createAddEffectTestBed } from '@/utils/__test__/add-effect-testbed';
 import { applyStoredSessionsEffects } from '@/store/stored-sessions/effects';
 import {
+  deleteExercise,
   renameExercise,
   setExerciseNotes,
   updateExercise,
@@ -10,6 +11,7 @@ import {
 } from '@/store/stored-sessions';
 import { upsertSavedPlans } from '@/store/program';
 import { setCurrentSession } from '@/store/current-session';
+import { setEditingSession } from '@/store/session-editor';
 import { ProgramBlueprint, SessionBlueprint } from '@/models/blueprint-models';
 import {
   makeSession,
@@ -37,17 +39,24 @@ const descriptor = (name: string): ExerciseDescriptor => ({
   muscles: [],
 });
 
-function testBed(extra?: { notes?: Record<string, string> }) {
+function testBed(extra?: {
+  notes?: Record<string, string>;
+  library?: Record<string, ExerciseDescriptor>;
+  draft?: SessionBlueprint;
+}) {
   const bed = createAddEffectTestBed({
     initialState: {
       storedSessions: {
         sessions: { [pastRows.id]: pastRows, [pastSquat.id]: pastSquat },
         exerciseNotes: extra?.notes ?? { 'seated cable row': 'Elbows in' },
-        savedExercises: { lib1: descriptor('Seated Cable Rows') },
+        savedExercises: extra?.library ?? {
+          lib1: descriptor('Seated Cable Rows'),
+        },
       },
       program: { savedPrograms: { p1: plan.toPOJO() } },
+      sessionEditor: { sessionBlueprint: extra?.draft },
       currentSession: { workoutSession: makeSession([rows]) },
-    } as never,
+    },
   });
   applyStoredSessionsEffects(bed.addEffect);
   return bed;
@@ -99,7 +108,7 @@ describe('renameExercise', () => {
     });
   });
 
-  it('keeps notes already under the new name', async () => {
+  it('joins the notes when both names have some, so none are lost', async () => {
     const bed = testBed({
       notes: {
         'seated cable row': 'Elbows in',
@@ -111,7 +120,36 @@ describe('renameExercise', () => {
     const notes = bed.dispatchedActions
       .filter(setExerciseNotes.match)
       .map((x) => x.payload);
-    expect(notes).toEqual([{ exerciseName: 'Seated Cable Rows', notes: '' }]);
+    expect(notes).toEqual([
+      { exerciseName: 'Cable Row (seated)', notes: 'Slow\n\nElbows in' },
+      { exerciseName: 'Seated Cable Rows', notes: '' },
+    ]);
+  });
+
+  it('drops the old library entry when the new name already has one', async () => {
+    const bed = testBed({
+      library: {
+        lib1: descriptor('Seated Cable Rows'),
+        lib2: descriptor('Cable Row (seated)'),
+      },
+    });
+    await bed.dispatchHandled(renameExercise(rename));
+
+    expect(bed.getDispatchedAction(deleteExercise).payload).toBe('lib1');
+    bed.expectNotDispatched(updateExercise);
+  });
+
+  it('renames every entry of the lift in the plan being edited', async () => {
+    const draft = new SessionBlueprint('Pull', [rows, squat, rows], '');
+    const bed = testBed({ draft });
+    await bed.dispatchHandled(renameExercise(rename));
+
+    const edited = bed.getDispatchedAction(setEditingSession).payload!;
+    expect(edited.exercises.map((x) => x.name)).toEqual([
+      'Cable Row (seated)',
+      'Hack Squat',
+      'Cable Row (seated)',
+    ]);
   });
 
   it('keeps the notes when only the capitals change', async () => {

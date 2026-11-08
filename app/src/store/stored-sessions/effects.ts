@@ -21,7 +21,12 @@ import {
 } from './index';
 import { fetchUpcomingSessions, upsertSavedPlans } from '@/store/program';
 import { ProgramBlueprint } from '@/models/blueprint-models';
-import { renameInProgram, renameInSession } from '@/models/rename-exercise';
+import {
+  renameInProgram,
+  renameInSession,
+  renameInSessionBlueprint,
+} from '@/models/rename-exercise';
+import { setEditingSession } from '@/store/session-editor';
 import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
@@ -254,15 +259,25 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       }
     }
 
-    // Notes are keyed by name; an existing note under the new name wins
+    // The plan being edited is written back over the saved plan when its
+    // screen regains focus, so it has to carry the new name too
+    const draft = stateAfterReduce.sessionEditor.sessionBlueprint;
+    const renamedDraft = draft && renameInSessionBlueprint(draft, rename);
+    if (draft && renamedDraft !== draft) {
+      dispatch(setEditingSession(renamedDraft));
+    }
+
+    // Notes are keyed by name; when both names have notes, both are kept
     const notes = stateAfterReduce.storedSessions.exerciseNotes;
     const fromNotes = notes[from.toString()];
     if (fromNotes && !sameKey) {
-      if (!notes[to.toString()]) {
-        dispatch(
-          setExerciseNotes({ exerciseName: rename.to, notes: fromNotes }),
-        );
-      }
+      const toNotes = notes[to.toString()];
+      dispatch(
+        setExerciseNotes({
+          exerciseName: rename.to,
+          notes: toNotes ? `${toNotes}\n\n${fromNotes}` : fromNotes,
+        }),
+      );
       dispatch(setExerciseNotes({ exerciseName: rename.from, notes: '' }));
     }
 
@@ -276,7 +291,11 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     const fromEntry = library.find(([, x]) =>
       new NormalizedName(x.name).equals(from),
     );
-    if (fromEntry && !hasTo) {
+    if (fromEntry && hasTo) {
+      // Merged into a lift the library already has; the old entry would
+      // offer a lift with no history left under it
+      dispatch(deleteExercise(fromEntry[0]));
+    } else if (fromEntry) {
       dispatch(
         updateExercise({
           id: fromEntry[0],

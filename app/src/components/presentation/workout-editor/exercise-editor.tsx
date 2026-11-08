@@ -30,6 +30,7 @@ import IconButton from '@/components/presentation/foundation/gesture-wrappers/ic
 import { useDispatch } from 'react-redux';
 import RenameExerciseDialog from '@/components/presentation/workout-editor/rename-exercise-dialog';
 import { renameExercise } from '@/store/stored-sessions';
+import { renameFrom } from '@/components/presentation/workout-editor/rename-from';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { FormRow } from '@/components/presentation/foundation/form-row';
@@ -49,6 +50,8 @@ import {
 interface ExerciseEditorProps {
   exercise: ExerciseBlueprint;
   updateExercise: (ex: ExerciseBlueprint) => void;
+  /** Name of the saved lift being edited; unset while adding one. */
+  savedName?: string;
 }
 const distanceUnitOptions = DistanceUnits.map((value) => ({
   value,
@@ -62,6 +65,9 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
     props;
   const [exercise, setExercise] = useState(propsExercise);
   const [renameOpen, setRenameOpen] = useState(false);
+  // A rename saves at once, so the new name becomes the saved one
+  const [savedName, setSavedName] = useState(props.savedName);
+  const from = renameFrom(savedName, exercise.name);
   const dispatch = useDispatch();
   const { t } = useTranslate();
 
@@ -127,21 +133,26 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
                 onSelectExercise={selectExerciseFromSearch}
               />
             </View>
-            <IconButton
-              icon={'edit'}
-              testID="rename-exercise-button"
-              accessibilityLabel={t('exercise.rename.title')}
-              disabled={!exercise.name.trim()}
-              onPress={() => setRenameOpen(true)}
-            />
+            {from ? (
+              <IconButton
+                icon={'edit'}
+                testID="rename-exercise-button"
+                accessibilityLabel={t('exercise.rename.title')}
+                onPress={() => setRenameOpen(true)}
+              />
+            ) : null}
           </View>
         </FormRow>
         <RenameExerciseDialog
-          visible={renameOpen}
+          visible={renameOpen && !!from}
           name={exercise.name}
           onDismiss={() => setRenameOpen(false)}
           onRename={(name) => {
-            dispatch(renameExercise({ from: exercise.name, to: name }));
+            if (!from) {
+              return;
+            }
+            dispatch(renameExercise({ from, to: name }));
+            setSavedName(name);
             updateExercise({ name });
             setRenameOpen(false);
           }}
