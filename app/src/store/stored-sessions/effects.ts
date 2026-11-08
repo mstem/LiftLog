@@ -28,6 +28,7 @@ import {
   renameInSwaps,
 } from '@/models/rename-exercise';
 import { setEditingSession } from '@/store/session-editor';
+import { setStatsIsDirty } from '@/store/stats';
 import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
@@ -321,6 +322,7 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       }
     });
 
+    dispatch(setStatsIsDirty(true));
     dispatch(fetchUpcomingSessions());
   });
 

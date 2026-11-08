@@ -29,9 +29,14 @@ import { Divider, List, SegmentedButtons, TextInput } from 'react-native-paper';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import { useDispatch } from 'react-redux';
 import RenameExerciseDialog from '@/components/presentation/workout-editor/rename-exercise-dialog';
-import { renameExercise, selectSessions } from '@/store/stored-sessions';
+import {
+  renameExercise,
+  selectExercises,
+  selectSessions,
+} from '@/store/stored-sessions';
 import {
   hasLoggedHistory,
+  mergesInto,
   renameFrom,
 } from '@/components/presentation/workout-editor/rename-from';
 import { match, P } from 'ts-pattern';
@@ -77,6 +82,16 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
     [sessions, savedName],
   );
   const from = renameFrom(savedName, exercise.name, hasHistory);
+  const library = useAppSelector(selectExercises);
+  const knownNames = useMemo(
+    () => [
+      ...Object.values(library).map((x) => x.name),
+      ...sessions.flatMap((s) =>
+        s.recordedExercises.map((x) => x.blueprint.name),
+      ),
+    ],
+    [library, sessions],
+  );
   const dispatch = useDispatch();
   const { t } = useTranslate();
 
@@ -156,6 +171,9 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
           visible={renameOpen && !!from}
           name={exercise.name}
           onDismiss={() => setRenameOpen(false)}
+          mergesWith={(name) =>
+            from ? mergesInto(name, from, knownNames) : undefined
+          }
           onRename={(name) => {
             if (!from) {
               return;

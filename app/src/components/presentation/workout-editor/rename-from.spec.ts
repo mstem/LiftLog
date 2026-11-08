@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { hasLoggedHistory, renameFrom } from './rename-from';
+import { hasLoggedHistory, mergesInto, renameFrom } from './rename-from';
 
 describe('renameFrom', () => {
   it('offers no rename while adding a lift', () => {
@@ -41,5 +41,21 @@ describe('hasLoggedHistory', () => {
 
   it('is false with no name', () => {
     expect(hasLoggedHistory([session('Squat', true)], undefined)).toBe(false);
+  });
+});
+
+describe('mergesInto', () => {
+  const names = ['Squat', 'Hack Squat', 'Bench Press'];
+
+  it('names the other lift a rename would combine with', () => {
+    expect(mergesInto('hack squat', 'Squat', names)).toBe('Hack Squat');
+  });
+
+  it('is unset for a new name', () => {
+    expect(mergesInto('Back Squat', 'Squat', names)).toBeUndefined();
+  });
+
+  it('is unset when only the capitals of the same lift change', () => {
+    expect(mergesInto('squat', 'Squat', names)).toBeUndefined();
   });
 });

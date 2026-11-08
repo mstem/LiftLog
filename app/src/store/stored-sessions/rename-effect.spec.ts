@@ -10,6 +10,7 @@ import {
   upsertStoredSessions,
 } from '@/store/stored-sessions';
 import { upsertSavedPlans } from '@/store/program';
+import { setStatsIsDirty } from '@/store/stats';
 import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
 import { setEditingSession } from '@/store/session-editor';
 import { ProgramBlueprint, SessionBlueprint } from '@/models/blueprint-models';
@@ -169,6 +170,13 @@ describe('renameExercise', () => {
     );
 
     bed.expectNotDispatched(deleteExercise);
+  });
+
+  it('marks the stats out of date, so they show the new name', async () => {
+    const bed = testBed();
+    await bed.dispatchHandled(renameExercise(rename));
+
+    expect(bed.getDispatchedAction(setStatsIsDirty).payload).toBe(true);
   });
 
   it('writes no sessions when none name the lift', async () => {

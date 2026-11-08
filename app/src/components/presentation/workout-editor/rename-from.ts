@@ -37,3 +37,20 @@ export function hasLoggedHistory(
     ),
   );
 }
+
+/**
+ * The existing lift a rename would combine with, if the new name is another
+ * lift's. Histories and notes merge then, which cannot be undone, so the
+ * dialog says so before saving.
+ */
+export function mergesInto(
+  newName: string,
+  from: string,
+  knownNames: readonly string[],
+): string | undefined {
+  const to = new NormalizedName(newName);
+  if (to.equals(new NormalizedName(from))) {
+    return undefined;
+  }
+  return knownNames.find((x) => new NormalizedName(x).equals(to));
+}

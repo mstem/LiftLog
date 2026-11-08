@@ -16,7 +16,6 @@ import { uuid } from '@/utils/uuid';
 import { AsyncStream } from 'data-async-iterators';
 import { Logger } from '@/services/logger';
 import { selectLatestExercises } from '../stored-sessions';
-import { createPersistGate } from './persist-gate';
 import { programsSchema } from '@/db/schema';
 import { toLocalDateJSON } from '@/models/storage/versions/latest';
 import { LocalDate } from '@js-joda/core';
@@ -84,7 +83,6 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
   );
 
   // Persist after changes
-  const persistGate = createPersistGate();
   addEffect(
     undefined,
     async (
@@ -97,28 +95,19 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
         cancelActiveListeners,
       },
     ) => {
-      cancelActiveListeners();
       const start = performance.now();
-      const owed = stateAfterReduce.program.isHydrated
-        ? persistGate.shouldPersist(
-            stateAfterReduce.program.activePlanId !==
-              stateBeforeReduce.program.activePlanId ||
-              stateAfterReduce.program.savedPrograms !==
-                stateBeforeReduce.program.savedPrograms,
-          )
-        : undefined;
-      if (owed !== undefined) {
-        const result = await persistPrograms(
-          stateAfterReduce,
-          db,
-          logger,
-          throwIfCancelled,
-        );
-        // A real failure is logged and dropped, as before; only a cancelled
-        // write stays owed for the next action
-        if (result !== 'cancelled') {
-          persistGate.done(owed);
-        }
+      const shouldPersist =
+        stateAfterReduce.program.isHydrated &&
+        (stateAfterReduce.program.activePlanId !==
+          stateBeforeReduce.program.activePlanId ||
+          stateAfterReduce.program.savedPrograms !==
+            stateBeforeReduce.program.savedPrograms);
+      if (shouldPersist) {
+        // Cancel an earlier write only for a newer one. Cancelling on every
+        // action let any unrelated action straight after a plan change throw
+        // that change's write away
+        cancelActiveListeners();
+        await persistPrograms(stateAfterReduce, db, logger, throwIfCancelled);
         const end = performance.now();
         logger.info(
           `Persist program state effect took ${(end - start).toFixed(2)} ms`,
@@ -177,7 +166,7 @@ async function persistPrograms(
   db: ExpoSQLiteDatabase,
   logger: Logger,
   throwIfCancelled: () => void,
-): Promise<'saved' | 'cancelled' | 'failed'> {
+) {
   try {
     await db.transaction(async (tx) => {
       throwIfCancelled();
@@ -193,13 +182,11 @@ async function persistPrograms(
       );
       throwIfCancelled();
     });
-    return 'saved';
   } catch (e) {
     if (e instanceof TaskAbortError) {
-      return 'cancelled';
+      return;
     }
     logger.error('Failed to persist program state', e);
-    return 'failed';
   }
 }
 

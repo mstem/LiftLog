@@ -9,6 +9,8 @@ export default function RenameExerciseDialog(props: {
   name: string;
   onDismiss: () => void;
   onRename: (name: string) => void;
+  /** The existing lift a name would combine with, if any. */
+  mergesWith: (name: string) => string | undefined;
 }) {
   const { t } = useTranslate();
   const [name, setName] = useState(props.name);
@@ -19,6 +21,7 @@ export default function RenameExerciseDialog(props: {
   }, [props.visible, props.name]);
   const trimmed = name.trim();
   const canSave = !!trimmed && trimmed !== props.name;
+  const other = trimmed ? props.mergesWith(trimmed) : undefined;
 
   return (
     <Portal>
@@ -34,7 +37,9 @@ export default function RenameExerciseDialog(props: {
             selectTextOnFocus
           />
           <Text variant="bodySmall" style={{ marginTop: 8 }}>
-            {t('exercise.rename.body')}
+            {other
+              ? t('exercise.rename.merge_warning', { name: other })
+              : t('exercise.rename.body')}
           </Text>
         </Dialog.Content>
         <Dialog.Actions>
