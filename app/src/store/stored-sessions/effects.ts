@@ -466,18 +466,20 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
         const thisMonth = YearMonth.from(now);
         // Last month's report is still due until 09:00 on the 1st, so an edit
         // to it early that morning has to reach the queued notification
+        const sessions = selectSessions(stateAfterReduce);
+        const library = Object.values(
+          stateAfterReduce.storedSessions.savedExercises,
+        );
         for (const month of [thisMonth.minusMonths(1), thisMonth]) {
           const at = monthlyReportDeliveryTime(month, now);
           if (!at) {
             continue;
           }
           const report = monthlyReport({
-            sessions: selectSessions(stateAfterReduce),
+            sessions,
             month,
             unit: settings.useImperialUnits ? 'pounds' : 'kilograms',
-            library: Object.values(
-              stateAfterReduce.storedSessions.savedExercises,
-            ),
+            library,
             firstDayOfWeek: settings.firstDayOfWeek,
           });
           if (!report.workouts) {
@@ -490,18 +492,20 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
             month.monthValue() - 1,
             1,
           ).toLocaleDateString(settings.preferredLanguage, { month: 'long' });
-          await monthlyReportNotifier.schedule({
-            month,
-            at,
-            title: tolgee.t('stats.monthly_report.notification.title', {
-              month: monthName,
-            }),
-            body: tolgee.t('stats.monthly_report.notification.body', {
-              workouts: report.workouts,
-              sets: report.sets,
-              bests: report.bestsCount,
-            }),
+          const title = tolgee.t('stats.monthly_report.notification.title', {
+            month: monthName,
           });
+          const body = tolgee.t('stats.monthly_report.notification.body', {
+            workouts: report.workouts,
+            sets: report.sets,
+            bests: report.bestsCount,
+          });
+          // 09:00 may have passed since `now`: a trigger in the past fires at
+          // once, which would send the report a second time
+          if (at.getTime() <= Date.now()) {
+            continue;
+          }
+          await monthlyReportNotifier.schedule({ month, at, title, body });
         }
       } catch (e) {
         logger.error('Failed to schedule the monthly report notification', e);

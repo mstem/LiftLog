@@ -57,9 +57,11 @@ function testBed(opts: {
   enabled: boolean;
   sessions: Session[];
   hydrated?: boolean;
+  /** Runs while the report text is built, to let the clock move on. */
+  onTranslate?: () => void;
 }) {
   const schedule = vi.fn(async () => {});
-  const cancel = vi.fn(async () => {});
+  const cancel = vi.fn(async (_month?: YearMonth) => {});
   const bed = createAddEffectTestBed({
     initialState: {
       settings: {
@@ -77,8 +79,10 @@ function testBed(opts: {
     services: {
       monthlyReportNotifier: { schedule, cancel },
       tolgee: {
-        t: (key: string, params: Record<string, unknown>) =>
-          `${key} ${JSON.stringify(params)}`,
+        t: (key: string, params: Record<string, unknown>) => {
+          opts.onTranslate?.();
+          return `${key} ${JSON.stringify(params)}`;
+        },
       },
     },
   });
@@ -159,17 +163,38 @@ describe('refreshMonthlyReportNotification', () => {
 
   it("refreshes last month's report on the 1st before it goes out", async () => {
     vi.setSystemTime(new Date(2026, 10, 1, 7, 0));
-    const { bed, schedule } = testBed({
+    const { bed, schedule, cancel } = testBed({
       enabled: true,
       sessions: [workout('2026-10-02'), workout('2026-10-31')],
     });
     await bed.dispatchHandled(refreshMonthlyReportNotification());
 
     const months = (
-      schedule.mock.calls as unknown as [{ month: YearMonth; body: string }][]
+      schedule.mock.calls as unknown as [
+        { month: YearMonth; at: Date; body: string },
+      ][]
     ).map(([x]) => x);
-    const october = months.find((x) => x.month.toString() === '2026-10');
-    expect(october?.body).toContain('"workouts":2');
+    expect(months.map((x) => x.month.toString())).toEqual(['2026-10']);
+    expect(months[0]!.at).toEqual(new Date(2026, 10, 1, 9, 0));
+    expect(months[0]!.body).toContain('"workouts":2');
+    // November has no workouts yet: nothing queued for it
+    expect(
+      (cancel.mock.calls as unknown as [YearMonth][]).map(([m]) =>
+        m.toString(),
+      ),
+    ).toEqual(['2026-11']);
+  });
+
+  it('skips a report whose time passes while the refresh runs', async () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 8, 59, 59, 999));
+    const { bed, schedule } = testBed({
+      enabled: true,
+      sessions: [workout('2026-10-02')],
+      onTranslate: () => vi.setSystemTime(new Date(2026, 10, 1, 9, 0, 1)),
+    });
+    await bed.dispatchHandled(refreshMonthlyReportNotification());
+
+    expect(schedule).not.toHaveBeenCalled();
   });
 
   it('cancels pending reports when switched off', async () => {
