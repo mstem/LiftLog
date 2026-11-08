@@ -23,14 +23,17 @@ import { assertUnreachable } from '@/utils/assert-unreachable';
 import { Duration } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import BigNumber from 'bignumber.js';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { Divider, List, SegmentedButtons, TextInput } from 'react-native-paper';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import { useDispatch } from 'react-redux';
 import RenameExerciseDialog from '@/components/presentation/workout-editor/rename-exercise-dialog';
-import { renameExercise } from '@/store/stored-sessions';
-import { renameFrom } from '@/components/presentation/workout-editor/rename-from';
+import { renameExercise, selectSessions } from '@/store/stored-sessions';
+import {
+  hasLoggedHistory,
+  renameFrom,
+} from '@/components/presentation/workout-editor/rename-from';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { FormRow } from '@/components/presentation/foundation/form-row';
@@ -67,7 +70,13 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
   const [renameOpen, setRenameOpen] = useState(false);
   // A rename saves at once, so the new name becomes the saved one
   const [savedName, setSavedName] = useState(props.savedName);
-  const from = renameFrom(savedName, exercise.name);
+  useEffect(() => setSavedName(props.savedName), [props.savedName]);
+  const sessions = useAppSelector(selectSessions);
+  const hasHistory = useMemo(
+    () => hasLoggedHistory(sessions, savedName),
+    [sessions, savedName],
+  );
+  const from = renameFrom(savedName, exercise.name, hasHistory);
   const dispatch = useDispatch();
   const { t } = useTranslate();
 

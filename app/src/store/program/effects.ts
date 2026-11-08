@@ -16,6 +16,7 @@ import { uuid } from '@/utils/uuid';
 import { AsyncStream } from 'data-async-iterators';
 import { Logger } from '@/services/logger';
 import { selectLatestExercises } from '../stored-sessions';
+import { createPersistGate } from './persist-gate';
 import { programsSchema } from '@/db/schema';
 import { toLocalDateJSON } from '@/models/storage/versions/latest';
 import { LocalDate } from '@js-joda/core';
@@ -83,6 +84,7 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
   );
 
   // Persist after changes
+  const persistGate = createPersistGate();
   addEffect(
     undefined,
     async (
@@ -99,12 +101,22 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
       const start = performance.now();
       const shouldPersist =
         stateAfterReduce.program.isHydrated &&
-        (stateAfterReduce.program.activePlanId !==
-          stateBeforeReduce.program.activePlanId ||
-          stateAfterReduce.program.savedPrograms !==
-            stateBeforeReduce.program.savedPrograms);
+        persistGate.shouldPersist(
+          stateAfterReduce.program.activePlanId !==
+            stateBeforeReduce.program.activePlanId ||
+            stateAfterReduce.program.savedPrograms !==
+              stateBeforeReduce.program.savedPrograms,
+        );
       if (shouldPersist) {
-        await persistPrograms(stateAfterReduce, db, logger, throwIfCancelled);
+        const saved = await persistPrograms(
+          stateAfterReduce,
+          db,
+          logger,
+          throwIfCancelled,
+        );
+        if (saved) {
+          persistGate.persisted();
+        }
         const end = performance.now();
         logger.info(
           `Persist program state effect took ${(end - start).toFixed(2)} ms`,
@@ -163,7 +175,7 @@ async function persistPrograms(
   db: ExpoSQLiteDatabase,
   logger: Logger,
   throwIfCancelled: () => void,
-) {
+): Promise<boolean> {
   try {
     await db.transaction(async (tx) => {
       throwIfCancelled();
@@ -179,11 +191,13 @@ async function persistPrograms(
       );
       throwIfCancelled();
     });
+    return true;
   } catch (e) {
     if (e instanceof TaskAbortError) {
-      return;
+      return false;
     }
     logger.error('Failed to persist program state', e);
+    return false;
   }
 }
 

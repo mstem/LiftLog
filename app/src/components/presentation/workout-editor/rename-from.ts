@@ -1,27 +1,39 @@
+import { NormalizedName } from '@/models/blueprint-models';
+
 /**
  * The name a rename rewrites, or undefined when the pencil should not show.
- * Renaming rewrites history, plans and notes, so it is offered only on a lift
- * already saved, and only while the editor still shows that lift; a lift
- * picked from search but not yet saved would rename the wrong history.
+ * Renaming rewrites history, plans and notes, so it is offered only on a saved
+ * lift that has history, and only while the editor still shows that lift. A
+ * lift picked from search but not yet saved would rename the wrong history,
+ * and a new placeholder such as 'Exercise 4' has no history to carry over.
  */
 export function renameFrom(
   savedName: string | undefined,
   shownName: string,
+  hasHistory: boolean,
 ): string | undefined {
-  return savedName !== undefined && savedName === shownName
+  return hasHistory && savedName !== undefined && savedName === shownName
     ? savedName
     : undefined;
 }
 
-/**
- * The name to offer a rename on in the plan editor: only a lift the saved
- * plan already has. Adding a lift puts a placeholder such as 'Exercise 4'
- * into the plan being edited first, and renaming that would rewrite every
- * past lift sharing the placeholder name.
- */
-export function savedNameInPlan(
-  savedNames: readonly string[],
+/** True when a set of the lift was done in any workout. */
+export function hasLoggedHistory(
+  sessions: readonly {
+    recordedExercises: readonly {
+      isStarted: boolean;
+      blueprint: { name: string };
+    }[];
+  }[],
   name: string | undefined,
-): string | undefined {
-  return name !== undefined && savedNames.includes(name) ? name : undefined;
+): boolean {
+  if (name === undefined) {
+    return false;
+  }
+  const key = new NormalizedName(name);
+  return sessions.some((s) =>
+    s.recordedExercises.some(
+      (x) => x.isStarted && new NormalizedName(x.blueprint.name).equals(key),
+    ),
+  );
 }

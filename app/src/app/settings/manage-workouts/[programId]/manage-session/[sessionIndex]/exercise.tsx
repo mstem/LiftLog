@@ -1,7 +1,6 @@
 import FullHeightScrollView from '@/components/layout/full-height-scroll-view';
 import { ExerciseEditor } from '@/components/presentation/workout-editor/exercise-editor';
-import { savedNameInPlan } from '@/components/presentation/workout-editor/rename-from';
-import { ExerciseBlueprint, ProgramBlueprint } from '@/models/blueprint-models';
+import { ExerciseBlueprint } from '@/models/blueprint-models';
 import { useAppSelector } from '@/store';
 import {
   addExercise,
@@ -10,7 +9,7 @@ import {
   updateSessionExercise,
 } from '@/store/session-editor';
 import { useTranslate } from '@tolgee/react';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 
@@ -22,21 +21,10 @@ export default function ExercisePage() {
   const exerciseIndex = useAppSelector(
     (x) => x.sessionEditor.editingExerciseIndex,
   );
-  const { programId, sessionIndex } = useLocalSearchParams<{
-    programId: string;
-    sessionIndex: string;
-  }>();
-  const savedPlan = useAppSelector((x) => x.program.savedPrograms[programId]);
-  // Read once: a rename while open must not hide the pencil it came from
+  // The lift as it was when the screen opened; the editor offers a rename
+  // only when it has history, which a newly added placeholder does not
   const [savedName] = useState(() =>
-    savedNameInPlan(
-      savedPlan
-        ? (ProgramBlueprint.fromPOJO(savedPlan).sessions[
-            Number(sessionIndex)
-          ]?.exercises.map((x) => x.name) ?? [])
-        : [],
-      exercise?.name,
-    ),
+    exerciseIndex === undefined ? undefined : exercise?.name,
   );
   const exerciseCount = useAppSelector(
     (x) => x.sessionEditor.sessionBlueprint?.exercises?.length ?? 0,
