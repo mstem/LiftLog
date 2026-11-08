@@ -1,3 +1,4 @@
+import { SKI_GROUP } from '@/models/ski-prep';
 import { AccordionItem } from '@/components/presentation/foundation/accordion-item';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { spacing, useAppTheme } from '@/hooks/useAppTheme';
@@ -29,7 +30,11 @@ export default function ExerciseGroupSection(props: {
   const { colors } = useAppTheme();
   const { t } = useTranslate();
   const label =
-    props.name === REHAB_GROUP ? t('injury.rehab.group') : props.name;
+    props.name === REHAB_GROUP
+      ? t('injury.rehab.group')
+      : props.name === SKI_GROUP
+        ? t('settings.ski_prep.title')
+        : props.name;
 
   return (
     <View>

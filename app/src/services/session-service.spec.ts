@@ -24,6 +24,7 @@ import Enumerable from 'linq';
 import { LocalDate, OffsetDateTime } from '@js-joda/core';
 import type { Injury } from '@/models/injury/injury';
 import { PAUSED_GROUP, REHAB_GROUP } from '@/models/injury/rehab';
+import { SKI_GROUP } from '@/models/ski-prep';
 import { NormalizedName } from '@/models/blueprint-models';
 
 const overload = () => new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5));
@@ -648,5 +649,36 @@ describe('injury mode', () => {
         ),
       ).toBe(20);
     });
+  });
+});
+
+describe('ski prep', () => {
+  function serviceWith(skiPrepUntil: string | undefined) {
+    const getState = (() =>
+      ({
+        settings: { useImperialUnits: false, skiPrepUntil },
+      }) as unknown as RootState) as () => RootState;
+    return new SessionService(null as unknown as ProgressRepository, getState);
+  }
+  const squat = blueprint('Hack Squat', 3, 8);
+  const legs = new SessionBlueprint('Legs', [squat], '');
+
+  it('adds the ski block to Legs day before the end date', () => {
+    const session = serviceWith('2999-01-03').hydrateSessionFromBlueprint(
+      legs,
+      {},
+    );
+    expect(session.recordedExercises[0]!.blueprint.group).toBe(SKI_GROUP);
+    expect(session.recordedExercises.at(-1)!.blueprint.name).toBe('Hack Squat');
+  });
+
+  it('leaves Legs day as planned once the end date has passed', () => {
+    const session = serviceWith('2000-01-03').hydrateSessionFromBlueprint(
+      legs,
+      {},
+    );
+    expect(session.recordedExercises.map((x) => x.blueprint.name)).toEqual([
+      'Hack Squat',
+    ]);
   });
 });

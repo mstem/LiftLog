@@ -11,6 +11,7 @@ import {
   setKeepScreenAwakeDuringWorkout,
   setLastBackup,
   setMonthlyReportNotifications,
+  setSkiPrepUntil,
   setNotesExpandedByDefault,
   setPreferredLanguage,
   setRemoteBackupSettings,
@@ -29,6 +30,7 @@ import { addExportPlaintextEffects } from '@/store/settings/export-plaintext-eff
 import { addImportBackupEffects } from '@/store/settings/import-backup-effects';
 import { addRemoteBackupEffects } from '@/store/settings/remote-backup-effects';
 import { addTrainerWidgetEffects } from '@/store/settings/trainer-widget-effects';
+import { addSkiPrepEffects } from '@/store/settings/ski-prep-effects';
 import { I18nManager } from 'react-native';
 import { detectLanguageFromDateLocale } from '@/utils/language-detector';
 import { supportedLanguages } from '@/services/tolgee';
@@ -53,6 +55,7 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
         showFeed,
         restNotifications,
         monthlyReportNotifications,
+        skiPrepUntil,
         crashReportsEnabled,
         welcomeWizardCompleted,
         remoteBackupSettings,
@@ -74,6 +77,7 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
         preferenceService.getShowFeed(),
         preferenceService.getRestNotifications(),
         preferenceService.getMonthlyReportNotifications(),
+        preferenceService.getSkiPrepUntil(),
         preferenceService.getCrashReportsEnabled(),
         preferenceService.getWelcomeWizardCompleted(),
         preferenceService.getRemoteBackupSettings(),
@@ -96,6 +100,7 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
       dispatch(setShowFeed(showFeed));
       dispatch(setRestNotifications(restNotifications));
       dispatch(setMonthlyReportNotifications(monthlyReportNotifications));
+      dispatch(setSkiPrepUntil(skiPrepUntil));
       dispatch(setCrashReportsEnabled(crashReportsEnabled));
       dispatch(setWelcomeWizardCompleted(welcomeWizardCompleted));
       dispatch(setRemoteBackupSettings(remoteBackupSettings));
@@ -331,4 +336,5 @@ export function applySettingsEffects(addEffect: AddEffectFn) {
   addImportBackupEffects(addEffect);
   addRemoteBackupEffects(addEffect);
   addTrainerWidgetEffects(addEffect);
+  addSkiPrepEffects(addEffect);
 }

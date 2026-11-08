@@ -112,6 +112,7 @@ import { msAvgTime } from '@material-symbols-react-native/outlined-400/msAvgTime
 import { msAnchor } from '@material-symbols-react-native/outlined-400/msAnchor';
 import { msFunction } from '@material-symbols-react-native/outlined-400/msFunction';
 import { msHeartCheck } from '@material-symbols-react-native/outlined-400/msHeartCheck';
+import { msDownhillSkiing } from '@material-symbols-react-native/outlined-400/msDownhillSkiing';
 import { msContentPasteSearch } from '@material-symbols-react-native/outlined-400/msContentPasteSearch';
 import { msLink } from '@material-symbols-react-native/outlined-400/msLink';
 import { msSteps } from '@material-symbols-react-native/outlined-400/msSteps';
@@ -156,6 +157,7 @@ const MaterialSymbols = {
   notes: msNotes,
   personRemove: msPersonRemove,
   heartCheck: msHeartCheck,
+  downhillSkiing: msDownhillSkiing,
   cancel: msCancel,
   notesFill: msNotesFill,
   notifications: msNotifications,

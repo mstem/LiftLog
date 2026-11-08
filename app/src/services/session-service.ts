@@ -1,3 +1,4 @@
+import { isSkiPrepActive, withSkiBlock } from '@/models/ski-prep';
 import {
   KeyedExerciseBlueprint,
   NormalizedName,
@@ -149,12 +150,19 @@ export class SessionService {
             overrides: state.injury?.returnOverrides ?? {},
           }
         : undefined;
-    const sessionBlueprint = injury
+    const withInjury = injury
       ? withRehabBlock(
           withPullLiftsPaused(inputBlueprint, overrides, returned),
           injury.structures,
         )
       : inputBlueprint;
+    // Ski prep frontloads the ski block on Legs day, after any Rehab block
+    const sessionBlueprint = isSkiPrepActive(
+      state.settings?.skiPrepUntil,
+      LocalDate.now(),
+    )
+      ? withSkiBlock(withInjury)
+      : withInjury;
 
     // Fallback lookup so the previous weight carries forward by *movement* even
     // when the rep scheme (sets/reps) changed - the strict key above is
