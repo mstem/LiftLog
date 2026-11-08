@@ -99,6 +99,7 @@ import { SvgXml } from 'react-native-svg';
 import { msDirectionsRunFill } from '@material-symbols-react-native/outlined-400/msDirectionsRunFill';
 import { msTrailLength } from '@material-symbols-react-native/outlined-400/msTrailLength';
 import { msTimer } from '@material-symbols-react-native/outlined-400/msTimer';
+import { msWatch } from '@material-symbols-react-native/outlined-400/msWatch';
 import { msTargetFill } from '@material-symbols-react-native/outlined-400/msTargetFill';
 import { msExerciseFill } from '@material-symbols-react-native/outlined-400/msExerciseFill';
 import { msAirlineSeatReclineExtraFill } from '@material-symbols-react-native/outlined-400/msAirlineSeatReclineExtraFill';
@@ -186,6 +187,7 @@ const MaterialSymbols = {
   directionsRunFill: msDirectionsRunFill,
   trailLength: msTrailLength,
   timer: msTimer,
+  watch: msWatch,
   settings: msSettings,
   settingsFill: msSettingsFill,
   analytics: msAnalytics,

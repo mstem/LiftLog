@@ -494,5 +494,7 @@
   "workout_persistent_notification.min_rest_over.message": "Min rest over!",
   "workout_persistent_notification.max_rest_over.message": "Max rest over!",
   "workout.finish.action.tooltip": "Finish workout",
-  "workout.lightning.tooltip": "Lightning: rests capped at 1 minute"
+  "workout.lightning.tooltip": "Lightning: rests capped at 1 minute",
+  "workout.watch_countdown.button": "Start with watch",
+  "workout.watch_countdown.go": "Go"
 }
