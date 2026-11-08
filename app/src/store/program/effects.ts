@@ -95,7 +95,6 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
         cancelActiveListeners,
       },
     ) => {
-      cancelActiveListeners();
       const start = performance.now();
       const shouldPersist =
         stateAfterReduce.program.isHydrated &&
@@ -104,6 +103,10 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
           stateAfterReduce.program.savedPrograms !==
             stateBeforeReduce.program.savedPrograms);
       if (shouldPersist) {
+        // Cancel an earlier write only for a newer one. Cancelling on every
+        // action let any unrelated action straight after a plan change throw
+        // that change's write away
+        cancelActiveListeners();
         await persistPrograms(stateAfterReduce, db, logger, throwIfCancelled);
         const end = performance.now();
         logger.info(

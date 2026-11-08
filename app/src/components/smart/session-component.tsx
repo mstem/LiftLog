@@ -501,6 +501,11 @@ export default function SessionComponent(props: {
         {editingExerciseBlueprint ? (
           <ExerciseEditor
             exercise={editingExerciseBlueprint}
+            savedName={
+              exerciseToEditIndex === undefined
+                ? undefined
+                : session.recordedExercises[exerciseToEditIndex]?.blueprint.name
+            }
             updateExercise={(ex) => {
               setEditingExerciseBlueprint(ex);
             }}
