@@ -495,7 +495,7 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           body: tolgee.t('stats.monthly_report.notification.body', {
             workouts: report.workouts,
             sets: report.sets,
-            bests: report.bests.length,
+            bests: report.bestsCount,
           }),
         });
       } catch (e) {

@@ -177,6 +177,25 @@ describe('monthlyReport', () => {
     ]);
   });
 
+  it('counts every new best though it lists only five', () => {
+    const names = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    const r = report([
+      workout(
+        'Legs',
+        '2026-08-10',
+        names.map((n) => lift(n, [50], '2026-08-10')),
+      ),
+      workout(
+        'Legs',
+        '2026-09-10',
+        names.map((n) => lift(n, [60], '2026-09-10')),
+      ),
+    ]);
+
+    expect(r.bests).toHaveLength(5);
+    expect(r.bestsCount).toBe(7);
+  });
+
   it('does not count a weight that only matches the old best', () => {
     const r = report([
       workout('Legs', '2026-08-10', [

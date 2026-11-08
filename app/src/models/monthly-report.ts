@@ -36,6 +36,8 @@ export interface MonthlyReport {
   timeTrained: Duration;
   /** Heaviest weight beaten this month, biggest gain first, at most 5 */
   bests: MonthlyBest[];
+  /** How many lifts beat their heaviest weight this month, all of them */
+  bestsCount: number;
   mostWorked: MuscleGapRegion[];
   barelyReached: MuscleGapRegion[];
   bodyweightStart: Weight | undefined;
@@ -119,6 +121,7 @@ export function monthlyReport({
   const worked = muscleGapRegions.filter((r) => gaps[r] > 0);
 
   const withBodyweight = inMonth.filter((s) => s.bodyweight);
+  const allBests = monthBests(sessions, inMonth, start, unit);
 
   return {
     month,
@@ -127,7 +130,8 @@ export function monthlyReport({
     sets,
     volume: new Weight(volume, unit),
     timeTrained,
-    bests: monthBests(sessions, inMonth, start, unit),
+    bests: allBests.slice(0, listedBests),
+    bestsCount: allBests.length,
     mostWorked: [...worked]
       .sort((a, b) => gaps[b] - gaps[a])
       .slice(0, listedMuscles),
@@ -199,6 +203,5 @@ function monthBests(
   }
   return bests
     .sort((a, b) => b.gain - a.gain)
-    .slice(0, listedBests)
     .map(({ gain: _gain, ...best }) => best);
 }
