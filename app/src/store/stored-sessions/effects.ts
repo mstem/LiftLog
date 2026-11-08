@@ -471,36 +471,44 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           stateAfterReduce.storedSessions.savedExercises,
         );
         for (const month of [thisMonth.minusMonths(1), thisMonth]) {
-          const at = monthlyReportDeliveryTime(month, now);
-          if (!at) {
-            continue;
+          // Each month on its own, so one failing does not stop the other
+          try {
+            const at = monthlyReportDeliveryTime(month, now);
+            if (!at) {
+              continue;
+            }
+            const report = monthlyReport({
+              sessions,
+              month,
+              unit: settings.useImperialUnits ? 'pounds' : 'kilograms',
+              library,
+              firstDayOfWeek: settings.firstDayOfWeek,
+            });
+            if (!report.workouts) {
+              // Its workouts were deleted: a report already queued would be stale
+              await monthlyReportNotifier.cancel(month);
+              continue;
+            }
+            const monthName = new Date(
+              month.year(),
+              month.monthValue() - 1,
+              1,
+            ).toLocaleDateString(settings.preferredLanguage, { month: 'long' });
+            const title = tolgee.t('stats.monthly_report.notification.title', {
+              month: monthName,
+            });
+            const body = tolgee.t('stats.monthly_report.notification.body', {
+              workouts: report.workouts,
+              sets: report.sets,
+              bests: report.bestsCount,
+            });
+            await monthlyReportNotifier.schedule({ month, at, title, body });
+          } catch (e) {
+            logger.error(
+              `Failed to schedule the ${month.toString()} report notification`,
+              e,
+            );
           }
-          const report = monthlyReport({
-            sessions,
-            month,
-            unit: settings.useImperialUnits ? 'pounds' : 'kilograms',
-            library,
-            firstDayOfWeek: settings.firstDayOfWeek,
-          });
-          if (!report.workouts) {
-            // Its workouts were deleted: a report already queued would be stale
-            await monthlyReportNotifier.cancel(month);
-            continue;
-          }
-          const monthName = new Date(
-            month.year(),
-            month.monthValue() - 1,
-            1,
-          ).toLocaleDateString(settings.preferredLanguage, { month: 'long' });
-          const title = tolgee.t('stats.monthly_report.notification.title', {
-            month: monthName,
-          });
-          const body = tolgee.t('stats.monthly_report.notification.body', {
-            workouts: report.workouts,
-            sets: report.sets,
-            bests: report.bestsCount,
-          });
-          await monthlyReportNotifier.schedule({ month, at, title, body });
         }
       } catch (e) {
         logger.error('Failed to schedule the monthly report notification', e);

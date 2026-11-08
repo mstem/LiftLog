@@ -22,12 +22,12 @@ export async function scheduleMonthlyReport(args: {
   body: string;
 }) {
   const identifier = idPrefix + args.month.toString();
-  await cancelScheduledNotificationAsync(identifier);
-  // A date trigger in the past fires at once: if 09:00 went by while this
-  // ran, the report already went out and must not go out again
+  // A date trigger in the past fires at once. Once 09:00 has gone by, the
+  // queued report has gone out or is about to: leave it, and queue no copy.
   if (args.at.getTime() <= Date.now()) {
     return;
   }
+  await cancelScheduledNotificationAsync(identifier);
   await scheduleNotificationAsync({
     identifier,
     content: {

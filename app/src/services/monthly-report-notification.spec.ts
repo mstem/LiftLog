@@ -38,4 +38,10 @@ describe('scheduleMonthlyReport', () => {
     await scheduleMonthlyReport(args(new Date(2026, 10, 1, 9, 0)));
     expect(scheduleNotificationAsync).not.toHaveBeenCalled();
   });
+
+  it('leaves the queued report in place once its time has passed', async () => {
+    vi.useFakeTimers({ now: new Date(2026, 10, 1, 9, 0, 1), toFake: ['Date'] });
+    await scheduleMonthlyReport(args(new Date(2026, 10, 1, 9, 0)));
+    expect(cancelScheduledNotificationAsync).not.toHaveBeenCalled();
+  });
 });

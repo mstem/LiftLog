@@ -181,6 +181,22 @@ describe('refreshMonthlyReportNotification', () => {
     ).toEqual(['2026-11']);
   });
 
+  it("still refreshes this month when last month's report fails", async () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 7, 0));
+    const { bed, schedule, cancel } = testBed({
+      enabled: true,
+      sessions: [workout('2026-10-02')],
+    });
+    schedule.mockRejectedValueOnce(new Error('permission'));
+    await bed.dispatchHandled(refreshMonthlyReportNotification());
+
+    expect(
+      (cancel.mock.calls as unknown as [YearMonth][]).map(([m]) =>
+        m.toString(),
+      ),
+    ).toEqual(['2026-11']);
+  });
+
   it('cancels pending reports when switched off', async () => {
     const { bed, schedule, cancel } = testBed({
       enabled: false,
