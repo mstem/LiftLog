@@ -48,7 +48,14 @@ export default function SkiPrepSettings() {
                 untilDate.dayOfMonth(),
               )
             }
-            validRange={{ startDate: new Date() }}
+            // The block stops on the end date, so the earliest is tomorrow
+            validRange={{
+              startDate: new Date(
+                today.year(),
+                today.monthValue() - 1,
+                today.dayOfMonth() + 1,
+              ),
+            }}
             onChange={(e) => {
               if (e) {
                 dispatch(

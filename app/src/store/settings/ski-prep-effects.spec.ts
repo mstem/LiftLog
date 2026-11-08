@@ -4,10 +4,10 @@ import { fetchUpcomingSessions } from '@/store/program';
 import { addSkiPrepEffects } from '@/store/settings/ski-prep-effects';
 import { createAddEffectTestBed } from '@/utils/__test__/add-effect-testbed';
 
-function bed(isHydrated: boolean) {
+function bed(isHydrated: boolean, skiPrepUntil?: string) {
   const preferenceService = { setSkiPrepUntil: vi.fn(async () => {}) };
   const testBed = createAddEffectTestBed({
-    initialState: { settings: { isHydrated } },
+    initialState: { settings: { isHydrated, skiPrepUntil } },
     services: { preferenceService },
   });
   addSkiPrepEffects(testBed.addEffect);
@@ -28,7 +28,7 @@ describe('addSkiPrepEffects', () => {
   });
 
   it('saves switching it off', async () => {
-    const { testBed, preferenceService } = bed(true);
+    const { testBed, preferenceService } = bed(true, '2027-01-03');
     await testBed.dispatchHandled(setSkiPrepUntil(undefined));
 
     expect(preferenceService.setSkiPrepUntil).toHaveBeenCalledWith(undefined);
@@ -41,6 +41,15 @@ describe('addSkiPrepEffects', () => {
     expect(preferenceService.setSkiPrepUntil).not.toHaveBeenCalled();
     expect(testBed.dispatchedActions.some(fetchUpcomingSessions.match)).toBe(
       true,
+    );
+  });
+
+  it('rebuilds nothing when the date did not change', async () => {
+    const { testBed } = bed(false, undefined);
+    await testBed.dispatchHandled(setSkiPrepUntil(undefined));
+
+    expect(testBed.dispatchedActions.some(fetchUpcomingSessions.match)).toBe(
+      false,
     );
   });
 });

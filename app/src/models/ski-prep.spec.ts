@@ -5,7 +5,7 @@ import {
   makeCardioBlueprint,
   makeWeightedBlueprint,
 } from '@/models/session-models/__test__/helpers';
-import { REHAB_GROUP } from '@/models/injury/rehab';
+import { groupFromInput, REHAB_GROUP } from '@/models/injury/rehab';
 import {
   defaultSkiPrepUntil,
   isLegDay,
@@ -93,5 +93,17 @@ describe('defaultSkiPrepUntil', () => {
     expect(defaultSkiPrepUntil(LocalDate.of(2026, 11, 8))).toBe('2027-01-03');
     expect(defaultSkiPrepUntil(LocalDate.of(2027, 1, 2))).toBe('2027-01-03');
     expect(defaultSkiPrepUntil(LocalDate.of(2027, 1, 3))).toBe('2028-01-03');
+  });
+});
+
+describe('the group box on a ski lift', () => {
+  it('keeps the reserved ski id when the shown label is left as it is', () => {
+    expect(groupFromInput('Ski prep', true, 'Ski prep', SKI_GROUP)).toBe(
+      SKI_GROUP,
+    );
+  });
+
+  it('becomes an ordinary group once the text changes', () => {
+    expect(groupFromInput('Ski', true, 'Ski prep', SKI_GROUP)).toBe('Ski');
   });
 });

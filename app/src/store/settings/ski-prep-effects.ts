@@ -12,9 +12,17 @@ export function addSkiPrepEffects(addEffect: AddEffectFn) {
     setSkiPrepUntil,
     async (
       action,
-      { dispatch, stateAfterReduce, extra: { preferenceService } },
+      {
+        dispatch,
+        stateBeforeReduce,
+        stateAfterReduce,
+        extra: { preferenceService },
+      },
     ) => {
-      dispatch(fetchUpcomingSessions());
+      // Startup loads the date even when it is unset; only a change matters
+      if (action.payload !== stateBeforeReduce.settings.skiPrepUntil) {
+        dispatch(fetchUpcomingSessions());
+      }
       if (stateAfterReduce.settings.isHydrated) {
         await preferenceService.setSkiPrepUntil(action.payload);
       }
