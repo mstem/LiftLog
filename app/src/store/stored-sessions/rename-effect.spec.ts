@@ -5,6 +5,7 @@ import { applyStoredSessionsEffects } from '@/store/stored-sessions/effects';
 import {
   deleteExercise,
   renameExercise,
+  setIsHydrated,
   setExerciseNotes,
   updateExercise,
   upsertStoredSessions,
@@ -14,7 +15,11 @@ import {
   upsertSavedPlans,
 } from '@/store/program';
 import { setStatsIsDirty } from '@/store/stats';
-import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
+import {
+  setCurrentSession,
+  setExerciseSwaps,
+  setIsHydrated as setCurrentSessionIsHydrated,
+} from '@/store/current-session';
 import { setEditingSession } from '@/store/session-editor';
 import { ProgramBlueprint, SessionBlueprint } from '@/models/blueprint-models';
 import {
@@ -234,7 +239,12 @@ describe('renameExercise', () => {
 });
 
 describe('library renames at startup', () => {
-  function startupBed(hydrated: { sessions: boolean; plans: boolean }) {
+  function startupBed(hydrated: {
+    sessions: boolean;
+    plans: boolean;
+    workout?: boolean;
+    notes?: Record<string, string>;
+  }) {
     const suspendedRow = makeWeightedBlueprint('Suspended Row');
     const past = makeSession([suspendedRow]);
     const bed = createAddEffectTestBed({
@@ -242,7 +252,7 @@ describe('library renames at startup', () => {
         storedSessions: {
           isHydrated: hydrated.sessions,
           sessions: { [past.id]: past },
-          exerciseNotes: {},
+          exerciseNotes: hydrated.notes ?? {},
           savedExercises: {
             'Suspended Row': descriptor('Suspended Row'),
             'TRX Row': descriptor('TRX Row'),
@@ -250,7 +260,10 @@ describe('library renames at startup', () => {
           },
         },
         program: { isHydrated: hydrated.plans, savedPrograms: {} },
-        currentSession: { exerciseSwaps: {} },
+        currentSession: {
+          isHydrated: hydrated.workout ?? true,
+          exerciseSwaps: {},
+        },
       },
     });
     applyStoredSessionsEffects(bed.addEffect);
@@ -267,6 +280,33 @@ describe('library renames at startup', () => {
       { from: 'Suspended Row', to: 'TRX Row' },
       { from: 'Suspended Fallout', to: 'TRX Fallout' },
     ]);
+  });
+
+  it('runs when workouts load after the plans', async () => {
+    const bed = startupBed({ sessions: true, plans: true });
+    await bed.dispatchHandled(setIsHydrated(true));
+
+    expect(bed.dispatchedActions.filter(renameExercise.match)).toHaveLength(2);
+  });
+
+  it('waits until the workout in progress has loaded', async () => {
+    const bed = startupBed({ sessions: true, plans: true, workout: false });
+    await bed.dispatchHandled(setProgramIsHydrated(true));
+
+    bed.expectNotDispatched(renameExercise);
+  });
+
+  it('folds a lift that only notes still name', async () => {
+    const bed = startupBed({
+      sessions: true,
+      plans: true,
+      notes: { 'suspended push-up': 'Feet wide' },
+    });
+    await bed.dispatchHandled(setCurrentSessionIsHydrated(true));
+
+    expect(
+      bed.dispatchedActions.filter(renameExercise.match).map((x) => x.payload),
+    ).toContainEqual({ from: 'Suspended Push-Up', to: 'TRX Push-Up' });
   });
 
   it('waits until the plans have loaded', async () => {

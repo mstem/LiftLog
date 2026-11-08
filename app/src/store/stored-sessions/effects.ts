@@ -37,7 +37,11 @@ import { setStatsIsDirty } from '@/store/stats';
 import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
-import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
+import {
+  setCurrentSession,
+  setExerciseSwaps,
+  setIsHydrated as setCurrentSessionIsHydrated,
+} from '@/store/current-session';
 import {
   exerciseNotesSchema,
   exercisesSchema,
@@ -224,15 +228,17 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(setExercisesRequiringWeightMigration([]));
   });
 
-  // Old library names fold into their new ones once history and plans load
+  // Old library names fold into their new ones once history, plans and the
+  // workout in progress have all loaded, so the rename reaches each of them
   let libraryRenamesChecked = false;
   addEffect(
-    [setIsHydrated, setProgramIsHydrated],
+    [setIsHydrated, setProgramIsHydrated, setCurrentSessionIsHydrated],
     (_, { dispatch, stateAfterReduce }) => {
       if (
         libraryRenamesChecked ||
         !stateAfterReduce.storedSessions.isHydrated ||
-        !stateAfterReduce.program.isHydrated
+        !stateAfterReduce.program.isHydrated ||
+        !stateAfterReduce.currentSession.isHydrated
       ) {
         return;
       }
@@ -247,6 +253,10 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
             ...x.recordedExercises.map((e) => e.blueprint.name),
           ],
         ),
+        ...Object.keys(stateAfterReduce.storedSessions.exerciseNotes),
+        ...(stateAfterReduce.currentSession.workoutSession?.recordedExercises.map(
+          (e) => e.blueprint.name,
+        ) ?? []),
         ...Object.values(stateAfterReduce.program.savedPrograms).flatMap((x) =>
           ProgramBlueprint.fromPOJO(x).sessions.flatMap((s) =>
             s.exercises.map((e) => e.name),
