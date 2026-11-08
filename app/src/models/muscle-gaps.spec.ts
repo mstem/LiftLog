@@ -85,6 +85,13 @@ describe('muscleGaps', () => {
     expect(result.chest).toBe(0);
   });
 
+  it('still counts a workout dated after today in the 30-day card', () => {
+    const later = today.plusDays(1).toString();
+    expect(gaps(session(later, [lift('Barbell Squat', [60])])).quadriceps).toBe(
+      1,
+    );
+  });
+
   it('matches library names regardless of case and spacing', () => {
     expect(
       gaps(session('2026-09-20', [lift(' barbell squat', [60])])).quadriceps,
@@ -231,5 +238,21 @@ describe('muscleGapLevel', () => {
     expect(muscleGapLevel(19.5)).toBe(4);
     expect(muscleGapLevel(20)).toBe(5);
     expect(muscleGapLevel(50)).toBe(5);
+  });
+
+  it('counts only the given dates when a start is set', () => {
+    const result = muscleGaps({
+      sessions: [
+        session('2026-08-31', [lift('Barbell Squat', [60])]),
+        session('2026-09-01', [lift('Barbell Squat', [60, 60])]),
+        session('2026-09-30', [lift('Barbell Squat', [60])]),
+        session('2026-10-01', [lift('Barbell Squat', [60])]),
+      ],
+      library,
+      from: LocalDate.parse('2026-09-01'),
+      today: LocalDate.parse('2026-09-30'),
+    });
+
+    expect(result.quadriceps).toBe(3);
   });
 });

@@ -9,6 +9,7 @@ import {
   setNotificationHandler,
 } from 'expo-notifications';
 import { Platform } from 'react-native';
+import { monthlyReportChannelId } from '@/services/monthly-report-notification';
 
 setNotificationHandler({
   handleNotification: async () => ({
@@ -59,6 +60,12 @@ if (Platform.OS === 'android') {
     lockscreenVisibility: AndroidNotificationVisibility.PUBLIC,
     bypassDnd: false,
     sound: null,
+  });
+  void setNotificationChannelAsync(monthlyReportChannelId, {
+    name: 'Monthly report',
+    description: 'Your training for the month just ended, on the 1st',
+    importance: AndroidImportance.DEFAULT,
+    showBadge: false,
   });
 }
 /**

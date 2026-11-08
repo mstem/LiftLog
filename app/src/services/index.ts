@@ -25,6 +25,10 @@ import { ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
 import { SQLiteDatabase } from 'expo-sqlite';
 import { DatabaseImportService } from '@/services/database-import-service';
 import {
+  cancelMonthlyReport,
+  scheduleMonthlyReport,
+} from '@/services/monthly-report-notification';
+import {
   NativeTrainerWidgetService,
   TrainerWidgetService,
 } from '@/services/trainer-widget-service';
@@ -106,6 +110,10 @@ function resolveServicesInternal(
     workoutWorkerService,
     trainerWidgetService,
     tolgee,
+    monthlyReportNotifier: {
+      schedule: scheduleMonthlyReport,
+      cancel: cancelMonthlyReport,
+    },
     db,
     expoDb,
     databaseMigrationService,

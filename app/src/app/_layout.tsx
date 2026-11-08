@@ -15,6 +15,12 @@ import { selectFollowRequestCount } from '@/store/feed';
 import { useTranslate } from '@tolgee/react';
 import { NativeTabs } from 'expo-router/unstable-native-tabs';
 import { StatusBar } from 'expo-status-bar';
+import {
+  clearLastNotificationResponse,
+  useLastNotificationResponse,
+} from 'expo-notifications';
+import { useRootNavigationState, useRouter } from 'expo-router';
+import { useEffect, useRef } from 'react';
 
 install();
 
@@ -47,7 +53,32 @@ export default function RootLayout() {
   );
 }
 
+/** Opens the screen a tapped notification points at, such as the monthly report. */
+function useOpenNotificationLinks() {
+  const response = useLastNotificationResponse();
+  const router = useRouter();
+  // A tap that cold-starts the app arrives before the navigator mounts
+  const navigatorReady = !!useRootNavigationState()?.key;
+  const handled = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!response || !navigatorReady) {
+      return;
+    }
+    const key = `${response.notification.request.identifier}-${response.notification.date}`;
+    const url = response.notification.request.content.data?.url;
+    if (handled.current === key || typeof url !== 'string') {
+      return;
+    }
+    handled.current = key;
+    // The response outlives a restart until cleared, so without this every
+    // cold start would open the report again
+    clearLastNotificationResponse();
+    router.push(url);
+  }, [response, router, navigatorReady]);
+}
+
 function Layout() {
+  useOpenNotificationLinks();
   const { t } = useTranslate();
   const { colors } = useAppTheme();
   const followRequestCount = useAppSelector(selectFollowRequestCount);

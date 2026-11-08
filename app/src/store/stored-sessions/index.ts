@@ -263,6 +263,10 @@ export const initializeStoredSessionsStateSlice = createAction(
 
 export const migrateExerciseWeights = createAction('migrateExerciseWeights');
 
+/** Reschedules (or cancels) the 1st-of-the-month report for this month. */
+export const refreshMonthlyReportNotification = createAction(
+  'refreshMonthlyReportNotification',
+);
 /** Renames a lift everywhere it is named, so its history follows it. */
 export const renameExercise = createAction<ExerciseRename>('renameExercise');
 export const checkIfWeightMigrationRequired = createAction(

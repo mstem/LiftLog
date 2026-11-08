@@ -6,6 +6,7 @@ import {
   deleteStoredSession,
   initializeStoredSessionsStateSlice,
   migrateExerciseWeights,
+  refreshMonthlyReportNotification,
   renameExercise,
   selectSessions,
   setAllExerciseNotes,
@@ -36,6 +37,10 @@ import { setEditingSession } from '@/store/session-editor';
 import { setStatsIsDirty } from '@/store/stats';
 import { setFlagOverride, setReturnOverride } from '@/store/injury';
 import { SessionTarget } from '@/store/current-session';
+import { setMonthlyReportNotifications } from '@/store/settings';
+import { LocalDate, YearMonth } from '@js-joda/core';
+import { monthlyReport } from '@/models/monthly-report';
+import { monthlyReportDeliveryTime } from '@/models/monthly-report-schedule';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import {
@@ -424,6 +429,80 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(setStatsIsDirty(true));
     dispatch(fetchUpcomingSessions());
   });
+
+  addEffect(
+    [
+      addStoredSession,
+      deleteStoredSession,
+      setStoredSessions,
+      upsertStoredSessions,
+      setIsHydrated,
+      setMonthlyReportNotifications,
+    ],
+    (_, { dispatch }) => {
+      dispatch(refreshMonthlyReportNotification());
+    },
+  );
+
+  addEffect(
+    refreshMonthlyReportNotification,
+    async (
+      _,
+      { stateAfterReduce, extra: { monthlyReportNotifier, tolgee, logger } },
+    ) => {
+      // Before history loads every month looks empty; deciding then would
+      // cancel a report that is still due
+      if (!stateAfterReduce.storedSessions.isHydrated) {
+        return;
+      }
+      try {
+        const { settings } = stateAfterReduce;
+        if (!settings.monthlyReportNotifications) {
+          await monthlyReportNotifier.cancel();
+          return;
+        }
+        const today = LocalDate.now();
+        const month = YearMonth.from(today);
+        const at = monthlyReportDeliveryTime(month, today);
+        const report = monthlyReport({
+          sessions: selectSessions(stateAfterReduce),
+          month,
+          unit: settings.useImperialUnits ? 'pounds' : 'kilograms',
+          library: Object.values(
+            stateAfterReduce.storedSessions.savedExercises,
+          ),
+          firstDayOfWeek: settings.firstDayOfWeek,
+        });
+        if (!at) {
+          return;
+        }
+        if (!report.workouts) {
+          // Its workouts were deleted: a report already queued would be stale
+          await monthlyReportNotifier.cancel(month);
+          return;
+        }
+        const monthName = new Date(
+          month.year(),
+          month.monthValue() - 1,
+          1,
+        ).toLocaleDateString(settings.preferredLanguage, { month: 'long' });
+        await monthlyReportNotifier.schedule({
+          month,
+          at,
+          title: tolgee.t('stats.monthly_report.notification.title', {
+            month: monthName,
+          }),
+          body: tolgee.t('stats.monthly_report.notification.body', {
+            workouts: report.workouts,
+            sets: report.sets,
+            bests: report.bestsCount,
+          }),
+        });
+      } catch (e) {
+        logger.error('Failed to schedule the monthly report notification', e);
+      }
+    },
+  );
 
   addEffect(
     addStoredSession,
