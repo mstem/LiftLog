@@ -833,3 +833,25 @@ describe('workoutClockStart', () => {
     expect(createSession(blueprint).workoutClockStart).toBeUndefined();
   });
 });
+
+describe('offersWatchCountdown', () => {
+  const blueprint = createSessionBlueprint([createExerciseBlueprint(0, false)]);
+
+  it('is offered on a workout that has not started', () => {
+    expect(createSession(blueprint).offersWatchCountdown).toBe(true);
+  });
+
+  it('is gone once Go has set the clock, so a second tap cannot move it', () => {
+    const session = createSession(blueprint).with({ clockStart: tickAt(9, 0) });
+    expect(session.offersWatchCountdown).toBe(false);
+  });
+
+  it('is gone once a set is done', () => {
+    const session = createSession(blueprint).withCycledExerciseReps(
+      0,
+      0,
+      tickAt(9, 2),
+    );
+    expect(session.offersWatchCountdown).toBe(false);
+  });
+});

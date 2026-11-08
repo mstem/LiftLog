@@ -15,6 +15,8 @@ const countdownFrom = 5;
  * time, which becomes zero on the workout clock.
  */
 export default function WatchCountdown(props: {
+  /** False once Go has set the clock, so a second tap cannot move it. */
+  showButton: boolean;
   onGo: (time: OffsetDateTime) => void;
 }) {
   const { t } = useTranslate();
@@ -41,18 +43,20 @@ export default function WatchCountdown(props: {
 
   return (
     <>
-      <Button
-        mode="outlined"
-        icon={'timer'}
-        testID="watch-countdown-button"
-        style={{
-          marginVertical: spacing[2],
-          marginHorizontal: spacing.pageHorizontalMargin,
-        }}
-        onPress={() => setRemaining(countdownFrom)}
-      >
-        {t('workout.watch_countdown.button')}
-      </Button>
+      {props.showButton ? (
+        <Button
+          mode="outlined"
+          icon={'timer'}
+          testID="watch-countdown-button"
+          style={{
+            marginVertical: spacing[2],
+            marginHorizontal: spacing.pageHorizontalMargin,
+          }}
+          onPress={() => setRemaining(countdownFrom)}
+        >
+          {t('workout.watch_countdown.button')}
+        </Button>
+      ) : null}
       {remaining !== undefined ? (
         <Portal>
           <View

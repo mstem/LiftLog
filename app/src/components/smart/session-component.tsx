@@ -180,6 +180,7 @@ export default function SessionComponent(props: {
     !session.isStarted &&
     session.recordedExercises.length ? (
       <WatchCountdown
+        showButton={session.offersWatchCountdown}
         onGo={(time) => updateSession((s) => s.with({ clockStart: time }))}
       />
     ) : null;

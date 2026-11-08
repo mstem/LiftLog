@@ -58,6 +58,17 @@ export class Session {
     readonly clockStart?: OffsetDateTime,
   ) {}
 
+  /**
+   * The watch countdown is offered until Go sets the clock or a set is done.
+   * Offering it after Go would let a second tap move the clock's zero away
+   * from the watch already running.
+   */
+  get offersWatchCountdown(): boolean {
+    return (
+      !this.isStarted && !this.clockStart && this.recordedExercises.length > 0
+    );
+  }
+
   /** Zero on the workout clock: the countdown's Go, else the first set. */
   get workoutClockStart(): OffsetDateTime | undefined {
     if (this.clockStart) {
