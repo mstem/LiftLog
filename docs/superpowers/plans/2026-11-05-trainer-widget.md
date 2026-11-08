@@ -22,7 +22,7 @@
 - Widget strings live in the module's `res/values/strings.xml`; LiftLog's `src/i18n/en.json` is untouched (the app shows nothing new).
 - No Co-Authored-By trailers. No failure narrated in any commit or PR.
 - Tests: health `cd /Users/home/Projects/health && python3 -m unittest tests.test_trainer_widget`; receiver `cd /Users/home/Projects/liftlog-garmin-sync && python3 -m unittest tests.test_receiver`; LiftLog `cd /Users/home/Projects/LiftLog/app && PATH="/opt/homebrew/opt/node@25/bin:$PATH" npx vitest run`, `npx eslint .`, `npx tsgo --noEmit` (one known baseline error in `exercise-notes-display.tsx`); Kotlin `cd /Users/home/Projects/LiftLog/app/android && ./gradlew :trainer-widget:testDebugUnitTest`.
-- The phone (Pixel, adb id `59300DLCH001L0`, package `com.limajuice.liftlog`) runs the local-only branch `test/combined-23-27` in the worktree `/Users/home/Projects/LiftLog-injury-mode`. The phone build merges the widget branch into that branch and installs with `adb install -r`. Never uninstall, never push `test/combined-23-27`.
+- The phone (Pixel, adb id `59300DLCH001L0`, package `com.limajuice.liftlog`) runs the local-only branch `test/combined-23-27` in the worktree `/Users/home/Projects/LiftLog/.claude/worktrees/LiftLog-injury-mode`. The phone build merges the widget branch into that branch and installs with `adb install -r`. Never uninstall, never push `test/combined-23-27`.
 
 ## Review focus
 
@@ -690,19 +690,19 @@ cd /Users/home/Projects/LiftLog && git add app/src/services/trainer-widget-servi
 
 ### Task 9: the phone, then the PR
 
-**Files:** none new. Worktree `/Users/home/Projects/LiftLog-injury-mode`, branch `test/combined-23-27`.
+**Files:** none new. Worktree `/Users/home/Projects/LiftLog/.claude/worktrees/LiftLog-injury-mode`, branch `test/combined-23-27`.
 
 - [ ] **Step 1: Merge into the combined test branch**
 
 ```bash
-cd /Users/home/Projects/LiftLog-injury-mode && git merge --no-edit trainer-widget
+cd /Users/home/Projects/LiftLog/.claude/worktrees/LiftLog-injury-mode && git merge --no-edit trainer-widget
 ```
 
 Expected: a clean merge (the widget touches no injury-mode file; `services/index.ts` and `settings/effects.ts` are the only shared files and the additions are new lines).
 
 - [ ] **Step 2: Build and install**
 
-From `/Users/home/Projects/LiftLog-injury-mode/app` with the Pixel connected: `PATH="/opt/homebrew/opt/node@25/bin:$PATH" npx expo run:android --variant debugOptimized --device 59300DLCH001L0` (the `android` script in `package.json`, which builds, installs over the existing app and keeps its data). If it builds but does not install, `adb -s 59300DLCH001L0 install -r android/app/build/outputs/apk/debugOptimized/app-debugOptimized.apk`. Confirm with `adb -s 59300DLCH001L0 shell dumpsys package com.limajuice.liftlog | grep lastUpdateTime`.
+From `/Users/home/Projects/LiftLog/.claude/worktrees/LiftLog-injury-mode/app` with the Pixel connected: `PATH="/opt/homebrew/opt/node@25/bin:$PATH" npx expo run:android --variant debugOptimized --device 59300DLCH001L0` (the `android` script in `package.json`, which builds, installs over the existing app and keeps its data). If it builds but does not install, `adb -s 59300DLCH001L0 install -r android/app/build/outputs/apk/debugOptimized/app-debugOptimized.apk`. Confirm with `adb -s 59300DLCH001L0 shell dumpsys package com.limajuice.liftlog | grep lastUpdateTime`.
 
 - [ ] **Step 3: Add the widget and check it**
 
