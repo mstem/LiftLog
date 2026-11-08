@@ -1,4 +1,4 @@
-import { SKI_GROUP } from '@/models/ski-prep';
+import { groupLabelKey, startsExpanded } from '@/models/group-display';
 import { AccordionItem } from '@/components/presentation/foundation/accordion-item';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { spacing, useAppTheme } from '@/hooks/useAppTheme';
@@ -21,7 +21,9 @@ export default function ExerciseGroupSection(props: {
   containsNext?: boolean;
   children: ReactNode;
 }) {
-  const [isExpanded, setIsExpanded] = useState(!!props.containsNext);
+  const [isExpanded, setIsExpanded] = useState(
+    !!props.containsNext || startsExpanded(props.name),
+  );
   useEffect(() => {
     if (props.containsNext) {
       setIsExpanded(true);
@@ -29,12 +31,8 @@ export default function ExerciseGroupSection(props: {
   }, [props.containsNext]);
   const { colors } = useAppTheme();
   const { t } = useTranslate();
-  const label =
-    props.name === REHAB_GROUP
-      ? t('injury.rehab.group')
-      : props.name === SKI_GROUP
-        ? t('settings.ski_prep.title')
-        : props.name;
+  const labelKey = groupLabelKey(props.name);
+  const label = labelKey ? t(labelKey) : props.name;
 
   return (
     <View>
