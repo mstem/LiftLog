@@ -14,20 +14,37 @@ import {
   DistanceUnits,
   ExerciseBlueprint,
   matchCardioTarget,
+  NormalizedName,
   TimeCardioTarget,
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
-import { useAppSelector } from '@/store';
+import { RootState, useAppSelector } from '@/store';
+import { setFlagOverride, selectActiveInjury } from '@/store/injury';
+import { isShoulderLoaded } from '@/models/injury/flags';
+import { useDispatch } from 'react-redux';
 
 import { assertUnreachable } from '@/utils/assert-unreachable';
 import { Duration } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import BigNumber from 'bignumber.js';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Divider, List, SegmentedButtons, TextInput } from 'react-native-paper';
+import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
+import RenameExerciseDialog from '@/components/presentation/workout-editor/rename-exercise-dialog';
+import {
+  renameExercise,
+  selectExercises,
+  selectSessions,
+} from '@/store/stored-sessions';
+import {
+  hasLoggedHistory,
+  mergesInto,
+  renameFrom,
+} from '@/components/presentation/workout-editor/rename-from';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
+import { groupFromInput, REHAB_GROUP } from '@/models/injury/rehab';
 import { FormRow } from '@/components/presentation/foundation/form-row';
 import {
   SegmentedList,
@@ -45,6 +62,8 @@ import {
 interface ExerciseEditorProps {
   exercise: ExerciseBlueprint;
   updateExercise: (ex: ExerciseBlueprint) => void;
+  /** Name of the saved lift being edited; unset while adding one. */
+  savedName?: string;
 }
 const distanceUnitOptions = DistanceUnits.map((value) => ({
   value,
@@ -57,6 +76,28 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
   const { exercise: propsExercise, updateExercise: updatePropsExercise } =
     props;
   const [exercise, setExercise] = useState(propsExercise);
+  const [renameOpen, setRenameOpen] = useState(false);
+  // A rename saves at once, so the new name becomes the saved one
+  const [savedName, setSavedName] = useState(props.savedName);
+  useEffect(() => setSavedName(props.savedName), [props.savedName]);
+  const sessions = useAppSelector(selectSessions);
+  const hasHistory = useMemo(
+    () => hasLoggedHistory(sessions, savedName),
+    [sessions, savedName],
+  );
+  const from = renameFrom(savedName, exercise.name, hasHistory);
+  const library = useAppSelector(selectExercises);
+  const knownNames = useMemo(
+    () => [
+      ...Object.values(library).map((x) => x.name),
+      ...sessions.flatMap((s) =>
+        s.recordedExercises.map((x) => x.blueprint.name),
+      ),
+    ],
+    [library, sessions],
+  );
+  const dispatch = useDispatch();
+  const { t } = useTranslate();
 
   // Bit of a hack to let us update exercise immediately without going through the whole props loop
   useEffect(() => {
@@ -107,11 +148,46 @@ export function ExerciseEditor(props: ExerciseEditorProps) {
     <View style={{ paddingVertical: spacing.pageHorizontalMargin }}>
       <Form>
         <FormRow>
-          <ExerciseSearcher
-            currentExercise={exercise}
-            onSelectExercise={selectExerciseFromSearch}
-          />
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing[2],
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <ExerciseSearcher
+                currentExercise={exercise}
+                onSelectExercise={selectExerciseFromSearch}
+              />
+            </View>
+            {from ? (
+              <IconButton
+                icon={'edit'}
+                testID="rename-exercise-button"
+                accessibilityLabel={t('exercise.rename.title')}
+                onPress={() => setRenameOpen(true)}
+              />
+            ) : null}
+          </View>
         </FormRow>
+        <RenameExerciseDialog
+          visible={renameOpen && !!from}
+          name={exercise.name}
+          onDismiss={() => setRenameOpen(false)}
+          mergesWith={(name) =>
+            from ? mergesInto(name, from, knownNames) : undefined
+          }
+          onRename={(name) => {
+            if (!from) {
+              return;
+            }
+            dispatch(renameExercise({ from, to: name }));
+            setSavedName(name);
+            updateExercise({ name });
+            setRenameOpen(false);
+          }}
+        />
         <FormRow>
           <SegmentedButtons
             value={
@@ -283,6 +359,7 @@ function SharedFieldsEditor({
   ) => void;
 }) {
   const { t } = useTranslate();
+  const startedAsRehab = useRef(exercise.group === REHAB_GROUP).current;
   return (
     <>
       <FormRow>
@@ -313,8 +390,20 @@ function SharedFieldsEditor({
           testID="exercise-group"
           label={t('plan.exercise_group.label')}
           style={{ marginBottom: spacing[2] }}
-          value={exercise.group ?? ''}
-          onChangeText={(group) => updateExercise({ group })}
+          value={
+            exercise.group === REHAB_GROUP
+              ? t('injury.rehab.group')
+              : (exercise.group ?? '')
+          }
+          onChangeText={(text) =>
+            updateExercise({
+              group: groupFromInput(
+                text,
+                startedAsRehab,
+                t('injury.rehab.group'),
+              ),
+            })
+          }
         />
       </FormRow>
     </>
@@ -446,7 +535,12 @@ function WeightedExerciseEditor({
 }) {
   const { t } = useTranslate();
   const { colors } = useAppTheme();
+  const dispatch = useDispatch();
   const [restDialogOpen, setRestDialogOpen] = useState(false);
+  const injuryActive = !!useAppSelector(selectActiveInjury);
+  const flagOverrides = useAppSelector(
+    (state: RootState) => state.injury.flagOverrides,
+  );
 
   const setSets = (value: number) =>
     updateExercise({ sets: Math.max(value, 1) });
@@ -515,6 +609,25 @@ function WeightedExerciseEditor({
                 updateExercise({ supersetWithNext })
               }
             />,
+            ...(injuryActive
+              ? [
+                  <SegmentedListSwitch
+                    key="pain-check"
+                    label={t('injury.flags.exercise.label')}
+                    icon={'heartCheck'}
+                    value={isShoulderLoaded(exercise.name, flagOverrides)}
+                    testID="exercise-pain-check"
+                    onValueChange={(flagged) =>
+                      dispatch(
+                        setFlagOverride({
+                          name: new NormalizedName(exercise.name).toString(),
+                          flagged,
+                        }),
+                      )
+                    }
+                  />,
+                ]
+              : []),
             <SegmentListFormElement
               label={t('exercise.progressive_overload.label')}
               icon={'trendingUp'}

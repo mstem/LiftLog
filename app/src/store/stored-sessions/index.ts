@@ -1,3 +1,4 @@
+import type { ExerciseRename } from '@/models/rename-exercise';
 import {
   RecordedExercise,
   RecordedWeightedExercise,
@@ -20,6 +21,8 @@ import {
 import Enumerable from 'linq';
 import { Weight, WeightUnit } from '@/models/weight';
 import { TemporalComparer } from '@/models/comparers';
+import { selectActiveInjury } from '@/store/injury';
+import type { RootState } from '@/store';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 
 export interface WeightMigrateableExercise {
@@ -264,6 +267,8 @@ export const migrateExerciseWeights = createAction('migrateExerciseWeights');
 export const refreshMonthlyReportNotification = createAction(
   'refreshMonthlyReportNotification',
 );
+/** Renames a lift everywhere it is named, so its history follows it. */
+export const renameExercise = createAction<ExerciseRename>('renameExercise');
 export const checkIfWeightMigrationRequired = createAction(
   'checkIfWeightMigrationRequired',
 );
@@ -338,46 +343,93 @@ export interface WeightedExercisePersonalBests {
   maxReps: number | undefined;
 }
 
+function computeBests(
+  sessions: Iterable<Session>,
+  excludeSessionId: string | undefined,
+  since: LocalDate | undefined,
+) {
+  const bests: Record<NormalizedNameKey, WeightedExercisePersonalBests> = {};
+  for (const session of sessions) {
+    if (session.id === excludeSessionId) {
+      continue;
+    }
+    if (since && session.date.isBefore(since)) {
+      continue;
+    }
+    for (const exercise of session.recordedExercises) {
+      if (!(exercise instanceof RecordedWeightedExercise)) {
+        continue;
+      }
+      const key = NormalizedName.fromExerciseBlueprint(
+        exercise.blueprint,
+      ).toString();
+      const best = (bests[key] ??= {
+        maxWeight: undefined,
+        maxReps: undefined,
+      });
+      for (const potentialSet of exercise.potentialSets) {
+        const reps = potentialSet.set?.repsCompleted;
+        if (!reps) {
+          continue;
+        }
+        if (
+          !best.maxWeight ||
+          potentialSet.weight.isGreaterThan(best.maxWeight)
+        ) {
+          best.maxWeight = potentialSet.weight;
+        }
+        if (!best.maxReps || reps > best.maxReps) {
+          best.maxReps = reps;
+        }
+      }
+    }
+  }
+  return bests;
+}
+
+// Some tests build partial state without an injury slice.
+const selectBestsSince = (state: RootState) => {
+  const injury = state.injury ? selectActiveInjury(state) : undefined;
+  return injury ? injury.onsetDate : undefined;
+};
+
 const selectAllTimeWeightedExerciseBests = createSelector(
   [
     storedSessionsSlice.selectors.selectSessions,
     (_, excludeSessionId: string | undefined) => excludeSessionId,
+    selectBestsSince,
   ],
-  (sessions, excludeSessionId) => {
-    const bests: Record<NormalizedNameKey, WeightedExercisePersonalBests> = {};
-    for (const session of sessions) {
-      if (session.id === excludeSessionId) {
-        continue;
-      }
-      for (const exercise of session.recordedExercises) {
-        if (!(exercise instanceof RecordedWeightedExercise)) {
-          continue;
-        }
-        const key = NormalizedName.fromExerciseBlueprint(
-          exercise.blueprint,
-        ).toString();
-        const best = (bests[key] ??= {
-          maxWeight: undefined,
-          maxReps: undefined,
-        });
-        for (const potentialSet of exercise.potentialSets) {
-          const reps = potentialSet.set?.repsCompleted;
-          if (!reps) {
-            continue;
-          }
-          if (
-            !best.maxWeight ||
-            potentialSet.weight.isGreaterThan(best.maxWeight)
-          ) {
-            best.maxWeight = potentialSet.weight;
-          }
-          if (!best.maxReps || reps > best.maxReps) {
-            best.maxReps = reps;
-          }
-        }
+  (sessions, excludeSessionId, since) =>
+    computeBests(
+      sessions,
+      excludeSessionId,
+      since ? LocalDate.parse(since) : undefined,
+    ),
+);
+
+export const selectArchivedWeightedExerciseBests = createSelector(
+  [storedSessionsSlice.selectors.selectSessions, selectBestsSince],
+  (
+    sessions,
+    since,
+  ): { name: string; best: WeightedExercisePersonalBests }[] => {
+    if (!since) {
+      return [];
+    }
+    const all = computeBests(sessions, undefined, undefined);
+    const names = new Map<string, string>();
+    for (const s of sessions) {
+      for (const ex of s.recordedExercises) {
+        names.set(
+          NormalizedName.fromExerciseBlueprint(ex.blueprint).toString(),
+          ex.blueprint.name,
+        );
       }
     }
-    return bests;
+    return Object.entries(all)
+      .filter(([, best]) => best.maxWeight)
+      .map(([key, best]) => ({ name: names.get(key) ?? key, best }))
+      .sort((a, b) => a.name.localeCompare(b.name));
   },
 );
 

@@ -54,6 +54,7 @@ export interface RecordedWeightedExerciseJSON {
   blueprint: WeightedExerciseBlueprintJSON;
   potentialSets: PotentialSetJSON[];
   notes?: string | undefined;
+  stoppedForPain?: boolean | undefined;
 }
 
 export interface RecordedSetJSON {
@@ -62,6 +63,10 @@ export interface RecordedSetJSON {
    */
   repsCompleted: number;
   completionDateTime: OffsetDateTimeJSON;
+  /**
+   * @asType integer
+   */
+  pain?: number | undefined;
 }
 
 export interface PotentialSetJSON {
