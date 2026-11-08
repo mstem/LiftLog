@@ -305,6 +305,11 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
       new NormalizedName(x.name).equals(from),
     );
     fromEntries.forEach(([id, entry], i) => {
+      // Only capitals or a plural changed: the other entries already share
+      // the key, so they stay as they are
+      if (sameKey && i > 0) {
+        return;
+      }
       if (hasTo || i > 0) {
         // The lift lives on under the new name; an entry left with the old
         // name would offer a lift with no history behind it

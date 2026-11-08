@@ -99,23 +99,25 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
     ) => {
       cancelActiveListeners();
       const start = performance.now();
-      const shouldPersist =
-        stateAfterReduce.program.isHydrated &&
-        persistGate.shouldPersist(
-          stateAfterReduce.program.activePlanId !==
-            stateBeforeReduce.program.activePlanId ||
-            stateAfterReduce.program.savedPrograms !==
-              stateBeforeReduce.program.savedPrograms,
-        );
-      if (shouldPersist) {
-        const saved = await persistPrograms(
+      const owed = stateAfterReduce.program.isHydrated
+        ? persistGate.shouldPersist(
+            stateAfterReduce.program.activePlanId !==
+              stateBeforeReduce.program.activePlanId ||
+              stateAfterReduce.program.savedPrograms !==
+                stateBeforeReduce.program.savedPrograms,
+          )
+        : undefined;
+      if (owed !== undefined) {
+        const result = await persistPrograms(
           stateAfterReduce,
           db,
           logger,
           throwIfCancelled,
         );
-        if (saved) {
-          persistGate.persisted();
+        // A real failure is logged and dropped, as before; only a cancelled
+        // write stays owed for the next action
+        if (result !== 'cancelled') {
+          persistGate.done(owed);
         }
         const end = performance.now();
         logger.info(
@@ -175,7 +177,7 @@ async function persistPrograms(
   db: ExpoSQLiteDatabase,
   logger: Logger,
   throwIfCancelled: () => void,
-): Promise<boolean> {
+): Promise<'saved' | 'cancelled' | 'failed'> {
   try {
     await db.transaction(async (tx) => {
       throwIfCancelled();
@@ -191,13 +193,13 @@ async function persistPrograms(
       );
       throwIfCancelled();
     });
-    return true;
+    return 'saved';
   } catch (e) {
     if (e instanceof TaskAbortError) {
-      return false;
+      return 'cancelled';
     }
     logger.error('Failed to persist program state', e);
-    return false;
+    return 'failed';
   }
 }
 

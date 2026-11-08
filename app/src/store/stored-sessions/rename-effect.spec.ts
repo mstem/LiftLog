@@ -157,6 +157,20 @@ describe('renameExercise', () => {
     expect(bed.getDispatchedAction(deleteExercise).payload).toBe('lib3');
   });
 
+  it('keeps every library entry when only the capitals change', async () => {
+    const bed = testBed({
+      library: {
+        lib1: descriptor('Seated Cable Rows'),
+        lib3: descriptor('seated cable row'),
+      },
+    });
+    await bed.dispatchHandled(
+      renameExercise({ from: 'Seated Cable Rows', to: 'Seated cable rows' }),
+    );
+
+    bed.expectNotDispatched(deleteExercise);
+  });
+
   it('writes no sessions when none name the lift', async () => {
     const bed = testBed();
     await bed.dispatchHandled(renameExercise({ from: 'Deadlift', to: 'X' }));
