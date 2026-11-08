@@ -79,6 +79,13 @@ const currentSessionSlice = createSlice({
       }
     },
 
+    setExerciseSwaps(
+      state,
+      action: PayloadAction<{ sessionId: string; swaps: ExerciseSwap[] }>,
+    ) {
+      state.exerciseSwaps[action.payload.sessionId] = action.payload.swaps;
+    },
+
     clearExerciseSwaps(state, action: PayloadAction<string>) {
       delete state.exerciseSwaps[action.payload];
     },
@@ -90,8 +97,7 @@ const currentSessionSlice = createSlice({
         session: Session | undefined;
       }>,
     ) => {
-      state[action.payload.target] = action.payload
-        .session;
+      state[action.payload.target] = action.payload.session;
     },
   },
   selectors: {
@@ -151,6 +157,7 @@ export const {
   setCurrentSession,
   setCurrentPlanDiff,
   recordExerciseSwap,
+  setExerciseSwaps,
   clearExerciseSwaps,
 } = currentSessionSlice.actions;
 

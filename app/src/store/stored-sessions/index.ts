@@ -1,3 +1,4 @@
+import type { ExerciseRename } from '@/models/rename-exercise';
 import {
   RecordedExercise,
   RecordedWeightedExercise,
@@ -261,6 +262,9 @@ export const initializeStoredSessionsStateSlice = createAction(
 );
 
 export const migrateExerciseWeights = createAction('migrateExerciseWeights');
+
+/** Renames a lift everywhere it is named, so its history follows it. */
+export const renameExercise = createAction<ExerciseRename>('renameExercise');
 export const checkIfWeightMigrationRequired = createAction(
   'checkIfWeightMigrationRequired',
 );
