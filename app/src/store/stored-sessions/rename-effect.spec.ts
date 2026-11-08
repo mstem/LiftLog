@@ -9,7 +9,10 @@ import {
   updateExercise,
   upsertStoredSessions,
 } from '@/store/stored-sessions';
-import { upsertSavedPlans } from '@/store/program';
+import {
+  setIsHydrated as setProgramIsHydrated,
+  upsertSavedPlans,
+} from '@/store/program';
 import { setStatsIsDirty } from '@/store/stats';
 import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
 import { setEditingSession } from '@/store/session-editor';
@@ -227,5 +230,49 @@ describe('renameExercise', () => {
     await bed.dispatchHandled(renameExercise({ ...rename, to: ' ' }));
 
     bed.expectNotDispatched(upsertStoredSessions);
+  });
+});
+
+describe('library renames at startup', () => {
+  function startupBed(hydrated: { sessions: boolean; plans: boolean }) {
+    const suspendedRow = makeWeightedBlueprint('Suspended Row');
+    const past = makeSession([suspendedRow]);
+    const bed = createAddEffectTestBed({
+      initialState: {
+        storedSessions: {
+          isHydrated: hydrated.sessions,
+          sessions: { [past.id]: past },
+          exerciseNotes: {},
+          savedExercises: {
+            'Suspended Row': descriptor('Suspended Row'),
+            'TRX Row': descriptor('TRX Row'),
+            'Suspended Fallout': descriptor('Suspended Fallout'),
+          },
+        },
+        program: { isHydrated: hydrated.plans, savedPrograms: {} },
+        currentSession: { exerciseSwaps: {} },
+      },
+    });
+    applyStoredSessionsEffects(bed.addEffect);
+    return bed;
+  }
+
+  it('folds old Suspended lifts and their history into the TRX names', async () => {
+    const bed = startupBed({ sessions: true, plans: true });
+    await bed.dispatchHandled(setProgramIsHydrated(true));
+
+    expect(
+      bed.dispatchedActions.filter(renameExercise.match).map((x) => x.payload),
+    ).toEqual([
+      { from: 'Suspended Row', to: 'TRX Row' },
+      { from: 'Suspended Fallout', to: 'TRX Fallout' },
+    ]);
+  });
+
+  it('waits until the plans have loaded', async () => {
+    const bed = startupBed({ sessions: true, plans: false });
+    await bed.dispatchHandled(setProgramIsHydrated(false));
+
+    bed.expectNotDispatched(renameExercise);
   });
 });

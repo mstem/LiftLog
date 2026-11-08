@@ -19,7 +19,12 @@ import {
   upsertStoredSessions,
   WeightMigrateableExercise,
 } from './index';
-import { fetchUpcomingSessions, upsertSavedPlans } from '@/store/program';
+import {
+  fetchUpcomingSessions,
+  setIsHydrated as setProgramIsHydrated,
+  upsertSavedPlans,
+} from '@/store/program';
+import { pendingLibraryRenames } from '@/models/library-renames';
 import { ProgramBlueprint } from '@/models/blueprint-models';
 import {
   renameInProgram,
@@ -218,6 +223,41 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(fetchUpcomingSessions());
     dispatch(setExercisesRequiringWeightMigration([]));
   });
+
+  // Old library names fold into their new ones once history and plans load
+  let libraryRenamesChecked = false;
+  addEffect(
+    [setIsHydrated, setProgramIsHydrated],
+    (_, { dispatch, stateAfterReduce }) => {
+      if (
+        libraryRenamesChecked ||
+        !stateAfterReduce.storedSessions.isHydrated ||
+        !stateAfterReduce.program.isHydrated
+      ) {
+        return;
+      }
+      libraryRenamesChecked = true;
+      const names = [
+        ...Object.values(stateAfterReduce.storedSessions.savedExercises).map(
+          (x) => x.name,
+        ),
+        ...Object.values(stateAfterReduce.storedSessions.sessions).flatMap(
+          (x) => [
+            ...x.blueprint.exercises.map((e) => e.name),
+            ...x.recordedExercises.map((e) => e.blueprint.name),
+          ],
+        ),
+        ...Object.values(stateAfterReduce.program.savedPrograms).flatMap((x) =>
+          ProgramBlueprint.fromPOJO(x).sessions.flatMap((s) =>
+            s.exercises.map((e) => e.name),
+          ),
+        ),
+      ];
+      for (const rename of pendingLibraryRenames(names)) {
+        dispatch(renameExercise(rename));
+      }
+    },
+  );
 
   addEffect(renameExercise, (action, { dispatch, stateAfterReduce }) => {
     const rename = action.payload;
