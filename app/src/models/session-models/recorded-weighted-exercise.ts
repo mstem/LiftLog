@@ -1,3 +1,4 @@
+import { isPausedGroup } from '@/models/injury/paused-group';
 import { Rest, WeightedExerciseBlueprint } from '@/models/blueprint-models';
 import { TemporalComparer } from '@/models/comparers';
 import { RecordedExercise } from '@/models/session-models/recorded-exercise';
@@ -247,6 +248,8 @@ export class RecordedWeightedExercise {
   get isComplete(): boolean {
     return (
       !!this.stoppedForPain ||
+      // Injury mode hides a paused lift, so the workout never waits on it
+      isPausedGroup(this.blueprint.group) ||
       !this.potentialSets.some((x) => x.set === undefined)
     );
   }

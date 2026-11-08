@@ -139,6 +139,24 @@ describe('returnedLiftCount', () => {
     expect(count(s, notWorse('a'))).toBe(0);
   });
 
+  it('an unanswered latest session holds the streak instead of resetting it', () => {
+    const s = [
+      quietPush('a', '2026-05-01'),
+      quietPush('b', '2026-05-03'),
+      quietPush('c', '2026-05-05'),
+    ];
+    expect(count(s, notWorse('a', 'b'))).toBe(1);
+  });
+
+  it('an unanswered latest session with a sore set still breaks the streak', () => {
+    const s = [
+      quietPush('a', '2026-05-01'),
+      quietPush('b', '2026-05-03'),
+      session('c', 'Push', '2026-05-05', [[press, [1, 4]]]),
+    ];
+    expect(count(s, notWorse('a', 'b'))).toBe(0);
+  });
+
   it('treats an older unanswered session as quiet', () => {
     const s = [quietPush('a', '2026-05-01'), quietPush('b', '2026-05-03')];
     expect(count(s, notWorse('b'))).toBe(1);

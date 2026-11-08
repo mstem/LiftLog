@@ -1,3 +1,4 @@
+import { PAUSED_GROUP } from '@/models/injury/paused-group';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Duration, LocalDate, OffsetDateTime, ZoneOffset } from '@js-joda/core';
 import BigNumber from 'bignumber.js';
@@ -854,6 +855,26 @@ describe('pain-stopped lifts', () => {
     const squat = exerciseWith(makeWeightedBlueprint('Squat'), 3);
     expect(sessionOf([squat, press]).isComplete).toBe(false);
     const session = sessionOf([squat, press.withPainStop(5)]);
+    expect(session.isComplete).toBe(true);
+    expect(session.nextExercise).toBeUndefined();
+  });
+
+  it('skips a lift injury mode paused, which the workout hides', () => {
+    const paused = exerciseWith(
+      makeWeightedBlueprint('Row').with({ group: PAUSED_GROUP }),
+      0,
+    );
+    const curl = exerciseWith(makeWeightedBlueprint('Curl'), 0);
+    expect(sessionOf([paused, curl]).nextExercise).toBe(curl);
+  });
+
+  it('is complete when only paused lifts are left', () => {
+    const paused = exerciseWith(
+      makeWeightedBlueprint('Row').with({ group: PAUSED_GROUP }),
+      0,
+    );
+    const curl = exerciseWith(makeWeightedBlueprint('Curl'), 3);
+    const session = sessionOf([curl, paused]);
     expect(session.isComplete).toBe(true);
     expect(session.nextExercise).toBeUndefined();
   });

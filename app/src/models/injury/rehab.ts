@@ -1,3 +1,8 @@
+import {
+  isPausedGroup,
+  PAUSED_BLANK_GROUP,
+  PAUSED_GROUP,
+} from '@/models/injury/paused-group';
 import BigNumber from 'bignumber.js';
 import {
   CardioExerciseBlueprint,
@@ -26,12 +31,7 @@ export const REHAB_GROUP = 'injury-mode:rehab';
  * removed; they are just not shown and never roll over. Two ids so the
  * original group (unset, or cleared to '' by the editor) comes back exactly.
  */
-export const PAUSED_GROUP = 'injury-mode:paused';
-const PAUSED_BLANK_GROUP = 'injury-mode:paused-blank';
-
-export function isPausedGroup(group: string | undefined): boolean {
-  return group === PAUSED_GROUP || group === PAUSED_BLANK_GROUP;
-}
+export { isPausedGroup, PAUSED_GROUP };
 
 /**
  * Group typed into the exercise editor's group box, which shows the rehab

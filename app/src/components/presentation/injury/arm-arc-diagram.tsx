@@ -35,7 +35,7 @@ export default function ArmArcDiagram(props: {
   accessibilityLabel: string;
 }) {
   const { colors } = useAppTheme();
-  // Bands alternate colours so neighbours stay apart.
+  // Bands alternate colors so neighbors stay apart.
   const tone = (i: number) =>
     i % 2 === 0
       ? { fill: colors.errorContainer, stroke: colors.error }

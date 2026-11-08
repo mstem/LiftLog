@@ -59,8 +59,8 @@ function trackedLifts(
  * How many paused pull-day lifts are back, replayed from the injury-era
  * history: sessions on or after onset whose tracked sets were all ticked
  * after injury mode was turned on. The latest session with no next-day
- * answer yet does not count as quiet until it is answered; an older
- * unanswered one does. The result includes the lift the next pull day earns
+ * answer yet holds the streak until it is answered; an older unanswered
+ * one counts as quiet. The result includes the lift the next pull day earns
  * when the streak is already long enough.
  */
 export function returnedLiftCount(args: {
@@ -99,17 +99,21 @@ export function returnedLiftCount(args: {
       streak = 0;
       return;
     }
-    const isLatest = i === era.length - 1;
-    const answered =
-      answers[s.id] === 'notWorse' || (!answers[s.id] && !isLatest);
-    const quiet =
-      answered &&
-      lifts.every((l) =>
-        l.potentialSets.every(
-          (p) => p.set?.pain === undefined || p.set.pain <= returnPainThreshold,
-        ),
-      );
-    streak = quiet ? streak + 1 : 0;
+    const lowPain = lifts.every((l) =>
+      l.potentialSets.every(
+        (p) => p.set?.pain === undefined || p.set.pain <= returnPainThreshold,
+      ),
+    );
+    if (!lowPain) {
+      streak = 0;
+      return;
+    }
+    // The latest session waits on its next-day answer: it holds the streak
+    // until then, neither adding to it nor breaking it
+    const waiting = !answers[s.id] && i === era.length - 1;
+    if (!waiting) {
+      streak++;
+    }
   });
   return count + (streak >= quietSessionsNeeded ? 1 : 0);
 }
