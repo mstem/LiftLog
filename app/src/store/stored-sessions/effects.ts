@@ -55,6 +55,7 @@ import {
 } from '@/db/schema';
 import { NormalizedName } from '@/models/blueprint-models';
 import { rehabDescriptors } from '@/models/injury/rehab';
+import { skiDescriptors } from '@/models/ski-prep';
 import { eq, sql } from 'drizzle-orm';
 import { toRecord } from '@/utils/reduce';
 import {
@@ -135,12 +136,12 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           ...Object.values(builtInExercisesNotAlreadyAdded),
         ].map((x) => x.name.toLowerCase()),
       );
-      for (const rehab of rehabDescriptors()) {
+      for (const entry of [...rehabDescriptors(), ...skiDescriptors()]) {
         if (
-          !knownExerciseNames.has(rehab.name.toLowerCase()) &&
-          !builtinExercisesAddedInThePast.includes(rehab.name)
+          !knownExerciseNames.has(entry.name.toLowerCase()) &&
+          !builtinExercisesAddedInThePast.includes(entry.name)
         ) {
-          builtInExercisesNotAlreadyAdded[rehab.name] = rehab;
+          builtInExercisesNotAlreadyAdded[entry.name] = entry;
         }
       }
 

@@ -45,6 +45,7 @@ import {
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { groupFromInput, REHAB_GROUP } from '@/models/injury/rehab';
+import { SKI_GROUP } from '@/models/ski-prep';
 import { FormRow } from '@/components/presentation/foundation/form-row';
 import {
   SegmentedList,
@@ -359,7 +360,14 @@ function SharedFieldsEditor({
   ) => void;
 }) {
   const { t } = useTranslate();
-  const startedAsRehab = useRef(exercise.group === REHAB_GROUP).current;
+  // Rehab and ski prep blocks show a label for their reserved group id
+  const reserved = useRef(
+    exercise.group === REHAB_GROUP
+      ? { id: REHAB_GROUP, label: t('injury.rehab.group') }
+      : exercise.group === SKI_GROUP
+        ? { id: SKI_GROUP, label: t('settings.ski_prep.title') }
+        : undefined,
+  ).current;
   return (
     <>
       <FormRow>
@@ -391,16 +399,17 @@ function SharedFieldsEditor({
           label={t('plan.exercise_group.label')}
           style={{ marginBottom: spacing[2] }}
           value={
-            exercise.group === REHAB_GROUP
-              ? t('injury.rehab.group')
+            reserved && exercise.group === reserved.id
+              ? reserved.label
               : (exercise.group ?? '')
           }
           onChangeText={(text) =>
             updateExercise({
               group: groupFromInput(
                 text,
-                startedAsRehab,
-                t('injury.rehab.group'),
+                !!reserved,
+                reserved?.label ?? '',
+                reserved?.id,
               ),
             })
           }

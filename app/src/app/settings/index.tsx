@@ -101,6 +101,13 @@ export default function Settings() {
         ></List.Item>
 
         <List.Item
+          onPress={() => push('/settings/ski-prep')}
+          title={t('settings.ski_prep.title')}
+          description={t('settings.ski_prep.subtitle')}
+          left={(props) => <List.Icon icon={'downhillSkiing'} {...props} />}
+        ></List.Item>
+
+        <List.Item
           onPress={() => push('/settings/backup-and-restore')}
           title={t('backup.export_backup_restore.title')}
           description={t('backup.export_backup_restore.subtitle')}

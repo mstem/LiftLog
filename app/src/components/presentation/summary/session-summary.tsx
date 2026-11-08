@@ -1,3 +1,5 @@
+import { groupLabelKey, startsExpanded } from '@/models/group-display';
+import { useTranslate } from '@tolgee/react';
 import ExerciseSummary from '@/components/presentation/summary/exercise-summary';
 import { spacing, useAppTheme } from '@/hooks/useAppTheme';
 import { Session } from '@/models/session-models';
@@ -31,7 +33,10 @@ export default function SessionSummary({
     (x) => (x.isStarted || !isFilled) && !isPausedGroup(x.blueprint.group),
   );
 
-  const renderExercise = (exercise: (typeof visibleExercises)[number], key: number) => (
+  const renderExercise = (
+    exercise: (typeof visibleExercises)[number],
+    key: number,
+  ) => (
     <ExerciseSummary
       key={key}
       exercise={exercise}
@@ -77,15 +82,18 @@ function SummaryGroup(props: {
   count: number;
   children: ReactNode;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(startsExpanded(props.name));
   const { colors } = useAppTheme();
+  const { t } = useTranslate();
+  const labelKey = groupLabelKey(props.name);
+  const label = labelKey ? t(labelKey) : props.name;
   return (
     <View>
       <TouchableRipple
         onPress={() => setIsExpanded((x) => !x)}
         accessibilityRole="button"
         accessibilityState={{ expanded: isExpanded }}
-        accessibilityLabel={props.name}
+        accessibilityLabel={label}
         testID={`summary-group-toggle-${props.name}`}
       >
         <View
@@ -97,7 +105,7 @@ function SummaryGroup(props: {
             gap: spacing[2],
           }}
         >
-          <SurfaceText style={{ flexShrink: 1 }}>{props.name}</SurfaceText>
+          <SurfaceText style={{ flexShrink: 1 }}>{label}</SurfaceText>
           <View
             style={{
               flexDirection: 'row',

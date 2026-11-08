@@ -42,8 +42,10 @@ export function groupFromInput(
   text: string,
   startedAsRehab: boolean,
   rehabLabel: string,
+  /** The reserved id the box stands for: Rehab, or another block's id. */
+  reservedId: string = REHAB_GROUP,
 ): string {
-  return startedAsRehab && text === rehabLabel ? REHAB_GROUP : text;
+  return startedAsRehab && text === rehabLabel ? reservedId : text;
 }
 
 export interface RehabExercise {

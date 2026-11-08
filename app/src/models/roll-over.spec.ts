@@ -18,6 +18,7 @@ import {
   withRolledOverExercises,
 } from '@/models/roll-over';
 import { withPullLiftsPaused, withRehabBlock } from '@/models/injury/rehab';
+import { withSkiBlock } from '@/models/ski-prep';
 
 const lift = (name: string, group?: string) =>
   makeWeightedBlueprint(name).with({ group });
@@ -132,6 +133,17 @@ describe('withoutRolledOverExercises', () => {
     const next = withRolledOverExercises(push, [lift('Hack Squat')]);
 
     expect(withoutRolledOverExercises(next).equals(push)).toBe(true);
+  });
+
+  it('leaves out the ski block, which is never part of the plan', () => {
+    const legs = new SessionBlueprint(
+      'Legs',
+      [cardio('Warm Up'), lift('Hack Squat')],
+      '',
+    );
+    expect(withoutRolledOverExercises(withSkiBlock(legs)).equals(legs)).toBe(
+      true,
+    );
   });
 
   it('gives paused pull-day lifts their planned group back, in place', () => {

@@ -24,6 +24,8 @@ interface SettingsState {
   showFeed: boolean;
   restNotifications: boolean;
   monthlyReportNotifications: boolean;
+  /** Ski prep adds the ski block to Legs day until this ISO date. */
+  skiPrepUntil: string | undefined;
   crashReportsEnabled: boolean;
   showPostWorkoutSummary: boolean;
   welcomeWizardCompleted: boolean;
@@ -54,6 +56,7 @@ const initialState: SettingsState = {
   showFeed: true,
   restNotifications: true,
   monthlyReportNotifications: true,
+  skiPrepUntil: undefined,
   crashReportsEnabled: true,
   showPostWorkoutSummary: false,
   trueBlackDarkTheme: false,
@@ -99,6 +102,9 @@ const settingsSlice = createSlice({
     },
     setMonthlyReportNotifications(state, action: PayloadAction<boolean>) {
       state.monthlyReportNotifications = action.payload;
+    },
+    setSkiPrepUntil(state, action: PayloadAction<string | undefined>) {
+      state.skiPrepUntil = action.payload;
     },
     setCrashReportsEnabled(state, action: PayloadAction<boolean>) {
       state.crashReportsEnabled = action.payload;
@@ -187,6 +193,7 @@ export const {
   setShowFeed,
   setRestNotifications,
   setMonthlyReportNotifications,
+  setSkiPrepUntil,
   setCrashReportsEnabled,
   setWelcomeWizardCompleted,
   setRemoteBackupSettings,

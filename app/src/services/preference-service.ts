@@ -55,6 +55,18 @@ export class PreferenceService {
     );
   }
 
+  async getSkiPrepUntil(): Promise<string | undefined> {
+    return (await this.keyValueStore.getItem('skiPrepUntil')) || undefined;
+  }
+
+  async setSkiPrepUntil(value: string | undefined): Promise<void> {
+    if (value) {
+      await this.keyValueStore.setItem('skiPrepUntil', value);
+    } else {
+      await this.keyValueStore.removeItem('skiPrepUntil');
+    }
+  }
+
   async setRestNotifications(restNotifications: boolean): Promise<void> {
     await this.keyValueStore.setItem(
       'restNotifications',
