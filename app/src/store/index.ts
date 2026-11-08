@@ -8,6 +8,7 @@ import { applyAppEffects } from '@/store/app/effects';
 import { initializeAppStateSlice } from '@/store/app';
 import { useEffect, useMemo, useState } from 'react';
 import { applySettingsEffects } from '@/store/settings/effects';
+import { applyInjuryEffects } from '@/store/injury/effects';
 import { applyStoredSessionsEffects } from '@/store/stored-sessions/effects';
 import { applyFeedEffects } from '@/store/feed/effects';
 import { applyStatsEffects } from '@/store/stats/effects';
@@ -26,6 +27,7 @@ export function resolveStore(db: ExpoSQLiteDatabase, expoDb: SQLiteDatabase) {
   applyCurrentSessionEffects(addEffect);
   applyAppEffects(addEffect);
   applySettingsEffects(addEffect);
+  applyInjuryEffects(addEffect);
   applyStoredSessionsEffects(addEffect);
   applyFeedEffects(addEffect);
   applyStatsEffects(addEffect);

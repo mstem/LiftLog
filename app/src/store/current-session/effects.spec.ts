@@ -1,16 +1,22 @@
 import { describe, it, expect, vi } from 'vitest';
+import { REHAB_GROUP } from '@/models/injury/rehab';
 import {
   broadcastWorkoutEvent,
   initializeCurrentSessionStateSlice,
   setCurrentSession,
   setIsHydrated,
   currentWorkoutSessionUpdated,
+  clearSetTimerNotification,
 } from '@/store/current-session';
 import { WorkoutMessage } from '@/models/workout-worker-messages';
 import { RootState } from '@/store/store';
 import { applyCurrentSessionEffects } from '@/store/current-session/effects';
 import { createAddEffectTestBed } from '@/utils/__test__/add-effect-testbed';
-import { EmptySession, Session } from '@/models/session-models';
+import {
+  EmptySession,
+  RecordedWeightedExercise,
+  Session,
+} from '@/models/session-models';
 import { setUpcomingSessions } from '@/store/program';
 import { RemoteData } from '@/models/remote';
 import {
@@ -407,6 +413,58 @@ describe('current-session effects', () => {
       testBed.getDispatchedAction(setCurrentPlanDiff);
     });
 
+    it('never offers the injury Rehab lifts to the plan', async () => {
+      const withRehab = new SessionBlueprint(
+        'Push',
+        [
+          bench(3, 10),
+          bench(3, 15).with({ name: 'Supine punch', group: REHAB_GROUP }),
+        ],
+        '',
+      );
+
+      const testBed = await finish(withRehab);
+
+      testBed.expectNotDispatched(setCurrentPlanDiff);
+    });
+
+    it('leaves Rehab lifts out of a new workout offered to the plan', async () => {
+      const newWorkout = new SessionBlueprint(
+        'Pull',
+        [
+          bench(3, 10).with({ name: 'Row' }),
+          bench(3, 15).with({ name: 'Supine punch', group: REHAB_GROUP }),
+        ],
+        '',
+      );
+
+      const testBed = await finish(newWorkout);
+
+      const planDiff = testBed.getDispatchedAction(setCurrentPlanDiff).payload;
+      expect(planDiff?.diff.newSession.exercises.map((x) => x.name)).toEqual([
+        'Row',
+      ]);
+    });
+
+    it('keeps a group the user named Rehab in a new workout offered to the plan', async () => {
+      const newWorkout = new SessionBlueprint(
+        'Pull',
+        [
+          bench(3, 10).with({ name: 'Row' }),
+          bench(3, 15).with({ name: 'Band pull-apart', group: 'Rehab' }),
+        ],
+        '',
+      );
+
+      const testBed = await finish(newWorkout);
+
+      const planDiff = testBed.getDispatchedAction(setCurrentPlanDiff).payload;
+      expect(planDiff?.diff.newSession.exercises.map((x) => x.name)).toEqual([
+        'Row',
+        'Band pull-apart',
+      ]);
+    });
+
     it('offers the other changes without the rep change', async () => {
       const testBed = await finish(
         new SessionBlueprint('Push', [bench(4, 8)], ''),
@@ -506,6 +564,37 @@ describe('current-session effects', () => {
       );
 
       expect(broadcastTypes(testBed)).toEqual(['WorkoutEndedEvent']);
+    });
+
+    it('clears the rest alarm when a pain stop ends the last lift', async () => {
+      const testBed = bed();
+      const resting = started.with({
+        restTimerStartTime: OffsetDateTime.now(),
+      });
+      const press = resting.recordedExercises[0] as RecordedWeightedExercise;
+      const stopped = resting.withExercise(
+        0,
+        press.withSetPain(0, 7).withPainStop(5),
+      );
+      expect(resting.restTimerEndTime).toBeDefined();
+
+      await testBed.dispatchHandled(
+        currentWorkoutSessionUpdated({ before: resting, after: stopped }),
+      );
+
+      expect(
+        testBed.dispatchedActions.some(
+          (x) => x.type === clearSetTimerNotification.type,
+        ),
+      ).toBe(true);
+      const updated = testBed.dispatchedActions
+        .filter((x) => x.type === broadcastWorkoutEvent.type)
+        .map((x) => (x as ReturnType<typeof broadcastWorkoutEvent>).payload)
+        .find((x) => x.type === 'WorkoutUpdatedEvent');
+      expect(updated).toBeDefined();
+      expect(
+        updated && 'restTimerInfo' in updated ? updated.restTimerInfo : 'x',
+      ).toBeUndefined();
     });
 
     it('tells the worker to stand down on startup when nothing is in progress', async () => {

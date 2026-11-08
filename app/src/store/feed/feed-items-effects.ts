@@ -9,6 +9,7 @@ import {
   removeFeedItems,
   upsertFeedItems,
 } from '@/store/feed';
+import { eventWithoutPain } from '@/models/without-pain';
 import { AddEffectFn } from '@/store/store';
 import {
   FeedIdentity,
@@ -287,7 +288,7 @@ async function publishEvent(
   encryptionService: EncryptionService,
   feedApiService: FeedApiService,
 ) {
-  const payloadBytes = toJsonBytes(event.toJSON());
+  const payloadBytes = toJsonBytes(eventWithoutPain(event).toJSON());
 
   const encryptedData =
     await encryptionService.signRsa256PssAndEncryptAesCbcAsync(

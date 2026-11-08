@@ -5,7 +5,7 @@ import {
   SessionBlueprint,
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
-import { Session } from '@/models/session-models';
+import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import {
   makeCardioSetBlueprint,
   makeWeightedBlueprint,
@@ -17,6 +17,7 @@ import {
   withoutRolledOverExercises,
   withRolledOverExercises,
 } from '@/models/roll-over';
+import { withPullLiftsPaused, withRehabBlock } from '@/models/injury/rehab';
 
 const lift = (name: string, group?: string) =>
   makeWeightedBlueprint(name).with({ group });
@@ -131,5 +132,40 @@ describe('withoutRolledOverExercises', () => {
     const next = withRolledOverExercises(push, [lift('Hack Squat')]);
 
     expect(withoutRolledOverExercises(next).equals(push)).toBe(true);
+  });
+
+  it('gives paused pull-day lifts their planned group back, in place', () => {
+    const pull = new SessionBlueprint(
+      'Pull',
+      [
+        cardio('Warm Up'),
+        lift('Pullups'),
+        lift('Rows', ''),
+        lift('Hack Squat'),
+      ],
+      '',
+    );
+    const paused = withRehabBlock(withPullLiftsPaused(pull, {}), []);
+
+    expect(paused.exercises[1]!.name).not.toBe('Pullups');
+    expect(withoutRolledOverExercises(paused).equals(pull)).toBe(true);
+  });
+});
+
+describe('rolledOverExercises with pain', () => {
+  it('a lift stopped for pain does not roll over', () => {
+    const session = finished(push, []).withCycledExerciseReps(3, 0, tick());
+    const stopped = session.with({
+      recordedExercises: session.recordedExercises.map((e, i) =>
+        i === 3 && e instanceof RecordedWeightedExercise
+          ? e.withSetPain(0, 7)
+          : e,
+      ),
+    });
+    expect(
+      (stopped.recordedExercises[3] as RecordedWeightedExercise)
+        .potentialSets[0]!.set!.pain,
+    ).toBe(7);
+    expect(rolledOverExercises(stopped)).toEqual([]);
   });
 });

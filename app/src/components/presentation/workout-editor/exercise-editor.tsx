@@ -14,20 +14,23 @@ import {
   DistanceUnits,
   ExerciseBlueprint,
   matchCardioTarget,
+  NormalizedName,
   TimeCardioTarget,
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
-import { useAppSelector } from '@/store';
+import { RootState, useAppSelector } from '@/store';
+import { setFlagOverride, selectActiveInjury } from '@/store/injury';
+import { isShoulderLoaded } from '@/models/injury/flags';
+import { useDispatch } from 'react-redux';
 
 import { assertUnreachable } from '@/utils/assert-unreachable';
 import { Duration } from '@js-joda/core';
 import { T, useTranslate } from '@tolgee/react';
 import BigNumber from 'bignumber.js';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { Divider, List, SegmentedButtons, TextInput } from 'react-native-paper';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
-import { useDispatch } from 'react-redux';
 import RenameExerciseDialog from '@/components/presentation/workout-editor/rename-exercise-dialog';
 import {
   renameExercise,
@@ -41,6 +44,7 @@ import {
 } from '@/components/presentation/workout-editor/rename-from';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
+import { groupFromInput, REHAB_GROUP } from '@/models/injury/rehab';
 import { FormRow } from '@/components/presentation/foundation/form-row';
 import {
   SegmentedList,
@@ -355,6 +359,7 @@ function SharedFieldsEditor({
   ) => void;
 }) {
   const { t } = useTranslate();
+  const startedAsRehab = useRef(exercise.group === REHAB_GROUP).current;
   return (
     <>
       <FormRow>
@@ -385,8 +390,20 @@ function SharedFieldsEditor({
           testID="exercise-group"
           label={t('plan.exercise_group.label')}
           style={{ marginBottom: spacing[2] }}
-          value={exercise.group ?? ''}
-          onChangeText={(group) => updateExercise({ group })}
+          value={
+            exercise.group === REHAB_GROUP
+              ? t('injury.rehab.group')
+              : (exercise.group ?? '')
+          }
+          onChangeText={(text) =>
+            updateExercise({
+              group: groupFromInput(
+                text,
+                startedAsRehab,
+                t('injury.rehab.group'),
+              ),
+            })
+          }
         />
       </FormRow>
     </>
@@ -518,7 +535,12 @@ function WeightedExerciseEditor({
 }) {
   const { t } = useTranslate();
   const { colors } = useAppTheme();
+  const dispatch = useDispatch();
   const [restDialogOpen, setRestDialogOpen] = useState(false);
+  const injuryActive = !!useAppSelector(selectActiveInjury);
+  const flagOverrides = useAppSelector(
+    (state: RootState) => state.injury.flagOverrides,
+  );
 
   const setSets = (value: number) =>
     updateExercise({ sets: Math.max(value, 1) });
@@ -587,6 +609,25 @@ function WeightedExerciseEditor({
                 updateExercise({ supersetWithNext })
               }
             />,
+            ...(injuryActive
+              ? [
+                  <SegmentedListSwitch
+                    key="pain-check"
+                    label={t('injury.flags.exercise.label')}
+                    icon={'heartCheck'}
+                    value={isShoulderLoaded(exercise.name, flagOverrides)}
+                    testID="exercise-pain-check"
+                    onValueChange={(flagged) =>
+                      dispatch(
+                        setFlagOverride({
+                          name: new NormalizedName(exercise.name).toString(),
+                          flagged,
+                        }),
+                      )
+                    }
+                  />,
+                ]
+              : []),
             <SegmentListFormElement
               label={t('exercise.progressive_overload.label')}
               icon={'trendingUp'}

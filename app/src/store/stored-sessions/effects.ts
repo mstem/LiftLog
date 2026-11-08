@@ -34,6 +34,7 @@ import {
 } from '@/models/rename-exercise';
 import { setEditingSession } from '@/store/session-editor';
 import { setStatsIsDirty } from '@/store/stats';
+import { setFlagOverride, setReturnOverride } from '@/store/injury';
 import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
@@ -48,6 +49,7 @@ import {
   sessionsSchema,
 } from '@/db/schema';
 import { NormalizedName } from '@/models/blueprint-models';
+import { rehabDescriptors } from '@/models/injury/rehab';
 import { eq, sql } from 'drizzle-orm';
 import { toRecord } from '@/utils/reduce';
 import {
@@ -121,6 +123,21 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           },
           {} as Record<string, ExerciseDescriptor>,
         );
+
+      const knownExerciseNames = new Set(
+        [
+          ...Object.values(savedExercises),
+          ...Object.values(builtInExercisesNotAlreadyAdded),
+        ].map((x) => x.name.toLowerCase()),
+      );
+      for (const rehab of rehabDescriptors()) {
+        if (
+          !knownExerciseNames.has(rehab.name.toLowerCase()) &&
+          !builtinExercisesAddedInThePast.includes(rehab.name)
+        ) {
+          builtInExercisesNotAlreadyAdded[rehab.name] = rehab;
+        }
+      }
 
       const currentExercises = Object.entries({
         ...builtInExercisesNotAlreadyAdded,
@@ -349,6 +366,32 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
         }),
       );
       dispatch(setExerciseNotes({ exerciseName: rename.from, notes: '' }));
+    }
+
+    // Injury mode keys its pain-check switch and Pull-day decisions by
+    // name; a setting the new name already has stays
+    if (!sameKey) {
+      const { flagOverrides, returnOverrides } = stateAfterReduce.injury;
+      const flag = flagOverrides[from.toString()];
+      if (flag !== undefined) {
+        if (flagOverrides[to.toString()] === undefined) {
+          dispatch(setFlagOverride({ name: to.toString(), flagged: flag }));
+        }
+        dispatch(
+          setFlagOverride({ name: from.toString(), flagged: undefined }),
+        );
+      }
+      const decision = returnOverrides[from.toString()];
+      if (decision !== undefined) {
+        if (returnOverrides[to.toString()] === undefined) {
+          dispatch(
+            setReturnOverride({ name: to.toString(), override: decision }),
+          );
+        }
+        dispatch(
+          setReturnOverride({ name: from.toString(), override: undefined }),
+        );
+      }
     }
 
     // The library entry takes the new name unless one already has it

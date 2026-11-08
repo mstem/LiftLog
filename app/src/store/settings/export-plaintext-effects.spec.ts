@@ -249,6 +249,35 @@ describe('export-plaintext-effects', () => {
       expect(csv).toContain('slow eccentric');
     });
 
+    it('adds a Pain column only when a set recorded pain', async () => {
+      const fileExportService = makeFileExportService();
+      const bp = makeWeightedBlueprint('Curl', 2, 12);
+      const kg = new Weight(20, 'kilograms');
+      const exercise = new RecordedWeightedExercise(
+        bp,
+        [
+          new PotentialSet(new RecordedSet(12, t, 6), kg),
+          new PotentialSet(new RecordedSet(12, t), kg),
+        ],
+        undefined,
+      );
+      const testBed = createAddEffectTestBed({
+        services: {
+          progressRepository: makeProgressRepository([makeSession([exercise])]),
+          fileExportService,
+        },
+      });
+      addExportPlaintextEffects(testBed.addEffect);
+
+      await testBed.dispatchHandled(exportPlainText({ format: 'CSV' }));
+
+      const [, bytes] = fileExportService.exportBytes.mock.calls[0]!;
+      const lines = new TextDecoder().decode(bytes).trim().split('\n');
+      expect(lines[0]).toMatch(/,Notes,Pain\r?$/);
+      expect(lines[1]).toMatch(/,12,12,,6\r?$/);
+      expect(lines[2]).toMatch(/,12,12,,\r?$/);
+    });
+
     it('exports rows across multiple sessions', async () => {
       const fileExportService = makeFileExportService();
       const sessions = [

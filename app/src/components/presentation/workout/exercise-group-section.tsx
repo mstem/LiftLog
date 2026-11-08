@@ -1,7 +1,9 @@
 import { AccordionItem } from '@/components/presentation/foundation/accordion-item';
 import { SurfaceText } from '@/components/presentation/foundation/surface-text';
 import { spacing, useAppTheme } from '@/hooks/useAppTheme';
-import { ReactNode, useState } from 'react';
+import { REHAB_GROUP } from '@/models/injury/rehab';
+import { useTranslate } from '@tolgee/react';
+import { ReactNode, useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { Icon } from 'react-native-paper';
 import TouchableRipple from '@/components/presentation/foundation/gesture-wrappers/touchable-ripple';
@@ -14,10 +16,20 @@ import TouchableRipple from '@/components/presentation/foundation/gesture-wrappe
 export default function ExerciseGroupSection(props: {
   name: string;
   exerciseCount: number;
+  /** Opens the block whenever the next set to do is inside it. */
+  containsNext?: boolean;
   children: ReactNode;
 }) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(!!props.containsNext);
+  useEffect(() => {
+    if (props.containsNext) {
+      setIsExpanded(true);
+    }
+  }, [props.containsNext]);
   const { colors } = useAppTheme();
+  const { t } = useTranslate();
+  const label =
+    props.name === REHAB_GROUP ? t('injury.rehab.group') : props.name;
 
   return (
     <View>
@@ -25,7 +37,7 @@ export default function ExerciseGroupSection(props: {
         onPress={() => setIsExpanded((x) => !x)}
         accessibilityRole="button"
         accessibilityState={{ expanded: isExpanded }}
-        accessibilityLabel={props.name}
+        accessibilityLabel={label}
         testID={`exercise-group-toggle-${props.name}`}
       >
         <View
@@ -38,11 +50,22 @@ export default function ExerciseGroupSection(props: {
             gap: spacing[3],
           }}
         >
-          <SurfaceText font="text-base" weight="bold" style={{ flexShrink: 1 }}>
-            {props.name}
-          </SurfaceText>
+          <View style={{ flexShrink: 1 }}>
+            <SurfaceText font="text-base" weight="bold">
+              {label}
+            </SurfaceText>
+            {props.name === REHAB_GROUP ? (
+              <SurfaceText font="text-sm" color="onSurfaceVariant">
+                {t('injury.rehab.frequency')}
+              </SurfaceText>
+            ) : null}
+          </View>
           <View
-            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing[2] }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: spacing[2],
+            }}
           >
             <SurfaceText font="text-sm" color="onSurfaceVariant">
               {props.exerciseCount}

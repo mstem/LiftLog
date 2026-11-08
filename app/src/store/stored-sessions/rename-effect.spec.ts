@@ -15,6 +15,7 @@ import {
   upsertSavedPlans,
 } from '@/store/program';
 import { setStatsIsDirty } from '@/store/stats';
+import { setFlagOverride, setReturnOverride } from '@/store/injury';
 import {
   setCurrentSession,
   setExerciseSwaps,
@@ -54,6 +55,10 @@ function testBed(extra?: {
   library?: Record<string, ExerciseDescriptor>;
   draft?: SessionBlueprint;
   swaps?: Record<string, ExerciseSwap[]>;
+  injury?: {
+    flagOverrides?: Record<string, boolean>;
+    returnOverrides?: Record<string, 'returned' | 'paused'>;
+  };
 }) {
   const bed = createAddEffectTestBed({
     initialState: {
@@ -66,6 +71,10 @@ function testBed(extra?: {
       },
       program: { savedPrograms: { p1: plan.toPOJO() } },
       sessionEditor: { sessionBlueprint: extra?.draft },
+      injury: {
+        flagOverrides: extra?.injury?.flagOverrides ?? {},
+        returnOverrides: extra?.injury?.returnOverrides ?? {},
+      },
       currentSession: {
         workoutSession: makeSession([rows]),
         exerciseSwaps: extra?.swaps ?? {},
@@ -178,6 +187,47 @@ describe('renameExercise', () => {
     );
 
     bed.expectNotDispatched(deleteExercise);
+  });
+
+  it('carries the injury pain-check switch and Pull-day decision over', async () => {
+    const bed = testBed({
+      injury: {
+        flagOverrides: { 'seated cable row': true },
+        returnOverrides: { 'seated cable row': 'returned' },
+      },
+    });
+    await bed.dispatchHandled(renameExercise(rename));
+
+    expect(
+      bed.dispatchedActions.filter(setFlagOverride.match).map((x) => x.payload),
+    ).toEqual([
+      { name: 'cable row (seated)', flagged: true },
+      { name: 'seated cable row', flagged: undefined },
+    ]);
+    expect(
+      bed.dispatchedActions
+        .filter(setReturnOverride.match)
+        .map((x) => x.payload),
+    ).toEqual([
+      { name: 'cable row (seated)', override: 'returned' },
+      { name: 'seated cable row', override: undefined },
+    ]);
+  });
+
+  it('keeps an injury setting the new name already has', async () => {
+    const bed = testBed({
+      injury: {
+        flagOverrides: {
+          'seated cable row': true,
+          'cable row (seated)': false,
+        },
+      },
+    });
+    await bed.dispatchHandled(renameExercise(rename));
+
+    expect(
+      bed.dispatchedActions.filter(setFlagOverride.match).map((x) => x.payload),
+    ).toEqual([{ name: 'seated cable row', flagged: undefined }]);
   });
 
   it('marks the stats out of date, so they show the new name', async () => {

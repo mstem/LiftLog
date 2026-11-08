@@ -393,3 +393,6 @@ temp/
 
 # Local Hevy import scratch DB
 scripts/liftlog-import.db
+
+# Personal notes and data for local development. Never committed.
+/private/
