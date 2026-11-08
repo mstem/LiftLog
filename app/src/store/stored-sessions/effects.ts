@@ -19,7 +19,12 @@ import {
   upsertStoredSessions,
   WeightMigrateableExercise,
 } from './index';
-import { fetchUpcomingSessions, upsertSavedPlans } from '@/store/program';
+import {
+  fetchUpcomingSessions,
+  setIsHydrated as setProgramIsHydrated,
+  upsertSavedPlans,
+} from '@/store/program';
+import { pendingLibraryRenames } from '@/models/library-renames';
 import { ProgramBlueprint } from '@/models/blueprint-models';
 import {
   renameInProgram,
@@ -33,7 +38,11 @@ import { setFlagOverride, setReturnOverride } from '@/store/injury';
 import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
-import { setCurrentSession, setExerciseSwaps } from '@/store/current-session';
+import {
+  setCurrentSession,
+  setExerciseSwaps,
+  setIsHydrated as setCurrentSessionIsHydrated,
+} from '@/store/current-session';
 import {
   exerciseNotesSchema,
   exercisesSchema,
@@ -52,6 +61,7 @@ import {
 // We keep track of added builting exerciseIds (which are the exercise name for builtins)
 // Then we make sure builtins don't get re-added if they are deleted
 const addedBuiltInExerciseIdsStorageKey = 'AddedBuiltInExerciseIdList';
+const libraryRenamesDoneKey = 'LibraryRenamesDone';
 export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
   // Dispatched AFTER settings, so we can safely access settings
   addEffect(
@@ -235,6 +245,52 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(fetchUpcomingSessions());
     dispatch(setExercisesRequiringWeightMigration([]));
   });
+
+  // Old library names fold into their new ones once history, plans and the
+  // workout in progress have all loaded, so the rename reaches each of them
+  let libraryRenamesChecked = false;
+  addEffect(
+    [setIsHydrated, setProgramIsHydrated, setCurrentSessionIsHydrated],
+    async (_, { dispatch, stateAfterReduce, extra: { keyValueStore } }) => {
+      if (
+        libraryRenamesChecked ||
+        !stateAfterReduce.storedSessions.isHydrated ||
+        !stateAfterReduce.program.isHydrated ||
+        !stateAfterReduce.currentSession.isHydrated
+      ) {
+        return;
+      }
+      libraryRenamesChecked = true;
+      // Once only: a lift given an old name later is the user's own choice
+      if ((await keyValueStore.getItem(libraryRenamesDoneKey)) === '1') {
+        return;
+      }
+      const names = [
+        ...Object.values(stateAfterReduce.storedSessions.savedExercises).map(
+          (x) => x.name,
+        ),
+        ...Object.values(stateAfterReduce.storedSessions.sessions).flatMap(
+          (x) => [
+            ...x.blueprint.exercises.map((e) => e.name),
+            ...x.recordedExercises.map((e) => e.blueprint.name),
+          ],
+        ),
+        ...Object.keys(stateAfterReduce.storedSessions.exerciseNotes),
+        ...(stateAfterReduce.currentSession.workoutSession?.recordedExercises.map(
+          (e) => e.blueprint.name,
+        ) ?? []),
+        ...Object.values(stateAfterReduce.program.savedPrograms).flatMap((x) =>
+          ProgramBlueprint.fromPOJO(x).sessions.flatMap((s) =>
+            s.exercises.map((e) => e.name),
+          ),
+        ),
+      ];
+      for (const rename of pendingLibraryRenames(names)) {
+        dispatch(renameExercise(rename));
+      }
+      await keyValueStore.setItem(libraryRenamesDoneKey, '1');
+    },
+  );
 
   addEffect(renameExercise, (action, { dispatch, stateAfterReduce }) => {
     const rename = action.payload;
