@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import library from '../../assets/exercises.json';
+import { fuzzyMatchScore } from '../components/presentation/workout-editor/exercise-fuzzy-match';
 
 const exercises = library.exercises;
 const muscles = new Set([
@@ -42,5 +43,9 @@ describe('bundled exercise library', () => {
     expect(trx.length).toBeGreaterThanOrEqual(20);
     expect(trx.every((x) => x.equipment === 'suspension trainer')).toBe(true);
     expect(trx.every((x) => x.primaryMuscles.length > 0)).toBe(true);
+    const missed = trx
+      .filter((x) => fuzzyMatchScore('trx', x.name) === null)
+      .map((x) => x.name);
+    expect(missed).toEqual([]);
   });
 });
