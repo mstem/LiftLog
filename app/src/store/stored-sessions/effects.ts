@@ -6,6 +6,7 @@ import {
   deleteStoredSession,
   initializeStoredSessionsStateSlice,
   migrateExerciseWeights,
+  renameExercise,
   selectSessions,
   setAllExerciseNotes,
   setExerciseNotes,
@@ -18,16 +19,37 @@ import {
   upsertStoredSessions,
   WeightMigrateableExercise,
 } from './index';
-import { fetchUpcomingSessions } from '@/store/program';
+import {
+  fetchUpcomingSessions,
+  setIsHydrated as setProgramIsHydrated,
+  upsertSavedPlans,
+} from '@/store/program';
+import { pendingLibraryRenames } from '@/models/library-renames';
+import { ProgramBlueprint } from '@/models/blueprint-models';
+import {
+  renameInProgram,
+  renameInSession,
+  renameInSessionBlueprint,
+  renameInSwaps,
+} from '@/models/rename-exercise';
+import { setEditingSession } from '@/store/session-editor';
+import { setStatsIsDirty } from '@/store/stats';
+import { setFlagOverride, setReturnOverride } from '@/store/injury';
+import { SessionTarget } from '@/store/current-session';
 import Enumerable from 'linq';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
-import { setCurrentSession } from '@/store/current-session';
+import {
+  setCurrentSession,
+  setExerciseSwaps,
+  setIsHydrated as setCurrentSessionIsHydrated,
+} from '@/store/current-session';
 import {
   exerciseNotesSchema,
   exercisesSchema,
   sessionsSchema,
 } from '@/db/schema';
 import { NormalizedName } from '@/models/blueprint-models';
+import { rehabDescriptors } from '@/models/injury/rehab';
 import { eq, sql } from 'drizzle-orm';
 import { toRecord } from '@/utils/reduce';
 import {
@@ -39,6 +61,7 @@ import {
 // We keep track of added builting exerciseIds (which are the exercise name for builtins)
 // Then we make sure builtins don't get re-added if they are deleted
 const addedBuiltInExerciseIdsStorageKey = 'AddedBuiltInExerciseIdList';
+const libraryRenamesDoneKey = 'LibraryRenamesDone';
 export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
   // Dispatched AFTER settings, so we can safely access settings
   addEffect(
@@ -100,6 +123,21 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           },
           {} as Record<string, ExerciseDescriptor>,
         );
+
+      const knownExerciseNames = new Set(
+        [
+          ...Object.values(savedExercises),
+          ...Object.values(builtInExercisesNotAlreadyAdded),
+        ].map((x) => x.name.toLowerCase()),
+      );
+      for (const rehab of rehabDescriptors()) {
+        if (
+          !knownExerciseNames.has(rehab.name.toLowerCase()) &&
+          !builtinExercisesAddedInThePast.includes(rehab.name)
+        ) {
+          builtInExercisesNotAlreadyAdded[rehab.name] = rehab;
+        }
+      }
 
       const currentExercises = Object.entries({
         ...builtInExercisesNotAlreadyAdded,
@@ -206,6 +244,185 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
     dispatch(upsertStoredSessions(newSessions));
     dispatch(fetchUpcomingSessions());
     dispatch(setExercisesRequiringWeightMigration([]));
+  });
+
+  // Old library names fold into their new ones once history, plans and the
+  // workout in progress have all loaded, so the rename reaches each of them
+  let libraryRenamesChecked = false;
+  addEffect(
+    [setIsHydrated, setProgramIsHydrated, setCurrentSessionIsHydrated],
+    async (_, { dispatch, stateAfterReduce, extra: { keyValueStore } }) => {
+      if (
+        libraryRenamesChecked ||
+        !stateAfterReduce.storedSessions.isHydrated ||
+        !stateAfterReduce.program.isHydrated ||
+        !stateAfterReduce.currentSession.isHydrated
+      ) {
+        return;
+      }
+      libraryRenamesChecked = true;
+      // Once only: a lift given an old name later is the user's own choice
+      if ((await keyValueStore.getItem(libraryRenamesDoneKey)) === '1') {
+        return;
+      }
+      const names = [
+        ...Object.values(stateAfterReduce.storedSessions.savedExercises).map(
+          (x) => x.name,
+        ),
+        ...Object.values(stateAfterReduce.storedSessions.sessions).flatMap(
+          (x) => [
+            ...x.blueprint.exercises.map((e) => e.name),
+            ...x.recordedExercises.map((e) => e.blueprint.name),
+          ],
+        ),
+        ...Object.keys(stateAfterReduce.storedSessions.exerciseNotes),
+        ...(stateAfterReduce.currentSession.workoutSession?.recordedExercises.map(
+          (e) => e.blueprint.name,
+        ) ?? []),
+        ...Object.values(stateAfterReduce.program.savedPrograms).flatMap((x) =>
+          ProgramBlueprint.fromPOJO(x).sessions.flatMap((s) =>
+            s.exercises.map((e) => e.name),
+          ),
+        ),
+      ];
+      for (const rename of pendingLibraryRenames(names)) {
+        dispatch(renameExercise(rename));
+      }
+      await keyValueStore.setItem(libraryRenamesDoneKey, '1');
+    },
+  );
+
+  addEffect(renameExercise, (action, { dispatch, stateAfterReduce }) => {
+    const rename = action.payload;
+    const from = new NormalizedName(rename.from);
+    const to = new NormalizedName(rename.to);
+    if (!rename.to.trim() || rename.to === rename.from) {
+      return;
+    }
+    // Only capitals or a plural changed: notes and history keys stay put
+    const sameKey = from.equals(to);
+
+    const renamedSessions = selectSessions(stateAfterReduce)
+      .map((x) => [x, renameInSession(x, rename)] as const)
+      .filter(([before, after]) => before !== after)
+      .map(([, after]) => after);
+    if (renamedSessions.length) {
+      dispatch(upsertStoredSessions(renamedSessions));
+    }
+
+    const renamedPlans = Object.fromEntries(
+      Object.entries(stateAfterReduce.program.savedPrograms)
+        .map(([id, pojo]) => {
+          const program = ProgramBlueprint.fromPOJO(pojo);
+          return [id, program, renameInProgram(program, rename)] as const;
+        })
+        .filter(([, before, after]) => before !== after)
+        .map(([id, , after]) => [id, after]),
+    );
+    if (Object.keys(renamedPlans).length) {
+      dispatch(upsertSavedPlans(renamedPlans));
+    }
+
+    const targets: SessionTarget[] = [
+      'workoutSession',
+      'historySession',
+      'feedSession',
+    ];
+    for (const target of targets) {
+      const session = stateAfterReduce.currentSession[target];
+      const renamed = session && renameInSession(session, rename);
+      if (session && renamed !== session) {
+        dispatch(setCurrentSession({ target, session: renamed }));
+      }
+    }
+
+    // Finish undoes swaps by name, so they follow the rename too
+    for (const [sessionId, swaps] of Object.entries(
+      stateAfterReduce.currentSession.exerciseSwaps,
+    )) {
+      const renamed = renameInSwaps(swaps, rename);
+      if (renamed !== swaps) {
+        dispatch(setExerciseSwaps({ sessionId, swaps: renamed }));
+      }
+    }
+
+    // The plan being edited is written back over the saved plan when its
+    // screen regains focus, so it has to carry the new name too
+    const draft = stateAfterReduce.sessionEditor.sessionBlueprint;
+    const renamedDraft = draft && renameInSessionBlueprint(draft, rename);
+    if (draft && renamedDraft !== draft) {
+      dispatch(setEditingSession(renamedDraft));
+    }
+
+    // Notes are keyed by name; when both names have notes, both are kept
+    const notes = stateAfterReduce.storedSessions.exerciseNotes;
+    const fromNotes = notes[from.toString()];
+    if (fromNotes && !sameKey) {
+      const toNotes = notes[to.toString()];
+      dispatch(
+        setExerciseNotes({
+          exerciseName: rename.to,
+          notes: toNotes ? `${toNotes}\n\n${fromNotes}` : fromNotes,
+        }),
+      );
+      dispatch(setExerciseNotes({ exerciseName: rename.from, notes: '' }));
+    }
+
+    // Injury mode keys its pain-check switch and Pull-day decisions by
+    // name; a setting the new name already has stays
+    if (!sameKey) {
+      const { flagOverrides, returnOverrides } = stateAfterReduce.injury;
+      const flag = flagOverrides[from.toString()];
+      if (flag !== undefined) {
+        if (flagOverrides[to.toString()] === undefined) {
+          dispatch(setFlagOverride({ name: to.toString(), flagged: flag }));
+        }
+        dispatch(
+          setFlagOverride({ name: from.toString(), flagged: undefined }),
+        );
+      }
+      const decision = returnOverrides[from.toString()];
+      if (decision !== undefined) {
+        if (returnOverrides[to.toString()] === undefined) {
+          dispatch(
+            setReturnOverride({ name: to.toString(), override: decision }),
+          );
+        }
+        dispatch(
+          setReturnOverride({ name: from.toString(), override: undefined }),
+        );
+      }
+    }
+
+    // The library entry takes the new name unless one already has it
+    const library = Object.entries(
+      stateAfterReduce.storedSessions.savedExercises,
+    );
+    const hasTo =
+      !sameKey &&
+      library.some(([, x]) => new NormalizedName(x.name).equals(to));
+    const fromEntries = library.filter(([, x]) =>
+      new NormalizedName(x.name).equals(from),
+    );
+    fromEntries.forEach(([id, entry], i) => {
+      // Only capitals or a plural changed: the other entries already share
+      // the key, so they stay as they are
+      if (sameKey && i > 0) {
+        return;
+      }
+      if (hasTo || i > 0) {
+        // The lift lives on under the new name; an entry left with the old
+        // name would offer a lift with no history behind it
+        dispatch(deleteExercise(id));
+      } else {
+        dispatch(
+          updateExercise({ id, exercise: { ...entry, name: rename.to } }),
+        );
+      }
+    });
+
+    dispatch(setStatsIsDirty(true));
+    dispatch(fetchUpcomingSessions());
   });
 
   addEffect(

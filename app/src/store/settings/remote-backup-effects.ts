@@ -12,6 +12,7 @@ import { Instant } from '@js-joda/core';
 import 'compression-streams-polyfill';
 import { TaskAbortError } from '@reduxjs/toolkit';
 import { getBackupBytes } from '@/store/settings/util';
+import { serializeInjuryState } from '@/models/injury/injury';
 
 export function addRemoteBackupEffects(addEffect: AddEffectFn) {
   addEffect(
@@ -39,9 +40,13 @@ export function addRemoteBackupEffects(addEffect: AddEffectFn) {
       try {
         throwIfCancelled();
 
+        const injury = getState().injury;
         const daoBytes = await getBackupBytes({
           includeFeed: includeFeedAccount,
           expoDb,
+          injuryState: injury.isHydrated
+            ? serializeInjuryState(injury)
+            : undefined,
         });
 
         throwIfCancelled();

@@ -5,11 +5,16 @@ import {
   SQLiteDatabase,
 } from 'expo-sqlite';
 
+/** Injury settings live outside the database, so backups carry a copy here. */
+export const injuryBackupTable = 'injury_state';
+
 export async function getBackupBytes(options: {
   includeFeed: boolean;
   expoDb: SQLiteDatabase;
+  /** Serialized injury settings to include in the backup. */
+  injuryState?: string;
 }) {
-  const { expoDb, includeFeed } = options;
+  const { expoDb, includeFeed, injuryState } = options;
   // A new connection gives each backup its own in-memory copy. expo-sqlite
   // otherwise returns the database already open under ':memory:', so
   // overlapping backups shared one copy and the native backup call crashed.
@@ -32,6 +37,15 @@ export async function getBackupBytes(options: {
             DELETE FROM feed_revoked_follow_secrets;
             DELETE FROM feed_unpublished_sessions;
             `);
+    }
+    if (injuryState !== undefined) {
+      await backupDatabase.execAsync(
+        `CREATE TABLE IF NOT EXISTS ${injuryBackupTable} (id INTEGER PRIMARY KEY, payload TEXT NOT NULL);`,
+      );
+      await backupDatabase.runAsync(
+        `INSERT OR REPLACE INTO ${injuryBackupTable} (id, payload) VALUES (1, ?)`,
+        injuryState,
+      );
     }
     bytes = await backupDatabase.serializeAsync();
   } finally {

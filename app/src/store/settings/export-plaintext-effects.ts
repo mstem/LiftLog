@@ -74,7 +74,15 @@ async function exportToCsv(
     .selectMany(({ session, exercise }) =>
       ExportedSetCsvRow.fromModel(session, exercise),
     );
-  const csvString = jsonToCSV(exportedSets.toArray());
+  const rows = exportedSets.toArray();
+  // Pain is only added when something was recorded, so exports from people
+  // who never use it keep the original columns.
+  const hasPain = rows.some((x) => x.Pain !== undefined);
+  const csvString = jsonToCSV(
+    rows.map(({ Pain, ...rest }) =>
+      hasPain ? { ...rest, Pain: Pain ?? '' } : rest,
+    ),
+  );
   return new TextEncoder().encode(csvString);
 }
 
@@ -88,6 +96,7 @@ class ExportedSetCsvRow {
     public Reps: number,
     public TargetReps: number,
     public Notes: string,
+    public Pain?: number,
   ) {}
   static fromModel(
     session: Session,
@@ -110,6 +119,7 @@ class ExportedSetCsvRow {
             set.set!.repsCompleted,
             exercise.blueprint.repsPerSet,
             exercise.notes ?? '',
+            set.set!.pain,
           ),
       );
   }

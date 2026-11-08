@@ -172,9 +172,13 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
         try {
           // A lift swapped in for this workout is compared as the planned
           // lift it stood in for, so the swap is never offered to the plan.
-          const blueprint = undoSwaps(
-            session.blueprint,
-            getState().currentSession.exerciseSwaps?.[session.id] ?? [],
+          // Lifts rolled over and the injury Rehab block are one-offs, so
+          // they are left out before comparing with the plan.
+          const blueprint = withoutRolledOverExercises(
+            undoSwaps(
+              session.blueprint,
+              getState().currentSession.exerciseSwaps?.[session.id] ?? [],
+            ),
           );
           const sessionInPlan = program.sessions.some((x) =>
             x.equals(blueprint),
@@ -198,7 +202,7 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
                   type: 'add',
                   diff: diffSessionBlueprints(
                     EmptySession.blueprint,
-                    withoutRolledOverExercises(blueprint),
+                    blueprint,
                   ),
                 };
             // Only reps differed: nothing is left to offer, so no dialog.
@@ -246,6 +250,15 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
       )
     ) {
       dispatch(notifySetTimer());
+    }
+    // The rest end time has gone, so no rest is running: clear the pending
+    // rest notification rather than let it fire for a rest that is over.
+    if (
+      previousValue?.restTimerEndTime &&
+      currentValue &&
+      !currentValue.restTimerEndTime
+    ) {
+      dispatch(clearSetTimerNotification());
     }
     if (isInProgress && currentValue) {
       dispatch(

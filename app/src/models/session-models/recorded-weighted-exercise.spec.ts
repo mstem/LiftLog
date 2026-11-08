@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Weight } from '@/models/weight';
-import { Rest } from '@/models/blueprint-models';
+import BigNumber from 'bignumber.js';
+import { OffsetDateTime } from '@js-joda/core';
+import {
+  IncreaseAllEvenlyProgressiveOverload,
+  Rest,
+  WeightedExerciseBlueprint,
+} from '@/models/blueprint-models';
 import {
   PotentialSet,
   RecordedSet,
@@ -105,5 +111,159 @@ describe('RecordedWeightedExercise.withRest', () => {
     expect(result.blueprint.restBetweenSets).toEqual(Rest.long);
     expect(result.potentialSets).toEqual(exercise.potentialSets);
     expect(result.blueprint.name).toBe(exercise.blueprint.name);
+  });
+});
+
+describe('pain on sets', () => {
+  const now = tick();
+  const kg = new Weight(20, 'kilograms');
+  const done = (pain?: number) =>
+    new PotentialSet(new RecordedSet(8, now, pain), kg);
+  const open = () => new PotentialSet(undefined, kg);
+  const exerciseOf = (sets: PotentialSet[]) =>
+    new RecordedWeightedExercise(makeWeightedBlueprint(), sets, undefined);
+
+  it('loads a set saved before pain existed', () => {
+    const set = RecordedSet.fromJSON(new RecordedSet(8, now).toJSON());
+    expect(set.pain).toBeUndefined();
+    expect('pain' in new RecordedSet(8, now).toJSON()).toBe(false);
+  });
+
+  it('round-trips pain', () => {
+    expect(RecordedSet.fromJSON(new RecordedSet(8, now, 4).toJSON()).pain).toBe(
+      4,
+    );
+  });
+
+  it('treats sets with different pain as different', () => {
+    expect(new RecordedSet(8, now, 4).equals(new RecordedSet(8, now, 5))).toBe(
+      false,
+    );
+    expect(new RecordedSet(8, now, 4).equals(new RecordedSet(8, now, 4))).toBe(
+      true,
+    );
+  });
+
+  it('with keeps pain unless told otherwise', () => {
+    const set = new RecordedSet(8, now, 4);
+    expect(set.with({ repsCompleted: 5 }).pain).toBe(4);
+    expect(set.with({ pain: undefined }).pain).toBeUndefined();
+  });
+
+  it('withSetPain sets pain on a completed set only', () => {
+    const ex = exerciseOf([done(), open(), open()]);
+    expect(ex.withSetPain(0, 6).potentialSets[0]!.set!.pain).toBe(6);
+    expect(ex.withSetPain(1, 6)).toBe(ex);
+  });
+
+  it('finds the set that went over the limit', () => {
+    const ex = exerciseOf([done(3), done(6), open()]);
+    expect(ex.stoppedForPainAt(5)).toBe(1);
+    expect(ex.stoppedForPainAt(6)).toBeUndefined();
+  });
+});
+
+describe('pain through rep edits', () => {
+  it('keeps pain when the reps of a completed set change', () => {
+    const t0 = tick();
+    const ex = new RecordedWeightedExercise(
+      makeWeightedBlueprint(),
+      [
+        new PotentialSet(
+          new RecordedSet(8, t0, 5),
+          new Weight(20, 'kilograms'),
+        ),
+      ],
+      undefined,
+    );
+    const edited = ex.withRepCount(0, 6, t0.plusSeconds(30));
+    expect(edited.potentialSets[0]!.set!.repsCompleted).toBe(6);
+    expect(edited.potentialSets[0]!.set!.pain).toBe(5);
+  });
+});
+
+describe('stopped for pain', () => {
+  const now = tick();
+  const kg = new Weight(20, 'kilograms');
+  const done = (pain?: number) =>
+    new PotentialSet(new RecordedSet(8, now, pain), kg);
+  const open = () => new PotentialSet(undefined, kg);
+  const exerciseOf = (sets: PotentialSet[]) =>
+    new RecordedWeightedExercise(makeWeightedBlueprint(), sets, undefined);
+
+  it('counts as complete with open sets once stopped', () => {
+    const ex = exerciseOf([done(7), open(), open()]);
+    expect(ex.isComplete).toBe(false);
+    expect(ex.withPainStop(5).isComplete).toBe(true);
+    expect(ex.withPainStop(5).stoppedForPain).toBe(true);
+  });
+
+  it('clears the stop when no set is over the limit', () => {
+    const stopped = exerciseOf([done(7), open(), open()]).withPainStop(5);
+    const lowered = stopped.withSetPain(0, 4).withPainStop(5);
+    expect(lowered.stoppedForPain).toBeUndefined();
+    expect(lowered.isComplete).toBe(false);
+    const unticked = stopped.withRepCount(0, undefined, tick()).withPainStop(5);
+    expect(unticked.stoppedForPain).toBeUndefined();
+  });
+
+  it('keeps the flag through with, withSetPain and a JSON round-trip', () => {
+    const stopped = exerciseOf([done(7), open()]).withPainStop(5);
+    expect(stopped.withSetPain(0, 8).stoppedForPain).toBe(true);
+    expect(stopped.with({ notes: 'x' }).stoppedForPain).toBe(true);
+    expect(
+      RecordedWeightedExercise.fromJSON(stopped.toJSON()).stoppedForPain,
+    ).toBe(true);
+  });
+
+  it('leaves the flag out of JSON when not stopped', () => {
+    expect('stoppedForPain' in exerciseOf([done()]).toJSON()).toBe(false);
+  });
+
+  it('is part of equality', () => {
+    const ex = exerciseOf([done(7), open()]);
+    expect(ex.equals(ex.withPainStop(5))).toBe(false);
+    expect(ex.withPainStop(5).equals(ex.withPainStop(5))).toBe(true);
+  });
+
+  it('withNothingCompleted clears it', () => {
+    const stopped = exerciseOf([done(7), open()]).withPainStop(5);
+    expect(stopped.withNothingCompleted().stoppedForPain).toBeUndefined();
+  });
+});
+
+describe('isSetLockedForPain', () => {
+  const blueprint = new WeightedExerciseBlueprint(
+    'Standing Military Press',
+    3,
+    8,
+    new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5)),
+    Rest.medium,
+    false,
+    '',
+    '',
+  );
+  const kg20 = new Weight(20, 'kilograms');
+  // Sets 1 and 2 ticked, then set 1 rated 8 after the fact; set 3 not done.
+  const exercise = new RecordedWeightedExercise(
+    blueprint,
+    [
+      new PotentialSet(new RecordedSet(8, OffsetDateTime.now(), 8), kg20),
+      new PotentialSet(new RecordedSet(8, OffsetDateTime.now()), kg20),
+      new PotentialSet(undefined, kg20),
+    ],
+    undefined,
+  );
+
+  it('keeps a set ticked after the stop editable', () => {
+    expect(exercise.isSetLockedForPain(1, 5)).toBe(false);
+  });
+
+  it('locks an undone set after the stop', () => {
+    expect(exercise.isSetLockedForPain(2, 5)).toBe(true);
+  });
+
+  it('locks nothing under the limit', () => {
+    expect(exercise.isSetLockedForPain(2, 8)).toBe(false);
   });
 });

@@ -27,7 +27,7 @@ import {
   fromFeedUserJSON,
   SessionUserEvent,
 } from '@/models/feed-models';
-import { deserializeDatabaseAsync } from 'expo-sqlite';
+import { deserializeDatabaseAsync, SQLiteDatabase } from 'expo-sqlite';
 import { drizzle } from 'drizzle-orm/expo-sqlite';
 import { DatabaseMigrationService } from '@/services/database-migration-service';
 import { FeedBackupData } from '@/models/backup';
@@ -43,6 +43,9 @@ import {
   sessionsSchema,
 } from '@/db/schema';
 import { toRecord } from '@/utils/reduce';
+import { InjuryState, parseInjuryState } from '@/models/injury/injury';
+import { restoreInjuryState } from '@/store/injury';
+import { injuryBackupTable } from '@/store/settings/util';
 import {
   followRequestInboxMessageMigrations,
   feedIdentityMigrations,
@@ -107,6 +110,9 @@ export function addImportBackupEffects(addEffect: AddEffectFn) {
       dispatch(checkIfWeightMigrationRequired());
       if (dao.feed) {
         dispatch(beginFeedImport(dao.feed));
+      }
+      if (dao.injury) {
+        dispatch(restoreInjuryState(dao.injury));
       }
     },
   );
@@ -176,6 +182,7 @@ export function addImportBackupEffects(addEffect: AddEffectFn) {
           workouts,
           exerciseNotes,
           feed,
+          injury: await readInjuryBackup(backupDb),
         }),
       );
     } finally {
@@ -251,6 +258,26 @@ export function addImportBackupEffects(addEffect: AddEffectFn) {
       }),
     );
   });
+}
+
+/** Backups made before injury settings were included have no table. */
+async function readInjuryBackup(
+  db: SQLiteDatabase,
+): Promise<InjuryState | undefined> {
+  try {
+    const row = await db.getFirstAsync<{ payload: string }>(
+      `SELECT payload FROM ${injuryBackupTable} WHERE id = 1`,
+    );
+    if (!row) {
+      return undefined;
+    }
+    // An unreadable entry leaves the current settings alone, the same as a
+    // backup with no entry at all.
+    JSON.parse(row.payload);
+    return parseInjuryState(row.payload);
+  } catch {
+    return undefined;
+  }
 }
 
 function tryParseProto(
