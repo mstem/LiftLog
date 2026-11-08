@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_label">Trainer</string>
+    <string name="widget_description">Next session and this week\'s kilometers, kilograms and minutes</string>
+    <string name="widget_not_configured">Set up automatic remote backup in LiftLog</string>
+    <string name="widget_waiting">Waiting for the trainer</string>
+    <string name="widget_today">Today</string>
+    <string name="widget_tomorrow">Tomorrow</string>
+    <string name="widget_updated">updated %1$s</string>
+    <string name="widget_ran">ran this week</string>
+    <string name="widget_lifted">lifted</string>
+    <string name="widget_active">active</string>
+    <string name="widget_km">km</string>
+    <string name="widget_kg">kg</string>
+    <string name="widget_min">min</string>
+</resources>

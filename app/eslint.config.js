@@ -49,6 +49,7 @@ module.exports = defineConfig([
       'expo-env.d.ts',
       'dist',
       'node_modules',
+      'modules/*/android/build/**',
       'types/dom.slim.d.ts',
     ],
     plugins: {
