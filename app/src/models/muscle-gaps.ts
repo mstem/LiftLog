@@ -163,7 +163,9 @@ export function muscleGaps({
   const since = from ? from.minusDays(1) : today.minusDays(windowDays);
 
   for (const session of sessions) {
-    if (!session.date.isAfter(since) || session.date.isAfter(today)) {
+    // A month report stops at its last day; the 30-day card keeps every
+    // later workout, as it always has
+    if (!session.date.isAfter(since) || (from && session.date.isAfter(today))) {
       continue;
     }
     for (const exercise of session.recordedExercises) {

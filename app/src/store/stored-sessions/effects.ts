@@ -431,7 +431,13 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
   });
 
   addEffect(
-    [addStoredSession, setMonthlyReportNotifications],
+    [
+      addStoredSession,
+      deleteStoredSession,
+      setStoredSessions,
+      upsertStoredSessions,
+      setMonthlyReportNotifications,
+    ],
     (_, { dispatch }) => {
       dispatch(refreshMonthlyReportNotification());
     },
@@ -461,7 +467,12 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           ),
           firstDayOfWeek: settings.firstDayOfWeek,
         });
-        if (!at || !report.workouts) {
+        if (!at) {
+          return;
+        }
+        if (!report.workouts) {
+          // Its workouts were deleted: a report already queued would be stale
+          await monthlyReportNotifier.cancel(month);
           return;
         }
         const monthName = new Date(

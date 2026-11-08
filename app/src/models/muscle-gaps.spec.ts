@@ -85,6 +85,13 @@ describe('muscleGaps', () => {
     expect(result.chest).toBe(0);
   });
 
+  it('still counts a workout dated after today in the 30-day card', () => {
+    const later = today.plusDays(1).toString();
+    expect(gaps(session(later, [lift('Barbell Squat', [60])])).quadriceps).toBe(
+      1,
+    );
+  });
+
   it('matches library names regardless of case and spacing', () => {
     expect(
       gaps(session('2026-09-20', [lift(' barbell squat', [60])])).quadriceps,

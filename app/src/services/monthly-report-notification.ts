@@ -38,8 +38,12 @@ export async function scheduleMonthlyReport(args: {
   });
 }
 
-/** Cancels every report still waiting to go out. */
-export async function cancelMonthlyReport() {
+/** Cancels one month's report, or every report still waiting to go out. */
+export async function cancelMonthlyReport(month?: YearMonth) {
+  if (month) {
+    await cancelScheduledNotificationAsync(idPrefix + month.toString());
+    return;
+  }
   const scheduled = await getAllScheduledNotificationsAsync();
   await Promise.all(
     scheduled

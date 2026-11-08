@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DayOfWeek, LocalDate, OffsetDateTime, YearMonth } from '@js-joda/core';
 import { createAddEffectTestBed } from '@/utils/__test__/add-effect-testbed';
 import { applyStoredSessionsEffects } from '@/store/stored-sessions/effects';
-import { refreshMonthlyReportNotification } from '@/store/stored-sessions';
+import {
+  deleteStoredSession,
+  refreshMonthlyReportNotification,
+  setStoredSessions,
+  upsertStoredSessions,
+} from '@/store/stored-sessions';
 import {
   NoProgressiveOverload,
   Rest,
@@ -107,14 +112,30 @@ describe('refreshMonthlyReportNotification', () => {
     expect(args.body).toContain('"sets":2');
   });
 
-  it('schedules nothing for a month with no workouts', async () => {
-    const { bed, schedule } = testBed({
+  it("cancels only this month's pending report when it has no workouts", async () => {
+    const { bed, schedule, cancel } = testBed({
       enabled: true,
       sessions: [workout('2026-09-30')],
     });
     await bed.dispatchHandled(refreshMonthlyReportNotification());
 
     expect(schedule).not.toHaveBeenCalled();
+    expect(cancel).toHaveBeenCalledTimes(1);
+    const month = (cancel.mock.calls[0] as unknown as [YearMonth])[0];
+    expect(month.toString()).toBe('2026-10');
+  });
+
+  it.each([
+    ['deleting a workout', () => deleteStoredSession('legs-2026-10-02')],
+    ['loading history', () => setStoredSessions({})],
+    ['changing stored workouts', () => upsertStoredSessions([])],
+  ])('refreshes the report after %s', async (_, action) => {
+    const { bed } = testBed({ enabled: true, sessions: [] });
+    await bed.dispatchHandled(action());
+
+    expect(
+      bed.dispatchedActions.some(refreshMonthlyReportNotification.match),
+    ).toBe(true);
   });
 
   it('cancels pending reports when switched off', async () => {
