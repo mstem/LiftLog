@@ -23,6 +23,11 @@ export async function scheduleMonthlyReport(args: {
 }) {
   const identifier = idPrefix + args.month.toString();
   await cancelScheduledNotificationAsync(identifier);
+  // A date trigger in the past fires at once: if 09:00 went by while this
+  // ran, the report already went out and must not go out again
+  if (args.at.getTime() <= Date.now()) {
+    return;
+  }
   await scheduleNotificationAsync({
     identifier,
     content: {

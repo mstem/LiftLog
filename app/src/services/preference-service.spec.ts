@@ -26,4 +26,10 @@ describe('getSkiPrepUntil', () => {
     expect(await new PreferenceService(kv).getSkiPrepUntil()).toBeUndefined();
     expect(values.skiPrepUntil).toBeUndefined();
   });
+
+  it('still loads when clearing the malformed date fails', async () => {
+    const { kv, removeItem } = store({ skiPrepUntil: 'garbage' });
+    removeItem.mockRejectedValueOnce(new Error('disk'));
+    expect(await new PreferenceService(kv).getSkiPrepUntil()).toBeUndefined();
+  });
 });

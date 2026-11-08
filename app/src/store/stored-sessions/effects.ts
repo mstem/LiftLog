@@ -464,8 +464,8 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
         }
         const now = ZonedDateTime.now();
         const thisMonth = YearMonth.from(now);
-        // Last month's report is still due until 09:00 on the 1st, so an edit
-        // to it early that morning has to reach the queued notification
+        // Last month's report is still due until 09:00 on the 1st. An edit to
+        // it early that morning has to reach the queued notification.
         const sessions = selectSessions(stateAfterReduce);
         const library = Object.values(
           stateAfterReduce.storedSessions.savedExercises,
@@ -500,11 +500,6 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
             sets: report.sets,
             bests: report.bestsCount,
           });
-          // 09:00 may have passed since `now`: a trigger in the past fires at
-          // once, which would send the report a second time
-          if (at.getTime() <= Date.now()) {
-            continue;
-          }
           await monthlyReportNotifier.schedule({ month, at, title, body });
         }
       } catch (e) {

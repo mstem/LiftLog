@@ -64,8 +64,9 @@ export class PreferenceService {
       LocalDate.parse(value);
       return value;
     } catch {
-      // Clear it, or the switch reads off with nothing to switch off
-      await this.keyValueStore.removeItem('skiPrepUntil');
+      // Clear it, or the switch reads off with nothing to switch off. A
+      // failed clear must not stop the rest of the settings from loading.
+      await this.keyValueStore.removeItem('skiPrepUntil').catch(() => {});
       return undefined;
     }
   }
