@@ -13,7 +13,7 @@ interface PotentialSetAdditionalActionsDialogProps {
   open: boolean;
   set: PotentialSet;
   repTarget: number;
-  /** Reps done in the set above this one, if it is finished */
+  /** Reps of the nearest earlier set that has any */
   repsAbove: number | undefined;
   pendingReps: number | undefined;
   updateRepCount: (reps: number | undefined) => void;

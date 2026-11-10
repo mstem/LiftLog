@@ -1,7 +1,8 @@
 /**
- * The shortcut buttons in the reps dialog: five either side of the reps done
- * in the set above, or of the target when there is no finished set above.
- * Negative reps don't exist, so the low end stops at 0.
+ * The shortcut buttons in the reps dialog: 11 in a row, five either side of
+ * the reps done in an earlier set, or of the target when no earlier set is
+ * done. Negative reps don't exist, so near 0 the row shifts up instead of
+ * shrinking, which keeps every button in the same place from set to set.
  */
 export function repShortcuts({
   repsAbove,
@@ -10,7 +11,24 @@ export function repShortcuts({
   repsAbove: number | undefined;
   repTarget: number;
 }): number[] {
-  const center = repsAbove ?? repTarget;
-  const lowest = Math.max(0, center - 5);
-  return Array.from({ length: center + 5 - lowest + 1 }, (_, i) => lowest + i);
+  const lowest = Math.max(0, (repsAbove ?? repTarget) - 5);
+  return Array.from({ length: 11 }, (_, i) => lowest + i);
+}
+
+/**
+ * Reps of the nearest set above `index` that has any: ticked reps first,
+ * else reps typed into an unticked set.
+ */
+export function repsBefore(
+  sets: readonly { set?: { repsCompleted: number } | undefined }[],
+  pendingReps: Readonly<Record<number, number | undefined>>,
+  index: number,
+): number | undefined {
+  for (let i = index - 1; i >= 0; i--) {
+    const reps = sets[i]?.set?.repsCompleted ?? pendingReps[i];
+    if (reps !== undefined) {
+      return reps;
+    }
+  }
+  return undefined;
 }

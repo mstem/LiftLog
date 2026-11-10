@@ -28,8 +28,8 @@ interface PotentialSetCounterProps {
   // Weight of the set directly above this one in the exercise, if any. Used to
   // only repeat the barbell plate breakdown when the weight changes.
   weightAbove: Weight | undefined;
-  // Reps done in the set directly above, if it is finished. The reps dialog
-  // centers its shortcut buttons on it.
+  // Reps of the nearest earlier set that has any. The reps dialog centers its
+  // shortcut buttons on it.
   repsAbove: number | undefined;
   // Reps the user entered for this set while it is unchecked (e.g. edited then
   // unchecked). Displayed in place of the placeholder and logged on complete.

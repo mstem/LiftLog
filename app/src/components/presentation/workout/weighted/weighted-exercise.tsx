@@ -2,6 +2,7 @@ import PersonalRecordFlash, {
   personalRecordFlashDurationMs,
 } from '@/components/presentation/workout/weighted/personal-record-flash';
 import PotentialSetCounter from '@/components/presentation/workout/weighted/potential-set-counter';
+import { repsBefore } from '@/models/rep-shortcuts';
 import WeightIncreaseFloat, {
   weightIncreaseFloatDurationMs,
 } from '@/components/presentation/workout/weighted/weight-increase-float';
@@ -244,9 +245,11 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
               isReadonly={isSetLocked(index)}
               isBarbell={isBarbell}
               weightAbove={recordedExercise.potentialSets[index - 1]?.weight}
-              repsAbove={
-                recordedExercise.potentialSets[index - 1]?.set?.repsCompleted
-              }
+              repsAbove={repsBefore(
+                recordedExercise.potentialSets,
+                pendingReps,
+                index,
+              )}
               setIndex={index}
               maxReps={recordedExercise.blueprint.repsPerSet}
               pendingReps={pendingReps[index]}
