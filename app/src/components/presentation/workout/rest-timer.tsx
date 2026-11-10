@@ -121,17 +121,12 @@ export default function RestTimer({
   }, [startTime, clockStart, rest, failed, isSameMinMaxRest]);
 
   useEffect(() => {
-    // A new rest clears every milestone. Nudging the running rest by 15s only
-    // clears the ones it moved back into the future, so pressing +15 after the
-    // rest ended clicks again at the new end, and a milestone already passed
-    // doesn't click a second time.
+    // Only the minimum rest rings. A new rest clears it; a +15 nudge that
+    // moves the minimum back into the future clears it too, so the rest rings
+    // again at the new minimum. A nudge past the minimum leaves it silent.
     const state = getTimerState();
     setJiggled((j) =>
-      j.filter(
-        (m) =>
-          (m === 'first' && state.firstProgressBarProgress === 1) ||
-          (m === 'second' && state.secondProgressBarProgress === 1),
-      ),
+      j.filter((m) => m === 'first' && state.firstProgressBarProgress === 1),
     );
   }, [getTimerState]);
 
@@ -164,8 +159,9 @@ export default function RestTimer({
     const timer = setInterval(() => {
       const state = getTimerState();
       setTimerState(state);
+      // Only the first milestone rings. Reaching the end of a rest range
+      // turns the pill red without a second sound.
       if (state.firstProgressBarProgress === 1) triggerJiggle('first');
-      if (state.secondProgressBarProgress === 1) triggerJiggle('second');
     }, 200);
     return () => clearInterval(timer);
   }, [getTimerState, triggerJiggle]);
