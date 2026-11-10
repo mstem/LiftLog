@@ -1,4 +1,5 @@
 import { BuiltInPrograms } from '@/models/built-in-programs';
+import { isSkiPrepActive, skiRotation } from '@/models/ski-prep';
 import { RemoteData } from '@/models/remote';
 import { ProgramBlueprint } from '@/models/blueprint-models';
 import { AddEffectFn, RootState } from '@/store/store';
@@ -134,7 +135,12 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
 
       const state = getState();
       const sessionBlueprints = selectActiveProgram(state).sessions;
-      const numberOfUpcomingSessions = sessionBlueprints.length;
+      // The ski rotation can differ in length from the program
+      const numberOfUpcomingSessions = (
+        isSkiPrepActive(state.settings?.skiPrepUntil, LocalDate.now())
+          ? skiRotation(sessionBlueprints)
+          : sessionBlueprints
+      ).length;
 
       if (signal.aborted) {
         return;

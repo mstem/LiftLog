@@ -1,4 +1,5 @@
 import { LiftLog } from '@/gen/proto';
+import { SKI_LEGS_DAY } from '@/models/ski-prep';
 import { EmptySession, Session } from '@/models/session-models';
 import {
   broadcastWorkoutEvent,
@@ -180,9 +181,10 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
               getState().currentSession.exerciseSwaps?.[session.id] ?? [],
             ),
           );
-          const sessionInPlan = program.sessions.some((x) =>
-            x.equals(blueprint),
-          );
+          // Ski Legs exists only while ski prep runs, so it is never offered
+          const sessionInPlan =
+            blueprint.name === SKI_LEGS_DAY ||
+            program.sessions.some((x) => x.equals(blueprint));
           if (!sessionInPlan) {
             const sessionWithSameNameInPlan = program.sessions.find(
               (x) => x.name === blueprint.name,

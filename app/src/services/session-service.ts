@@ -1,4 +1,4 @@
-import { isSkiPrepActive, withSkiBlock } from '@/models/ski-prep';
+import { isSkiPrepActive, skiRotation, withSkiBlock } from '@/models/ski-prep';
 import {
   KeyedExerciseBlueprint,
   NormalizedName,
@@ -46,10 +46,16 @@ export class SessionService {
   ) {}
 
   async *getUpcomingSessions(
-    sessionBlueprints: SessionBlueprint[],
+    programBlueprints: SessionBlueprint[],
     latestExercises: Record<string, RecordedExercise | undefined>, // KeyedExerciseBlueprint -> Exercise
   ): AsyncIterableIterator<Session> {
     const currentState = this.getState();
+    const sessionBlueprints = isSkiPrepActive(
+      currentState.settings?.skiPrepUntil,
+      LocalDate.now(),
+    )
+      ? skiRotation(programBlueprints)
+      : programBlueprints;
     const currentSession = currentState.currentSession.workoutSession;
 
     const firstSessionBlueprint = sessionBlueprints[0];
@@ -156,13 +162,9 @@ export class SessionService {
           injury.structures,
         )
       : inputBlueprint;
-    // Ski prep frontloads the ski block on Legs day, after any Rehab block
-    const sessionBlueprint = isSkiPrepActive(
-      state.settings?.skiPrepUntil,
-      LocalDate.now(),
-    )
-      ? withSkiBlock(withInjury)
-      : withInjury;
+    // Ski prep frontloads the ski block on Ski Legs, after any Rehab block.
+    // Only the ski rotation makes a Ski Legs day, so no date check is needed.
+    const sessionBlueprint = withSkiBlock(withInjury);
 
     // Fallback lookup so the previous weight carries forward by *movement* even
     // when the rep scheme (sets/reps) changed - the strict key above is

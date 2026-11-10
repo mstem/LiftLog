@@ -18,7 +18,7 @@ import {
   withRolledOverExercises,
 } from '@/models/roll-over';
 import { withPullLiftsPaused, withRehabBlock } from '@/models/injury/rehab';
-import { withSkiBlock } from '@/models/ski-prep';
+import { SKI_LEGS_DAY, withSkiBlock } from '@/models/ski-prep';
 
 const lift = (name: string, group?: string) =>
   makeWeightedBlueprint(name).with({ group });
@@ -137,7 +137,7 @@ describe('withoutRolledOverExercises', () => {
 
   it('leaves out the ski block, which is never part of the plan', () => {
     const legs = new SessionBlueprint(
-      'Legs',
+      SKI_LEGS_DAY,
       [cardio('Warm Up'), lift('Hack Squat')],
       '',
     );

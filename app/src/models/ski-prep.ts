@@ -10,10 +10,14 @@ import {
 } from '@/models/blueprint-models';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { isPausedGroup } from '@/models/injury/paused-group';
+import { isPullDay } from '@/models/injury/return';
 import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 
-/** Group of the lifts ski prep adds to Legs day; never written to the plan. */
+/** Group of the lifts ski prep adds to Ski Legs; never written to the plan. */
 export const SKI_GROUP = 'ski-prep';
+
+/** The day ski prep adds to the rotation; never written to the plan. */
+export const SKI_LEGS_DAY = 'Ski Legs';
 
 export interface SkiExercise {
   name: string;
@@ -80,6 +84,43 @@ export function isLegDay(sessionName: string): boolean {
   return /\blegs?\b/i.test(sessionName);
 }
 
+function isPushDay(sessionName: string): boolean {
+  return /\bpush\b/i.test(sessionName);
+}
+
+/**
+ * The rotation while ski prep is on: Push, Legs, Pull, Ski Legs, so legs come
+ * twice a cycle and the ski lifts get a day of their own. Other days sit out
+ * until ski prep ends. Ski Legs opens with whatever grouped block Legs opens
+ * with (Mobility), and withSkiBlock adds the ski lifts when it is hydrated.
+ */
+export function skiRotation(program: SessionBlueprint[]): SessionBlueprint[] {
+  const days = program.filter((x) => x.name !== SKI_LEGS_DAY);
+  const legs = days.find((x) => isLegDay(x.name));
+  if (!legs) {
+    return program;
+  }
+  // The warm-up cardio and the first block (Mobility), nothing after them
+  const openingGroup = legs.exercises.find(
+    (x) => !(x instanceof CardioExerciseBlueprint),
+  )?.group;
+  const end = legs.exercises.findIndex(
+    (x) =>
+      !(x instanceof CardioExerciseBlueprint) &&
+      (!openingGroup || x.group !== openingGroup),
+  );
+  const skiLegs = new SessionBlueprint(
+    SKI_LEGS_DAY,
+    end === -1 ? legs.exercises : legs.exercises.slice(0, end),
+    '',
+  );
+  const push = days.find((x) => isPushDay(x.name));
+  const pull = days.find((x) => isPullDay(x.name));
+  // One day matching two names would sit in the rotation twice and loop it
+  const distinct = push && pull && new Set([push, pull, legs]).size === 3;
+  return distinct ? [push, legs, pull, skiLegs] : [...days, skiLegs];
+}
+
 /** Ski prep runs until its end date and is off from that day on. */
 export function isSkiPrepActive(
   until: string | undefined,
@@ -120,13 +161,13 @@ function toBlueprint(x: SkiExercise): WeightedExerciseBlueprint {
 }
 
 /**
- * Adds the ski block to a Legs day, first in the workout proper: after Warm
- * Up, Mobility and any Rehab block, ahead of the planned and rolled-over
- * lifts. Lifts the plan already has are not added twice.
+ * Adds the ski block to Ski Legs, first in the workout proper: after Warm Up,
+ * Mobility and any Rehab block, ahead of the planned and rolled-over lifts.
+ * Lifts the plan already has are not added twice.
  */
 export function withSkiBlock(blueprint: SessionBlueprint): SessionBlueprint {
   if (
-    !isLegDay(blueprint.name) ||
+    blueprint.name !== SKI_LEGS_DAY ||
     blueprint.exercises.some((x) => x.group === SKI_GROUP)
   ) {
     return blueprint;

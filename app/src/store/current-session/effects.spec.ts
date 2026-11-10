@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { SKI_GROUP, SKI_LEGS_DAY } from '@/models/ski-prep';
 import { REHAB_GROUP } from '@/models/injury/rehab';
 import {
   broadcastWorkoutEvent,
@@ -424,6 +425,21 @@ describe('current-session effects', () => {
       );
 
       const testBed = await finish(withRehab);
+
+      testBed.expectNotDispatched(setCurrentPlanDiff);
+    });
+
+    it('never offers the Ski Legs day to the plan', async () => {
+      const skiLegs = new SessionBlueprint(
+        SKI_LEGS_DAY,
+        [
+          bench(3, 10).with({ name: 'Cat Cow', group: 'Mobility' }),
+          bench(3, 1).with({ name: 'Wall Sit', group: SKI_GROUP }),
+        ],
+        '',
+      );
+
+      const testBed = await finish(skiLegs);
 
       testBed.expectNotDispatched(setCurrentPlanDiff);
     });

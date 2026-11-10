@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { LocalDate } from '@js-joda/core';
-import { SessionBlueprint } from '@/models/blueprint-models';
+import { ExerciseBlueprint, SessionBlueprint } from '@/models/blueprint-models';
 import {
   makeCardioBlueprint,
   makeWeightedBlueprint,
@@ -11,13 +11,23 @@ import {
   isLegDay,
   isSkiPrepActive,
   SKI_GROUP,
+  SKI_LEGS_DAY,
   skiDescriptors,
   skiExercises,
+  skiRotation,
   withSkiBlock,
 } from '@/models/ski-prep';
 
 const legs = (exercises = [makeWeightedBlueprint('Hack Squat')]) =>
   new SessionBlueprint('Legs', [makeCardioBlueprint(), ...exercises], '');
+const skiLegs = (exercises = [makeWeightedBlueprint('Hack Squat')]) =>
+  new SessionBlueprint(SKI_LEGS_DAY, [makeCardioBlueprint(), ...exercises], '');
+const day = (
+  name: string,
+  exercises: ExerciseBlueprint[] = [makeWeightedBlueprint(name)],
+) => new SessionBlueprint(name, exercises, '');
+const mobility = (name: string) =>
+  makeWeightedBlueprint(name).with({ group: 'Mobility' });
 
 describe('isLegDay', () => {
   it('is a workout with "leg" or "legs" as a word in its name', () => {
@@ -47,9 +57,100 @@ describe('isSkiPrepActive', () => {
   });
 });
 
+describe('skiRotation', () => {
+  const program = [
+    day('Push'),
+    day('Pull'),
+    day('Legs', [
+      mobility('Cat Cow'),
+      mobility('Hip Circle'),
+      makeWeightedBlueprint('Hack Squat'),
+      mobility('Side Plank'),
+    ]),
+    day('Workout 4'),
+  ];
+
+  it('runs Push, Legs, Pull, Ski Legs and leaves other days out', () => {
+    expect(skiRotation(program).map((x) => x.name)).toEqual([
+      'Push',
+      'Legs',
+      'Pull',
+      SKI_LEGS_DAY,
+    ]);
+  });
+
+  it('opens Ski Legs with the block Legs opens with, and nothing else', () => {
+    const ski = skiRotation(program)[3]!;
+    expect(ski.exercises.map((x) => x.name)).toEqual(['Cat Cow', 'Hip Circle']);
+  });
+
+  it('keeps Legs as planned', () => {
+    expect(skiRotation(program)[1]).toBe(program[2]);
+  });
+
+  it('adds Ski Legs after the program when it has no Push or Pull day', () => {
+    expect(skiRotation([day('Upper'), day('Legs')]).map((x) => x.name)).toEqual(
+      ['Upper', 'Legs', SKI_LEGS_DAY],
+    );
+  });
+
+  it('keeps a Warm Up that opens Legs', () => {
+    const warm = day('Legs', [
+      makeCardioBlueprint(),
+      mobility('Cat Cow'),
+      makeWeightedBlueprint('Hack Squat'),
+    ]);
+    expect(
+      skiRotation([warm])
+        .at(-1)!
+        .exercises.map((x) => x.name),
+    ).toEqual([makeCardioBlueprint().name, 'Cat Cow']);
+  });
+
+  it('never takes a stored Ski Legs day for Legs', () => {
+    const stored = day(SKI_LEGS_DAY);
+    expect(skiRotation([stored, ...program]).map((x) => x.name)).toEqual([
+      'Push',
+      'Legs',
+      'Pull',
+      SKI_LEGS_DAY,
+    ]);
+    expect(skiRotation([stored, ...program])[1]).toBe(program[2]);
+  });
+
+  it('copies only the first block when Legs has only blocks', () => {
+    const blocks = day('Legs', [
+      mobility('Cat Cow'),
+      mobility('Hip Circle'),
+      makeWeightedBlueprint('Hack Squat').with({ group: 'Superset' }),
+    ]);
+    expect(
+      skiRotation([blocks])
+        .at(-1)!
+        .exercises.map((x) => x.name),
+    ).toEqual(['Cat Cow', 'Hip Circle']);
+  });
+
+  it('never puts one day in the rotation twice', () => {
+    expect(
+      skiRotation([day('Push/Pull'), day('Legs')]).map((x) => x.name),
+    ).toEqual(['Push/Pull', 'Legs', SKI_LEGS_DAY]);
+  });
+
+  it('leaves a program with no Legs day alone', () => {
+    const upper = [day('Push'), day('Pull')];
+    expect(skiRotation(upper)).toBe(upper);
+  });
+});
+
 describe('withSkiBlock', () => {
-  it('puts the six ski lifts right after Warm Up on a Legs day', () => {
-    const out = withSkiBlock(legs());
+  it('leaves Legs day as planned', () => {
+    const plain = legs();
+    expect(withSkiBlock(plain)).toBe(plain);
+  });
+
+  it('puts the six ski lifts right after Warm Up on Ski Legs', () => {
+    const out = withSkiBlock(skiLegs());
     expect(out.exercises.map((x) => x.name)).toEqual([
       makeCardioBlueprint().name,
       ...skiExercises.map((x) => x.name),
@@ -64,7 +165,7 @@ describe('withSkiBlock', () => {
     const rehab = makeWeightedBlueprint('Supine punch').with({
       group: REHAB_GROUP,
     });
-    const out = withSkiBlock(legs([rehab, makeWeightedBlueprint('Squat')]));
+    const out = withSkiBlock(skiLegs([rehab, makeWeightedBlueprint('Squat')]));
     expect(out.exercises[1]!.name).toBe('Supine punch');
     expect(out.exercises[2]!.group).toBe(SKI_GROUP);
   });
@@ -72,12 +173,12 @@ describe('withSkiBlock', () => {
   it('leaves other days and a day that already has it alone', () => {
     const push = new SessionBlueprint('Push', [makeWeightedBlueprint()], '');
     expect(withSkiBlock(push)).toBe(push);
-    const once = withSkiBlock(legs());
+    const once = withSkiBlock(skiLegs());
     expect(withSkiBlock(once)).toBe(once);
   });
 
   it('does not repeat a lift the plan already has', () => {
-    const out = withSkiBlock(legs([makeWeightedBlueprint('Goblet Squat')]));
+    const out = withSkiBlock(skiLegs([makeWeightedBlueprint('Goblet Squat')]));
     expect(out.exercises.filter((x) => x.name === 'Goblet Squat')).toHaveLength(
       1,
     );
