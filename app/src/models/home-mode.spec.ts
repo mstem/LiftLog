@@ -106,9 +106,23 @@ describe('toHomeWorkout', () => {
     const press = at(session, 1);
     expect(press.blueprint.name).toBe('Incline Dumbbell Press');
     expect(press.blueprint.repsPerSet).toBe(20);
-    expect(press.potentialSets.every((x) => x.weight.value.eq(7.5))).toBe(true);
+    expect(press.potentialSets.every((x) => x.weight.value.eq(15))).toBe(true);
     expect(press.blueprint.notes).toContain('Lower over 3 s');
     expect(press.blueprint.link).toBe('');
+  });
+
+  it('counts both dumbbells together, and one dumbbell alone', () => {
+    const arms = workout('Push', [
+      [lift('Cable Fly Crossovers', 4, 12), 12],
+      [lift('Seated Triceps Press', 3, 10), 7.5],
+    ]);
+    const { session } = toHomeWorkout(arms);
+    const fly = at(session, 0);
+    expect(fly.potentialSets[0]!.weight.value.eq(10)).toBe(true);
+    expect(fly.blueprint.repsPerSet).toBe(14);
+    const press = at(session, 1);
+    expect(press.potentialSets[0]!.weight.value.eq(7.5)).toBe(true);
+    expect(press.blueprint.repsPerSet).toBe(10);
   });
 
   it('keeps the reps when the home load matches the gym', () => {
