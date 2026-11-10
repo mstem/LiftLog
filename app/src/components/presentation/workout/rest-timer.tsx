@@ -121,10 +121,9 @@ export default function RestTimer({
   }, [startTime, clockStart, rest, failed, isSameMinMaxRest]);
 
   useEffect(() => {
-    // A new rest clears every milestone. Nudging the running rest by 15s only
-    // clears the ones it moved back into the future, so pressing +15 after the
-    // rest ended clicks again at the new end, and a milestone already passed
-    // doesn't click a second time.
+    // Only the minimum rest rings. A new rest clears it; a +15 nudge that
+    // moves the minimum back into the future clears it too, so the rest rings
+    // again at the new minimum. A nudge past the minimum leaves it silent.
     const state = getTimerState();
     setJiggled((j) =>
       j.filter((m) => m === 'first' && state.firstProgressBarProgress === 1),
