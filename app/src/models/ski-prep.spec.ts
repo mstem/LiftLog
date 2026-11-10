@@ -118,8 +118,12 @@ describe('skiRotation', () => {
     expect(skiRotation([stored, ...program])[1]).toBe(program[2]);
   });
 
-  it('copies the whole of Legs when it has only blocks', () => {
-    const blocks = day('Legs', [mobility('Cat Cow'), mobility('Hip Circle')]);
+  it('copies only the first block when Legs has only blocks', () => {
+    const blocks = day('Legs', [
+      mobility('Cat Cow'),
+      mobility('Hip Circle'),
+      makeWeightedBlueprint('Hack Squat').with({ group: 'Superset' }),
+    ]);
     expect(
       skiRotation([blocks])
         .at(-1)!

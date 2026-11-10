@@ -100,15 +100,18 @@ export function skiRotation(program: SessionBlueprint[]): SessionBlueprint[] {
   if (!legs) {
     return program;
   }
-  // The warm-up cardio and grouped blocks before the first planned lift
-  const firstPlanned = legs.exercises.findIndex(
-    (x) => !x.group && !(x instanceof CardioExerciseBlueprint),
+  // The warm-up cardio and the first block (Mobility), nothing after them
+  const openingGroup = legs.exercises.find(
+    (x) => !(x instanceof CardioExerciseBlueprint),
+  )?.group;
+  const end = legs.exercises.findIndex(
+    (x) =>
+      !(x instanceof CardioExerciseBlueprint) &&
+      (!openingGroup || x.group !== openingGroup),
   );
   const skiLegs = new SessionBlueprint(
     SKI_LEGS_DAY,
-    firstPlanned === -1
-      ? legs.exercises
-      : legs.exercises.slice(0, firstPlanned),
+    end === -1 ? legs.exercises : legs.exercises.slice(0, end),
     '',
   );
   const push = days.find((x) => isPushDay(x.name));
