@@ -306,7 +306,8 @@ export function toHomeWorkout(
   if (
     swapped &&
     isLegDay(session.blueprint.name) &&
-    session.blueprint.name !== SKI_LEGS_DAY
+    session.blueprint.name !== SKI_LEGS_DAY &&
+    !session.recordedExercises.some((x) => x.blueprint.name === RING_SQUEEZE)
   ) {
     out = out.withAddedExercise(ringSqueeze(), false);
   }

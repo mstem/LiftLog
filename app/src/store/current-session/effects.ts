@@ -178,13 +178,16 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
           // they are left out before comparing with the plan.
           // Home lifts too, from the plan, since the record of what home mode
           // changed does not survive a restart
+          const sessionWithSameNameInPlan = program.sessions.find(
+            (x) => x.name === session.blueprint.name,
+          );
           const blueprint = withoutRolledOverExercises(
             undoHomeLifts(
               undoSwaps(
                 session.blueprint,
                 getState().currentSession.exerciseSwaps?.[session.id] ?? [],
               ),
-              program.sessions.find((x) => x.name === session.blueprint.name),
+              sessionWithSameNameInPlan,
             ),
           );
           // Ski Legs exists only while ski prep runs, so it is never offered
@@ -192,9 +195,6 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
             blueprint.name === SKI_LEGS_DAY ||
             program.sessions.some((x) => x.equals(blueprint));
           if (!sessionInPlan) {
-            const sessionWithSameNameInPlan = program.sessions.find(
-              (x) => x.name === blueprint.name,
-            );
             const planDiff: PlanDiff = sessionWithSameNameInPlan
               ? {
                   type: 'diff',

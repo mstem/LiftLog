@@ -175,6 +175,24 @@ describe('the ring squeeze', () => {
   });
 });
 
+describe('switching home mode on again', () => {
+  it('never adds a second ring squeeze', () => {
+    const legs = workout('Legs', [[lift('Hack Squat', 6, 8), 60]]);
+    const { session, changes } = toHomeWorkout(legs);
+    const ring = session.recordedExercises.length - 1;
+    const started = session.withExercise(
+      ring,
+      at(session, ring).withRepCount(0, 15, tick()),
+    );
+    const again = toHomeWorkout(fromHomeWorkout(started, changes)).session;
+    expect(
+      again.recordedExercises.filter(
+        (x) => x.blueprint.name === 'Pilates Ring Adductor Squeeze',
+      ),
+    ).toHaveLength(1);
+  });
+});
+
 describe('undoHomeLifts', () => {
   it('turns home lifts back into the planned gym lifts from the plan alone', () => {
     const legs = workout('Legs', [

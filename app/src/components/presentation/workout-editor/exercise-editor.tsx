@@ -44,9 +44,8 @@ import {
 } from '@/components/presentation/workout-editor/rename-from';
 import { match, P } from 'ts-pattern';
 import { ExerciseDescriptor } from '@/models/exercise-models';
-import { groupFromInput, REHAB_GROUP } from '@/models/injury/rehab';
-import { SKI_GROUP } from '@/models/ski-prep';
-import { HOME_GROUP } from '@/models/home-group';
+import { groupFromInput } from '@/models/injury/rehab';
+import { groupLabelKey } from '@/models/group-display';
 import { FormRow } from '@/components/presentation/foundation/form-row';
 import {
   SegmentedList,
@@ -363,13 +362,9 @@ function SharedFieldsEditor({
   const { t } = useTranslate();
   // Rehab, ski prep and home blocks show a label for their reserved group id
   const reserved = useRef(
-    exercise.group === REHAB_GROUP
-      ? { id: REHAB_GROUP, label: t('injury.rehab.group') }
-      : exercise.group === SKI_GROUP
-        ? { id: SKI_GROUP, label: t('settings.ski_prep.title') }
-        : exercise.group === HOME_GROUP
-          ? { id: HOME_GROUP, label: t('workout.home_mode.title') }
-          : undefined,
+    exercise.group && groupLabelKey(exercise.group)
+      ? { id: exercise.group, label: t(groupLabelKey(exercise.group)!) }
+      : undefined,
   ).current;
   return (
     <>
