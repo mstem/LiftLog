@@ -7,11 +7,9 @@ import {
   setHomeChanges,
 } from '@/store/current-session';
 import ListSwitch from '@/components/presentation/foundation/list-switch';
-import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 import {
   canSwitchHome,
   fromHomeWorkout,
-  homeLiftFor,
   toHomeWorkout,
 } from '@/models/home-mode';
 import { Card, Icon, Text } from 'react-native-paper';
@@ -237,12 +235,7 @@ export default function SessionComponent(props: {
     props.target === 'workoutSession' &&
     !isReadonly &&
     canSwitchHome(session) &&
-    (homeChanges !== undefined ||
-      session.recordedExercises.some(
-        (x) =>
-          (!x.blueprint.group || x.blueprint.group === ROLLED_OVER_GROUP) &&
-          homeLiftFor(x.blueprint.name),
-      )) ? (
+    (homeChanges !== undefined || toHomeWorkout(session).changes.length > 0) ? (
       <ListSwitch
         headline={<T keyName="workout.home_mode.title" />}
         value={homeChanges !== undefined}

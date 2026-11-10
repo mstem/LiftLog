@@ -16,7 +16,10 @@ import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 
 export { HOME_GROUP };
 
-/** Home reps never go past this; the note slows the lift down instead. */
+/**
+ * The rep rule never goes past this, and the note slows the lift down
+ * instead. Progression can still add reps up to MAX_PROGRESSED_REPS.
+ */
 export const MAX_HOME_REPS = 20;
 const MAX_PROGRESSED_REPS = 25;
 const SLOW_NOTE = 'Lower over 3 s, stop one or two reps short of failure.';
