@@ -9,6 +9,7 @@ import { useAppTheme, spacing, font, rounding } from '@/hooks/useAppTheme';
 import { T } from '@tolgee/react';
 import TouchableRipple from '@/components/presentation/foundation/gesture-wrappers/touchable-ripple';
 import { Weight } from '@/models/weight';
+import { repShortcutCenter } from '@/models/rep-shortcuts';
 import PotentialSetAdditionalActionsDialog from '@/components/presentation/workout/weighted/potential-sets-addition-actions-dialog';
 import IconButton from '@/components/presentation/foundation/gesture-wrappers/icon-button';
 import {
@@ -28,8 +29,8 @@ interface PotentialSetCounterProps {
   // Weight of the set directly above this one in the exercise, if any. Used to
   // only repeat the barbell plate breakdown when the weight changes.
   weightAbove: Weight | undefined;
-  // Reps of the nearest earlier set that has any. The reps dialog centers its
-  // shortcut buttons on it.
+  // Reps of the nearest earlier set ticked today. The reps dialog centers
+  // its shortcut buttons on it when this set has no reps of its own.
   repsAbove: number | undefined;
   // Reps the user entered for this set while it is unchecked (e.g. edited then
   // unchecked). Displayed in place of the placeholder and logged on complete.
@@ -298,8 +299,11 @@ export default function PotentialSetCounter(props: PotentialSetCounterProps) {
 
       <PotentialSetAdditionalActionsDialog
         open={isRepsDialogOpen}
-        repTarget={props.maxReps}
-        repsAbove={props.repsAbove}
+        shortcutCenter={repShortcutCenter({
+          ownReps: repCountValue ?? props.pendingReps,
+          repsAbove: props.repsAbove,
+          cellReps: placeholderReps,
+        })}
         set={props.set}
         pendingReps={props.pendingReps}
         updateRepCount={(reps) => props.onUpdateReps(reps)}

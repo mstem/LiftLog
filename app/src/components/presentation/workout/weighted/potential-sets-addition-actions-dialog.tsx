@@ -12,9 +12,8 @@ import Button from '@/components/presentation/foundation/gesture-wrappers/button
 interface PotentialSetAdditionalActionsDialogProps {
   open: boolean;
   set: PotentialSet;
-  repTarget: number;
-  /** Reps of the nearest earlier set that has any */
-  repsAbove: number | undefined;
+  /** The rep count the shortcut buttons run five either side of */
+  shortcutCenter: number;
   pendingReps: number | undefined;
   updateRepCount: (reps: number | undefined) => void;
   close: () => void;
@@ -26,13 +25,12 @@ export default function PotentialSetAdditionalActionsDialog({
   set,
   pendingReps,
   updateRepCount,
-  repTarget,
-  repsAbove,
+  shortcutCenter,
 }: PotentialSetAdditionalActionsDialogProps) {
   const { colors } = useAppTheme();
   const originalReps = set?.set?.repsCompleted ?? pendingReps;
 
-  const repOptions = repShortcuts({ repsAbove, repTarget });
+  const repOptions = repShortcuts(shortcutCenter);
 
   const [repCountText, setRepCountText] = useState<string>(
     originalReps?.toString() ?? '',
