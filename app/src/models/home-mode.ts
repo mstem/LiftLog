@@ -148,7 +148,10 @@ export function homeLiftFor(
   return byKey.get(new NormalizedName(gymName).toString());
 }
 
-/** Every lift home mode can put in a workout, for the library and Garmin. */
+/**
+ * Every lift home mode can put in a workout. liftlog-garmin-sync's tests read
+ * this file to check each one has a Garmin match.
+ */
 export function homeLiftNames(): string[] {
   return [
     ...Object.values(homeLifts).flatMap((x) =>
