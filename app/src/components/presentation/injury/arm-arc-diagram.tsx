@@ -29,7 +29,7 @@ function wedge(from: number, to: number) {
   ).replace(/^M [^A]+/, '')} Z`;
 }
 
-/** Shades labelled bands of the arm's sideways raise, e.g. 60–120°. */
+/** Shades labeled bands of the arm's sideways raise, e.g. 60–120°. */
 export default function ArmArcDiagram(props: {
   bands: { from: number; to: number; label: string }[];
   accessibilityLabel: string;

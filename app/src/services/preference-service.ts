@@ -1,6 +1,6 @@
 import { KeyValueStore } from '@/services/key-value-store';
 import { ColorSchemeSeed } from '@/store/settings';
-import { DayOfWeek, Instant } from '@js-joda/core';
+import { DayOfWeek, Instant, LocalDate } from '@js-joda/core';
 import { match, P } from 'ts-pattern';
 
 export interface RemoteBackupSettings {
@@ -56,7 +56,19 @@ export class PreferenceService {
   }
 
   async getSkiPrepUntil(): Promise<string | undefined> {
-    return (await this.keyValueStore.getItem('skiPrepUntil')) || undefined;
+    const value = await this.keyValueStore.getItem('skiPrepUntil');
+    if (!value) {
+      return undefined;
+    }
+    try {
+      LocalDate.parse(value);
+      return value;
+    } catch {
+      // Clear it, or the switch reads off with nothing to switch off. A
+      // failed clear must not stop the rest of the settings from loading.
+      await this.keyValueStore.removeItem('skiPrepUntil').catch(() => {});
+      return undefined;
+    }
   }
 
   async setSkiPrepUntil(value: string | undefined): Promise<void> {

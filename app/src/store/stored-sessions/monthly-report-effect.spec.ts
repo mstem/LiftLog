@@ -157,6 +157,46 @@ describe('refreshMonthlyReportNotification', () => {
     expect(cancel).not.toHaveBeenCalled();
   });
 
+  it("refreshes last month's report on the 1st before it goes out", async () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 7, 0));
+    const { bed, schedule, cancel } = testBed({
+      enabled: true,
+      sessions: [workout('2026-10-02'), workout('2026-10-31')],
+    });
+    await bed.dispatchHandled(refreshMonthlyReportNotification());
+
+    const months = (
+      schedule.mock.calls as unknown as [
+        { month: YearMonth; at: Date; body: string },
+      ][]
+    ).map(([x]) => x);
+    expect(months.map((x) => x.month.toString())).toEqual(['2026-10']);
+    expect(months[0]!.at).toEqual(new Date(2026, 10, 1, 9, 0));
+    expect(months[0]!.body).toContain('"workouts":2');
+    // November has no workouts yet: nothing queued for it
+    expect(
+      (cancel.mock.calls as unknown as [YearMonth][]).map(([m]) =>
+        m.toString(),
+      ),
+    ).toEqual(['2026-11']);
+  });
+
+  it("still refreshes this month when last month's report fails", async () => {
+    vi.setSystemTime(new Date(2026, 10, 1, 7, 0));
+    const { bed, schedule, cancel } = testBed({
+      enabled: true,
+      sessions: [workout('2026-10-02')],
+    });
+    schedule.mockRejectedValueOnce(new Error('permission'));
+    await bed.dispatchHandled(refreshMonthlyReportNotification());
+
+    expect(
+      (cancel.mock.calls as unknown as [YearMonth][]).map(([m]) =>
+        m.toString(),
+      ),
+    ).toEqual(['2026-11']);
+  });
+
   it('cancels pending reports when switched off', async () => {
     const { bed, schedule, cancel } = testBed({
       enabled: false,

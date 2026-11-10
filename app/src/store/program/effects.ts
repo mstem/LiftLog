@@ -103,7 +103,7 @@ export function applyProgramEffects(addEffect: AddEffectFn) {
           stateAfterReduce.program.savedPrograms !==
             stateBeforeReduce.program.savedPrograms);
       if (shouldPersist) {
-        // Cancel an earlier write only for a newer one. Cancelling on every
+        // Cancel an earlier write only for a newer one. Canceling on every
         // action let any unrelated action straight after a plan change throw
         // that change's write away
         cancelActiveListeners();
