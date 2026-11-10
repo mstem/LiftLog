@@ -17,7 +17,10 @@ import {
   undoHomeLifts,
 } from '@/models/home-mode';
 import { PAUSED_GROUP } from '@/models/injury/paused-group';
-import { withoutRolledOverExercises } from '@/models/roll-over';
+import {
+  ROLLED_OVER_GROUP,
+  withoutRolledOverExercises,
+} from '@/models/roll-over';
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import {
   makeWeightedBlueprint,
@@ -119,6 +122,17 @@ describe('toHomeWorkout', () => {
     const { session } = toHomeWorkout(push());
     expect(at(session, 0).blueprint.name).toBe('Cat Cow');
     expect(at(session, 3).blueprint.name).toBe('Push Up');
+  });
+
+  it('switches a rolled-over lift too, and leaves a rolled-over gym-only one', () => {
+    const legs = workout('Legs', [
+      [lift('Leg Press', 4, 10, ROLLED_OVER_GROUP), 127],
+      [lift('Pullups', 4, 3, ROLLED_OVER_GROUP), 0],
+    ]);
+    const { session } = toHomeWorkout(legs);
+    expect(at(session, 0).blueprint.name).toBe('Dumbbell Step-up');
+    expect(at(session, 0).blueprint.group).toBe(ROLLED_OVER_GROUP);
+    expect(at(session, 1).blueprint.group).toBe(ROLLED_OVER_GROUP);
   });
 
   it('pauses a lift that needs the gym', () => {

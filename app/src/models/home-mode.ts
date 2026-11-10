@@ -12,6 +12,7 @@ import { isLegDay, SKI_LEGS_DAY } from '@/models/ski-prep';
 import { Weight } from '@/models/weight';
 import { ExerciseDescriptor } from '@/models/exercise-models';
 import { HOME_GROUP } from '@/models/home-group';
+import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 
 export { HOME_GROUP };
 
@@ -229,9 +230,12 @@ export interface HomeChange {
   original: RecordedWeightedExercise;
 }
 
+/** An unticked planned lift, or one rolled over from the last workout. */
 function isPlannedLift(x: unknown): x is RecordedWeightedExercise {
   return (
-    x instanceof RecordedWeightedExercise && !x.blueprint.group && !x.isStarted
+    x instanceof RecordedWeightedExercise &&
+    (!x.blueprint.group || x.blueprint.group === ROLLED_OVER_GROUP) &&
+    !x.isStarted
   );
 }
 
@@ -261,6 +265,10 @@ export function toHomeWorkout(
       return;
     }
     if (home === 'gym only') {
+      // A rolled-over lift keeps its block, where it can be skipped
+      if (exercise.blueprint.group === ROLLED_OVER_GROUP) {
+        return;
+      }
       const blueprint = exercise.blueprint.with({
         group:
           exercise.blueprint.group === '' ? PAUSED_BLANK_GROUP : PAUSED_GROUP,

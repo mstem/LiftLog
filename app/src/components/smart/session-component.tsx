@@ -7,6 +7,7 @@ import {
   setHomeChanges,
 } from '@/store/current-session';
 import ListSwitch from '@/components/presentation/foundation/list-switch';
+import { ROLLED_OVER_GROUP } from '@/models/roll-over';
 import {
   canSwitchHome,
   fromHomeWorkout,
@@ -238,7 +239,9 @@ export default function SessionComponent(props: {
     canSwitchHome(session) &&
     (homeChanges !== undefined ||
       session.recordedExercises.some(
-        (x) => !x.blueprint.group && homeLiftFor(x.blueprint.name),
+        (x) =>
+          (!x.blueprint.group || x.blueprint.group === ROLLED_OVER_GROUP) &&
+          homeLiftFor(x.blueprint.name),
       )) ? (
       <ListSwitch
         headline={<T keyName="workout.home_mode.title" />}
