@@ -17,7 +17,7 @@ export function groupLabelKey(
   return undefined;
 }
 
-/** The ski block is the start of Legs day, so it opens instead of collapsing. */
+/** The ski block is the start of Ski Legs, so it opens instead of collapsing. */
 export function startsExpanded(group: string): boolean {
   return group === SKI_GROUP;
 }

@@ -24,7 +24,7 @@ import Enumerable from 'linq';
 import { LocalDate, OffsetDateTime } from '@js-joda/core';
 import type { Injury } from '@/models/injury/injury';
 import { PAUSED_GROUP, REHAB_GROUP } from '@/models/injury/rehab';
-import { SKI_GROUP } from '@/models/ski-prep';
+import { SKI_GROUP, SKI_LEGS_DAY, skiExercises } from '@/models/ski-prep';
 import { NormalizedName } from '@/models/blueprint-models';
 
 const overload = () => new IncreaseAllEvenlyProgressiveOverload(BigNumber(2.5));
@@ -653,32 +653,77 @@ describe('injury mode', () => {
 });
 
 describe('ski prep', () => {
-  function serviceWith(skiPrepUntil: string | undefined) {
+  function serviceWith(
+    skiPrepUntil: string | undefined,
+    finished: Session[] = [],
+  ) {
     const getState = (() =>
       ({
         settings: { useImperialUnits: false, skiPrepUntil },
+        currentSession: { workoutSession: undefined },
       }) as unknown as RootState) as () => RootState;
-    return new SessionService(null as unknown as ProgressRepository, getState);
+    const repository = {
+      getOrderedSessions: () => Enumerable.from(finished),
+    } as unknown as ProgressRepository;
+    return new SessionService(repository, getState);
   }
   const squat = blueprint('Hack Squat', 3, 8);
   const legs = new SessionBlueprint('Legs', [squat], '');
+  const skiLegs = new SessionBlueprint(SKI_LEGS_DAY, [], '');
+  const program = [
+    new SessionBlueprint('Push', [blueprint('Bench', 3, 10)], ''),
+    new SessionBlueprint('Pull', [blueprint('Row', 3, 10)], ''),
+    legs,
+    new SessionBlueprint('Arms', [blueprint('Curl', 3, 10)], ''),
+  ];
 
-  it('adds the ski block to Legs day before the end date', () => {
+  async function upcomingNames(skiPrepUntil: string, last: SessionBlueprint) {
+    const service = serviceWith(skiPrepUntil, [
+      Session.getEmptySession(last, 'kilograms'),
+    ]);
+    const names: string[] = [];
+    for await (const s of service.getUpcomingSessions(program, {})) {
+      names.push(s.blueprint.name);
+      if (names.length === 4) break;
+    }
+    return names;
+  }
+
+  it('adds the ski block to Ski Legs before the end date', () => {
     const session = serviceWith('2999-01-03').hydrateSessionFromBlueprint(
-      legs,
+      skiLegs,
       {},
     );
-    expect(session.recordedExercises[0]!.blueprint.group).toBe(SKI_GROUP);
-    expect(session.recordedExercises.at(-1)!.blueprint.name).toBe('Hack Squat');
+    expect(session.recordedExercises.map((x) => x.blueprint.group)).toEqual(
+      skiExercises.map(() => SKI_GROUP),
+    );
   });
 
-  it('leaves Legs day as planned once the end date has passed', () => {
-    const session = serviceWith('2000-01-03').hydrateSessionFromBlueprint(
+  it('leaves Legs day as planned', () => {
+    const session = serviceWith('2999-01-03').hydrateSessionFromBlueprint(
       legs,
       {},
     );
     expect(session.recordedExercises.map((x) => x.blueprint.name)).toEqual([
       'Hack Squat',
+    ]);
+  });
+
+  it('runs Push, Legs, Pull, Ski Legs and skips Arms before the end date', async () => {
+    expect(await upcomingNames('2999-01-03', legs)).toEqual([
+      'Pull',
+      SKI_LEGS_DAY,
+      'Push',
+      'Legs',
+    ]);
+  });
+
+  it('goes back to the program after the end date, from Push', async () => {
+    expect(await upcomingNames('2000-01-03', skiLegs)).toEqual([
+      'Push',
+      'Pull',
+      'Legs',
+      'Arms',
     ]);
   });
 });
