@@ -177,6 +177,30 @@ describe('SessionService rolls skipped lifts into the next workout', () => {
     expect(after!.blueprint.equals(legs)).toBe(true);
   });
 
+  it('never rolls a skipped home lift into the next workout', async () => {
+    const atHome = Session.getEmptySession(
+      new SessionBlueprint('Legs', [blueprint('Goblet Squat', 3, 20)], ''),
+      'kilograms',
+    );
+    const getState = (() =>
+      ({
+        settings: { useImperialUnits: false },
+        currentSession: { workoutSession: undefined },
+      }) as unknown as RootState) as () => RootState;
+    const service = new SessionService(
+      {
+        getOrderedSessions: () => Enumerable.from([atHome]),
+      } as unknown as ProgressRepository,
+      getState,
+    );
+    const sessions: Session[] = [];
+    for await (const s of service.getUpcomingSessions([legs, push], {})) {
+      sessions.push(s);
+      break;
+    }
+    expect(sessions[0]!.blueprint.equals(push)).toBe(true);
+  });
+
   it('rolls nothing while a workout is still in progress', async () => {
     const inProgress = Session.getEmptySession(push, 'kilograms');
 

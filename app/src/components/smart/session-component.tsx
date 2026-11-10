@@ -3,7 +3,15 @@ import {
   SessionTarget,
   setCurrentSession,
   recordExerciseSwap,
+  setExerciseSwaps,
+  setHomeChanges,
 } from '@/store/current-session';
+import ListSwitch from '@/components/presentation/foundation/list-switch';
+import {
+  canSwitchHome,
+  fromHomeWorkout,
+  toHomeWorkout,
+} from '@/models/home-mode';
 import { Card, Icon, Text } from 'react-native-paper';
 import { useDispatch, useStore } from 'react-redux';
 import { View } from 'react-native';
@@ -28,7 +36,7 @@ import { ExerciseBlueprint } from '@/models/blueprint-models';
 import FullScreenDialog from '@/components/presentation/foundation/full-screen-dialog';
 import { ExerciseEditor } from '@/components/presentation/workout-editor/exercise-editor';
 import { LocalTime, OffsetDateTime, ZoneId } from '@js-joda/core';
-import { useAppSelector, useAppSelectorWithArg } from '@/store';
+import { RootState, useAppSelector, useAppSelectorWithArg } from '@/store';
 import {
   selectRecentlyCompletedExercises,
   selectWeightedExercisePersonalBests,
@@ -70,6 +78,9 @@ export default function SessionComponent(props: {
   const weightedExercisePersonalBests = useAppSelectorWithArg(
     selectWeightedExercisePersonalBests,
     session?.id,
+  );
+  const homeChanges = useAppSelector((x) =>
+    session ? x.currentSession.homeChanges[session.id] : undefined,
   );
   const resetTimer = (time: OffsetDateTime | undefined) => {
     updateSession((s) => s.with({ restTimerStartTime: time }));
@@ -177,6 +188,60 @@ export default function SessionComponent(props: {
       </Card.Content>
     </Card>
   ) : null;
+
+  // Home mode can only be switched while no planned lift has a set ticked
+  const switchHome = (on: boolean) =>
+    withLatestSession((latest) => {
+      const current = (getState() as RootState).currentSession;
+      if (on) {
+        const { session: home, changes } = toHomeWorkout(latest, (blueprint) =>
+          (
+            recentlyCompletedExercises(blueprint) as RecordedWeightedExercise[]
+          ).at(0),
+        );
+        updateSession(() => home);
+        dispatch(setHomeChanges({ sessionId: latest.id, changes }));
+        // Home lifts count as swaps, so Finish never offers them to the plan
+        for (const change of changes) {
+          if (change.homeName !== change.original.blueprint.name) {
+            dispatch(
+              recordExerciseSwap({
+                sessionId: latest.id,
+                from: change.original.blueprint.name,
+                to: change.homeName,
+                original: change.original.blueprint,
+              }),
+            );
+          }
+        }
+        return;
+      }
+      const changes = current.homeChanges[latest.id] ?? [];
+      updateSession(() => fromHomeWorkout(latest, changes));
+      dispatch(setHomeChanges({ sessionId: latest.id, changes: undefined }));
+      // A lift swapped by hand before home mode stands in for its plan lift
+      // again; a swap home mode made is dropped
+      const swaps = (current.exerciseSwaps[latest.id] ?? []).flatMap((x) => {
+        const change = changes.find((c) => c.homeName === x.swappedIn);
+        if (!change) {
+          return [x];
+        }
+        const before = change.original.blueprint.name;
+        return before === x.original.name ? [] : [{ ...x, swappedIn: before }];
+      });
+      dispatch(setExerciseSwaps({ sessionId: latest.id, swaps }));
+    });
+  const homeSwitch =
+    props.target === 'workoutSession' &&
+    !isReadonly &&
+    canSwitchHome(session) &&
+    (homeChanges !== undefined || toHomeWorkout(session).changes.length > 0) ? (
+      <ListSwitch
+        headline={<T keyName="workout.home_mode.title" />}
+        value={homeChanges !== undefined}
+        onValueChange={switchHome}
+      />
+    ) : null;
 
   // Before the first set, a countdown lines the workout clock up with a watch
   const watchCountdown =
@@ -454,6 +519,7 @@ export default function SessionComponent(props: {
   return (
     <FullHeightScrollView floatingChildren={floatingBottomContainer}>
       {props.header}
+      {homeSwitch}
       {notesComponent}
       {watchCountdown}
       {emptyInfo}

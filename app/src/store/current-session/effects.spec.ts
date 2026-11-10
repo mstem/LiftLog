@@ -347,7 +347,11 @@ describe('current-session effects', () => {
       );
     const planned = new SessionBlueprint('Push', [bench(3, 10)], '');
 
-    function finish(done: SessionBlueprint, swappedIn?: string) {
+    function finish(
+      done: SessionBlueprint,
+      swappedIn?: string,
+      plan: SessionBlueprint = planned,
+    ) {
       const session = Session.getEmptySession(
         done,
         'kilograms',
@@ -368,7 +372,7 @@ describe('current-session effects', () => {
             savedPrograms: {
               plan: new ProgramBlueprint(
                 'Plan',
-                [planned],
+                [plan],
                 LocalDate.now(),
               ).toPOJO(),
             },
@@ -425,6 +429,26 @@ describe('current-session effects', () => {
       );
 
       const testBed = await finish(withRehab);
+
+      testBed.expectNotDispatched(setCurrentPlanDiff);
+    });
+
+    it('never offers home lifts to the plan, even without the swap record', async () => {
+      const atHome = new SessionBlueprint(
+        'Push',
+        [bench(3, 20).with({ name: 'Dumbbell Fly' })],
+        '',
+      );
+
+      const testBed = await finish(
+        atHome,
+        undefined,
+        new SessionBlueprint(
+          'Push',
+          [bench(3, 12).with({ name: 'Cable Fly Crossovers' })],
+          '',
+        ),
+      );
 
       testBed.expectNotDispatched(setCurrentPlanDiff);
     });

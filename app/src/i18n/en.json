@@ -587,5 +587,6 @@
   "workout.finish.action.tooltip": "Finish workout",
   "workout.lightning.tooltip": "Lightning: rests capped at 1 minute",
   "workout.watch_countdown.button": "Start with watch",
-  "workout.watch_countdown.go": "Go"
+  "workout.watch_countdown.go": "Go",
+  "workout.home_mode.title": "At home"
 }

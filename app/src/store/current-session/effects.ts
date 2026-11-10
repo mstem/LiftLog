@@ -1,5 +1,6 @@
 import { LiftLog } from '@/gen/proto';
 import { SKI_LEGS_DAY } from '@/models/ski-prep';
+import { undoHomeLifts } from '@/models/home-mode';
 import { EmptySession, Session } from '@/models/session-models';
 import {
   broadcastWorkoutEvent,
@@ -175,10 +176,18 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
           // lift it stood in for, so the swap is never offered to the plan.
           // Lifts rolled over and the injury Rehab block are one-offs, so
           // they are left out before comparing with the plan.
+          // Home lifts too, from the plan, since the record of what home mode
+          // changed does not survive a restart
+          const sessionWithSameNameInPlan = program.sessions.find(
+            (x) => x.name === session.blueprint.name,
+          );
           const blueprint = withoutRolledOverExercises(
-            undoSwaps(
-              session.blueprint,
-              getState().currentSession.exerciseSwaps?.[session.id] ?? [],
+            undoHomeLifts(
+              undoSwaps(
+                session.blueprint,
+                getState().currentSession.exerciseSwaps?.[session.id] ?? [],
+              ),
+              sessionWithSameNameInPlan,
             ),
           );
           // Ski Legs exists only while ski prep runs, so it is never offered
@@ -186,9 +195,6 @@ export function applyCurrentSessionEffects(addEffect: AddEffectFn) {
             blueprint.name === SKI_LEGS_DAY ||
             program.sessions.some((x) => x.equals(blueprint));
           if (!sessionInPlan) {
-            const sessionWithSameNameInPlan = program.sessions.find(
-              (x) => x.name === blueprint.name,
-            );
             const planDiff: PlanDiff = sessionWithSameNameInPlan
               ? {
                   type: 'diff',
