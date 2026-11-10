@@ -67,7 +67,7 @@ export const skiExercises: SkiExercise[] = [
     name: 'Kettlebell One-Legged Deadlift',
     sets: 3,
     reps: 8,
-    notes: 'Each side.',
+    notes: 'Each side. At home, stand on the balance cushion.',
     increment: 2,
   },
   {

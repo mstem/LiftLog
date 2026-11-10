@@ -7,6 +7,7 @@ import {
 import { RecordedWeightedExercise, Session } from '@/models/session-models';
 import { REHAB_GROUP, unpaused } from '@/models/injury/rehab';
 import { SKI_GROUP } from '@/models/ski-prep';
+import { HOME_GROUP } from '@/models/home-group';
 
 /**
  * Group given to lifts carried over from the previous workout. Reusing the
@@ -70,7 +71,7 @@ export function withRolledOverExercises(
 
 /**
  * The workout as planned, without anything carried over into it and without
- * the Rehab block injury mode adds or the ski block. All are one-offs that must never be
+ * the Rehab block injury mode adds, the ski block or the home lifts. All are one-offs that must never be
  * written into the plan. Lifts injury mode paused get their planned group back.
  */
 export function withoutRolledOverExercises(
@@ -82,7 +83,8 @@ export function withoutRolledOverExercises(
         (x) =>
           x.group !== ROLLED_OVER_GROUP &&
           x.group !== REHAB_GROUP &&
-          x.group !== SKI_GROUP,
+          x.group !== SKI_GROUP &&
+          x.group !== HOME_GROUP,
       )
       .map(unpaused),
   });

@@ -56,6 +56,7 @@ import {
 import { NormalizedName } from '@/models/blueprint-models';
 import { rehabDescriptors } from '@/models/injury/rehab';
 import { skiDescriptors } from '@/models/ski-prep';
+import { homeDescriptors } from '@/models/home-mode';
 import { eq, sql } from 'drizzle-orm';
 import { toRecord } from '@/utils/reduce';
 import {
@@ -136,7 +137,11 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
           ...Object.values(builtInExercisesNotAlreadyAdded),
         ].map((x) => x.name.toLowerCase()),
       );
-      for (const entry of [...rehabDescriptors(), ...skiDescriptors()]) {
+      for (const entry of [
+        ...rehabDescriptors(),
+        ...skiDescriptors(),
+        ...homeDescriptors(),
+      ]) {
         if (
           !knownExerciseNames.has(entry.name.toLowerCase()) &&
           !builtinExercisesAddedInThePast.includes(entry.name)

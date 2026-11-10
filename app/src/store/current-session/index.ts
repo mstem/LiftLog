@@ -3,6 +3,7 @@ import {
   WeightedExerciseBlueprint,
 } from '@/models/blueprint-models';
 import { ExerciseSwap } from '@/models/exercise-swap';
+import type { HomeChange } from '@/models/home-mode';
 import { Session } from '@/models/session-models';
 import {
   createAction,
@@ -25,6 +26,8 @@ interface CurrentSessionState {
    * Lightning mode: after a restart Finish offers a swap as a plan change.
    */
   exerciseSwaps: Record<string, ExerciseSwap[]>;
+  /** What home mode changed per workout id, kept only while the app runs */
+  homeChanges: Record<string, HomeChange[]>;
 }
 
 export type SessionTarget =
@@ -41,6 +44,7 @@ const initialState: CurrentSessionState = {
   sharedSession: undefined,
   currentPlanDiff: undefined,
   exerciseSwaps: {},
+  homeChanges: {},
 };
 
 export const initializeCurrentSessionStateSlice = createAction(
@@ -88,6 +92,22 @@ const currentSessionSlice = createSlice({
 
     clearExerciseSwaps(state, action: PayloadAction<string>) {
       delete state.exerciseSwaps[action.payload];
+      delete state.homeChanges[action.payload];
+    },
+
+    setHomeChanges(
+      state,
+      action: PayloadAction<{
+        sessionId: string;
+        changes: HomeChange[] | undefined;
+      }>,
+    ) {
+      const { sessionId, changes } = action.payload;
+      if (changes) {
+        state.homeChanges[sessionId] = changes;
+      } else {
+        delete state.homeChanges[sessionId];
+      }
     },
 
     setCurrentSession: (
@@ -159,6 +179,7 @@ export const {
   recordExerciseSwap,
   setExerciseSwaps,
   clearExerciseSwaps,
+  setHomeChanges,
 } = currentSessionSlice.actions;
 
 export const currentSessionReducer = currentSessionSlice.reducer;
