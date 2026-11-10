@@ -1,4 +1,4 @@
-import { LocalTime, YearMonth, ZoneId, ZonedDateTime } from '@js-joda/core';
+import { LocalTime, YearMonth, ZonedDateTime } from '@js-joda/core';
 
 const deliveryTime = LocalTime.of(9, 0);
 
@@ -17,7 +17,7 @@ export function monthlyReportDeliveryTime(
     .plusMonths(1)
     .atDay(1)
     .atTime(deliveryTime)
-    .atZone(ZoneId.systemDefault());
+    .atZone(now.zone());
   if (!now.isBefore(at)) {
     return undefined;
   }

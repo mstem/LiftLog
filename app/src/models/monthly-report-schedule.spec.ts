@@ -32,6 +32,20 @@ describe('monthlyReportDeliveryTime', () => {
     ]);
   });
 
+  it('reads 09:00 in the zone of the time it is given', () => {
+    const zone = ZoneId.of('UTC+14');
+    const now = LocalDateTime.parse('2026-10-01T08:30').atZone(zone);
+
+    const when = monthlyReportDeliveryTime(YearMonth.of(2026, 9), now)!;
+
+    expect(when.getTime()).toBe(
+      LocalDateTime.parse('2026-10-01T09:00')
+        .atZone(zone)
+        .toInstant()
+        .toEpochMilli(),
+    );
+  });
+
   it('is undefined for a month whose report day has passed', () => {
     expect(
       monthlyReportDeliveryTime(YearMonth.of(2026, 9), at('2026-10-01T09:00')),

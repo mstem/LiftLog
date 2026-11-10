@@ -485,7 +485,7 @@ export function applyStoredSessionsEffects(addEffect: AddEffectFn) {
               firstDayOfWeek: settings.firstDayOfWeek,
             });
             if (!report.workouts) {
-              // Its workouts were deleted: a report already queued would be stale
+              // Nothing left in this month: drop any queued report
               await monthlyReportNotifier.cancel(month);
               continue;
             }
