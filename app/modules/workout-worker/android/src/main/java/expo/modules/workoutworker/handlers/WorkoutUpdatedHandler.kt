@@ -107,8 +107,8 @@ class WorkoutUpdatedHandler(
         // timer below: the timer freezes when the screen sleeps, so it can't be
         // trusted to fire the "rest over" notification. Alarms wake the CPU on time
         // even in Doze. Re-scheduling on every update is idempotent (same request
-        // codes replace the pending alarm). Skip the max ding when it coincides with
-        // min (no range), matching the previous single-notification behaviour.
+        // codes replace the pending alarm). Only the min milestone dings: the end
+        // of a rest range is silent, so one set gets one ring.
         if (restTimerInfo.partiallyEndAt.epochSeconds != restTimerInfo.startedAt.epochSeconds) {
             restAlarmScheduler.schedule(
                 restTimerInfo.partiallyEndAt.toEpochMilliseconds(),
@@ -117,16 +117,8 @@ class WorkoutUpdatedHandler(
                 withExercise(translations.workoutPersistentNotificationStartSoonMessage),
             )
         }
-        if (restTimerInfo.endAt.epochSeconds > restTimerInfo.partiallyEndAt.epochSeconds) {
-            restAlarmScheduler.schedule(
-                restTimerInfo.endAt.toEpochMilliseconds(),
-                RestAlarmScheduler.REQUEST_CODE_MAX,
-                translations.workoutPersistentNotificationMaxRestOverMessage,
-                withExercise(translations.workoutPersistentNotificationStartNowMessage),
-            )
-        } else {
-            restAlarmScheduler.cancel(RestAlarmScheduler.REQUEST_CODE_MAX)
-        }
+        // Clears a max alarm left pending by an older build.
+        restAlarmScheduler.cancel(RestAlarmScheduler.REQUEST_CODE_MAX)
 
         timer.updateCallback {
             val timePartiallyEndSecs = restTimerInfo.partiallyEndAt.epochSeconds

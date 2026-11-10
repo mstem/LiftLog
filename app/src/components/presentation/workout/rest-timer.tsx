@@ -127,11 +127,7 @@ export default function RestTimer({
     // doesn't click a second time.
     const state = getTimerState();
     setJiggled((j) =>
-      j.filter(
-        (m) =>
-          (m === 'first' && state.firstProgressBarProgress === 1) ||
-          (m === 'second' && state.secondProgressBarProgress === 1),
-      ),
+      j.filter((m) => m === 'first' && state.firstProgressBarProgress === 1),
     );
   }, [getTimerState]);
 
@@ -164,8 +160,9 @@ export default function RestTimer({
     const timer = setInterval(() => {
       const state = getTimerState();
       setTimerState(state);
+      // Only the first milestone rings. Reaching the end of a rest range
+      // turns the pill red without a second sound.
       if (state.firstProgressBarProgress === 1) triggerJiggle('first');
-      if (state.secondProgressBarProgress === 1) triggerJiggle('second');
     }, 200);
     return () => clearInterval(timer);
   }, [getTimerState, triggerJiggle]);
