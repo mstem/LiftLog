@@ -1,5 +1,6 @@
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { PotentialSet } from '@/models/session-models';
+import { repShortcuts } from '@/models/rep-shortcuts';
 import { T } from '@tolgee/react';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
@@ -12,6 +13,8 @@ interface PotentialSetAdditionalActionsDialogProps {
   open: boolean;
   set: PotentialSet;
   repTarget: number;
+  /** Reps done in the set above this one, if it is finished */
+  repsAbove: number | undefined;
   pendingReps: number | undefined;
   updateRepCount: (reps: number | undefined) => void;
   close: () => void;
@@ -24,18 +27,12 @@ export default function PotentialSetAdditionalActionsDialog({
   pendingReps,
   updateRepCount,
   repTarget,
+  repsAbove,
 }: PotentialSetAdditionalActionsDialogProps) {
   const { colors } = useAppTheme();
   const originalReps = set?.set?.repsCompleted ?? pendingReps;
 
-  // Shortcut buttons cover the target reps plus or minus 5 - the only numbers
-  // anyone taps in practice. Negative reps don't exist, so the low end stops
-  // at 0.
-  const lowestRepOption = Math.max(0, repTarget - 5);
-  const repOptions = Array.from(
-    { length: repTarget + 5 - lowestRepOption + 1 },
-    (_, i) => lowestRepOption + i,
-  );
+  const repOptions = repShortcuts({ repsAbove, repTarget });
 
   const [repCountText, setRepCountText] = useState<string>(
     originalReps?.toString() ?? '',

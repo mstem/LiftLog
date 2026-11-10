@@ -244,6 +244,9 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
               isReadonly={isSetLocked(index)}
               isBarbell={isBarbell}
               weightAbove={recordedExercise.potentialSets[index - 1]?.weight}
+              repsAbove={
+                recordedExercise.potentialSets[index - 1]?.set?.repsCompleted
+              }
               setIndex={index}
               maxReps={recordedExercise.blueprint.repsPerSet}
               pendingReps={pendingReps[index]}
