@@ -26,12 +26,18 @@ const SLOW_NOTE = 'Lower over 3 s, stop one or two reps short of failure.';
 
 export interface HomeLift {
   name: string;
-  /** Home loads in kg, heaviest first, per hand for a pair; empty for bodyweight or a band */
+  /**
+   * Home loads in kg, heaviest first, empty for bodyweight or a band. A lift
+   * with a dumbbell in each hand counts the pair together, as Matt logs it.
+   */
   loads: number[];
   notes?: string;
 }
 
-const DUMBBELLS = [7.5, 5];
+/** Both dumbbells together: two of 7.5 kg, or two of 5 kg */
+const DUMBBELL_PAIR = [15, 10];
+/** One dumbbell, for a one-arm, one-leg or two-hands-on-one lift */
+const ONE_DUMBBELL = [7.5, 5];
 const KETTLEBELL = [12];
 
 /**
@@ -43,7 +49,7 @@ const homeLifts: Record<string, HomeLift | 'gym only'> = {
   // Push
   'Incline Bench Press (Barbell)': {
     name: 'Incline Dumbbell Press',
-    loads: DUMBBELLS,
+    loads: DUMBBELL_PAIR,
     notes: 'On the bench, inclined.',
   },
   'Decline Bench Press (Barbell)': {
@@ -58,7 +64,7 @@ const homeLifts: Record<string, HomeLift | 'gym only'> = {
   },
   'Cable Fly Crossovers': {
     name: 'Dumbbell Fly',
-    loads: DUMBBELLS,
+    loads: DUMBBELL_PAIR,
     notes: 'Lying on the bench.',
   },
   'Single Arm Cable Crossover': {
@@ -73,17 +79,17 @@ const homeLifts: Record<string, HomeLift | 'gym only'> = {
   },
   'Triceps Kickback (Cable)': {
     name: 'Dumbbell Triceps Kickback',
-    loads: DUMBBELLS,
+    loads: ONE_DUMBBELL,
   },
   'Seated Triceps Press': {
     name: 'Seated Dumbbell Triceps Press',
-    loads: DUMBBELLS,
+    loads: ONE_DUMBBELL,
     notes: 'One dumbbell in both hands.',
   },
   // Pull
   'Cable Rear Delt Fly': {
     name: 'Bent-over Dumbbell Rear Delt Fly',
-    loads: DUMBBELLS,
+    loads: DUMBBELL_PAIR,
   },
   'Bent Over Barbell Row': {
     name: 'One-arm Kettlebell Row',
@@ -106,7 +112,7 @@ const homeLifts: Record<string, HomeLift | 'gym only'> = {
   'Hack Squat': { name: 'Goblet Squat', loads: KETTLEBELL },
   'Leg Press': {
     name: 'Dumbbell Step-up',
-    loads: DUMBBELLS,
+    loads: DUMBBELL_PAIR,
     notes: 'Onto the bench.',
   },
   'Hip Thrust (Machine)': {
@@ -116,7 +122,7 @@ const homeLifts: Record<string, HomeLift | 'gym only'> = {
   },
   'Lying Leg Curls': {
     name: 'Dumbbell Romanian Deadlift',
-    loads: DUMBBELLS,
+    loads: DUMBBELL_PAIR,
   },
   'Leg Extensions': {
     name: 'Heel-elevated Goblet Squat',
@@ -124,7 +130,7 @@ const homeLifts: Record<string, HomeLift | 'gym only'> = {
   },
   'Standing Calf Raises': {
     name: 'Single-leg Calf Raise',
-    loads: DUMBBELLS,
+    loads: ONE_DUMBBELL,
   },
   'Hanging Leg Raise': {
     name: 'Lying Leg Raise',

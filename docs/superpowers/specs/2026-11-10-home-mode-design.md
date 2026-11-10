@@ -22,7 +22,7 @@ The list lives in code for the first version, in `app/src/models/home-mode.ts`, 
 
 A fixed table maps each planned lift, by normalized name, to its home version. A lift with no home version moves into a collapsed "Gym only" block at the end of the workout. It does not roll over to the next workout, because Matt skipped it on purpose.
 
-Weight: the heaviest home load that is not over the gym weight. For a pair of dumbbells that is per hand.
+Weight: the heaviest home load that is not over the gym weight. For a dumbbell in each hand that is the pair together (15 or 10 kg), as Matt logs it.
 
 Reps: planned reps times gym weight over home weight, kept between the planned reps and 20. When the result hits 20, the set note says "Lower over 3 s, stop one or two reps short of failure", which keeps the effort up when the load cannot go higher. Bodyweight lifts keep their reps.
 
@@ -34,10 +34,10 @@ Push
 
 | Gym lift (last weight) | Home lift | Load | Reps |
 |---|---|---|---|
-| Incline Bench Press (Barbell), 40 kg, 4x12 | Incline Dumbbell Press on the bench | 2x7.5 kg | 20, slow |
+| Incline Bench Press (Barbell), 40 kg, 4x12 | Incline Dumbbell Press on the bench | 15 kg (2x7.5) | 20, slow |
 | Decline Bench Press (Barbell), 20 kg, 3x8 | Decline Push Up, feet on the bench | bodyweight | 8 |
 | Cable Chest Press, 7.5 kg | Band Chest Press, loop across the back | band | as planned |
-| Cable Fly Crossovers, 5 kg, 4x12 | Dumbbell Fly on the bench | 2x5 kg | 12 |
+| Cable Fly Crossovers, 5 kg, 4x12 | Dumbbell Fly on the bench | 10 kg (2x5) | 12 |
 | Single Arm Cable Crossover, 8 kg, 3x12 | Single Arm Band Chest Fly, loop across the back | band | 12 |
 | Triceps Pushdown (Rope), 15 kg, 4x12 | Band Overhead Triceps Extension, loop under the back foot | band | 12 |
 | Triceps Kickback (Cable), 5 kg, 3x12 | Dumbbell Triceps Kickback | 5 kg | 12 |
@@ -48,7 +48,7 @@ Pull
 
 | Gym lift (last weight) | Home lift | Load | Reps |
 |---|---|---|---|
-| Cable Rear Delt Fly, 5 kg, 3x15 | Bent-over Dumbbell Rear Delt Fly | 2x5 kg | 15 |
+| Cable Rear Delt Fly, 5 kg, 3x15 | Bent-over Dumbbell Rear Delt Fly | 10 kg (2x5) | 15 |
 | Bent Over Barbell Row, 55 kg, 6x5 | One-arm Kettlebell Row, hand on the bench | 12 kg | 20, slow |
 | Seated Cable Rows, 30 kg, 3x15 | Seated Band Row, band round the feet | band | 15 |
 | Wide-Grip Lat Pulldown, 35 kg, 4x15 | Overhead Band Pulldown: loop held overhead, pulled apart down to the chest | band | 15 |
@@ -60,9 +60,9 @@ Legs
 | Gym lift (last weight) | Home lift | Load | Reps |
 |---|---|---|---|
 | Hack Squat, 60 kg, 6x8 | Goblet Squat | 12 kg | 20, slow |
-| Leg Press, 127 kg, 4x10 | Dumbbell Step-up onto the bench | 2x7.5 kg | 20, slow |
+| Leg Press, 127 kg, 4x10 | Dumbbell Step-up onto the bench | 15 kg (2x7.5) | 20, slow |
 | Hip Thrust (Machine), 60 kg, 4x11 | Single-leg Hip Thrust, shoulders on the bench | 12 kg | 20, slow |
-| Lying Leg Curls, 50 kg, 4x12 | Dumbbell Romanian Deadlift | 2x7.5 kg | 20, slow |
+| Lying Leg Curls, 50 kg, 4x12 | Dumbbell Romanian Deadlift | 15 kg (2x7.5) | 20, slow |
 | Leg Extensions, 55 kg, 3x12 | Heel-elevated Goblet Squat | 12 kg | 20, slow |
 | Standing Calf Raises, 45 kg, 4x12 | Single-leg Calf Raise | 7.5 kg | 20, slow |
 | Hanging Leg Raise | Lying Leg Raise on the bench | bodyweight | 12 |
