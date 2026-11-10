@@ -1,3 +1,4 @@
+import { isHomeLift } from '@/models/home-mode';
 import { isSkiPrepActive, skiRotation, withSkiBlock } from '@/models/ski-prep';
 import {
   KeyedExerciseBlueprint,
@@ -81,7 +82,10 @@ export class SessionService {
 
     // Lifts left untouched in the last finished workout carry into the next
     // one only. An in-progress workout is not finished, so nothing rolls yet.
-    let rollOver = currentSession ? [] : rolledOverExercises(latestSession);
+    // A home lift skipped at home never carries into a gym workout
+    let rollOver = currentSession
+      ? []
+      : rolledOverExercises(latestSession).filter((x) => !isHomeLift(x.name));
     while (true) {
       latestSession = this.getNextSession(
         latestSession,

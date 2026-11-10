@@ -345,6 +345,11 @@ export function fromHomeWorkout(
   return out;
 }
 
+/** Whether a lift is one home mode puts in, by name. */
+export function isHomeLift(name: string): boolean {
+  return gymNamesByHomeName.has(new NormalizedName(name).toString());
+}
+
 const gymNamesByHomeName = new Map<string, string[]>();
 for (const [gym, home] of Object.entries(homeLifts)) {
   if (home !== 'gym only') {

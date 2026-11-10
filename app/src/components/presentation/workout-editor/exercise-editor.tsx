@@ -361,9 +361,10 @@ function SharedFieldsEditor({
 }) {
   const { t } = useTranslate();
   // Rehab, ski prep and home blocks show a label for their reserved group id
+  const labelKey = exercise.group ? groupLabelKey(exercise.group) : undefined;
   const reserved = useRef(
-    exercise.group && groupLabelKey(exercise.group)
-      ? { id: exercise.group, label: t(groupLabelKey(exercise.group)!) }
+    exercise.group && labelKey
+      ? { id: exercise.group, label: t(labelKey) }
       : undefined,
   ).current;
   return (
