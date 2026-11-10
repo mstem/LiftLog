@@ -7,6 +7,7 @@ import WeightIncreaseFloat, {
 } from '@/components/presentation/workout/weighted/weight-increase-float';
 import { weightIncreaseSinceLastTime } from '@/components/presentation/workout/weighted/weight-increase';
 import { useAppTheme, spacing, font } from '@/hooks/useAppTheme';
+import { repsBefore } from '@/models/rep-shortcuts';
 import { RecordedWeightedExercise } from '@/models/session-models';
 import { Weight } from '@/models/weight';
 import { WeightedExercisePersonalBests } from '@/store/stored-sessions';
@@ -244,6 +245,7 @@ export default function WeightedExercise(props: WeightedExerciseProps) {
               isReadonly={isSetLocked(index)}
               isBarbell={isBarbell}
               weightAbove={recordedExercise.potentialSets[index - 1]?.weight}
+              repsAbove={repsBefore(recordedExercise.potentialSets, index)}
               setIndex={index}
               maxReps={recordedExercise.blueprint.repsPerSet}
               pendingReps={pendingReps[index]}

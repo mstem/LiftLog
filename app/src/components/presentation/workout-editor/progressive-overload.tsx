@@ -291,6 +291,7 @@ function DummySet(props: { maxReps: number; set: PotentialSet }) {
       isReadonly
       isBarbell={false}
       weightAbove={undefined}
+      repsAbove={undefined}
       maxReps={props.maxReps}
       pendingReps={undefined}
       onComplete={() => {}}
