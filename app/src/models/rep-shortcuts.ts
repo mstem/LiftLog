@@ -1,7 +1,7 @@
 /**
  * The shortcut buttons in the reps dialog: 11 in a row, five either side of
- * `center`. Negative reps don't exist, so near 0 the row shifts up instead of
- * shrinking, which keeps every button in the same place from set to set.
+ * `center`. Negative reps don't exist, so near 0 the row starts at 0 and
+ * shifts up instead of shrinking, which keeps the row 11 buttons wide.
  */
 export function repShortcuts(center: number): number[] {
   const lowest = Math.max(0, center - 5);

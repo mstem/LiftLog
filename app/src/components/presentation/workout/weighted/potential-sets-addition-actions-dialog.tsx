@@ -12,7 +12,7 @@ import Button from '@/components/presentation/foundation/gesture-wrappers/button
 interface PotentialSetAdditionalActionsDialogProps {
   open: boolean;
   set: PotentialSet;
-  /** The rep count the shortcut buttons run five either side of */
+  /** The rep count the shortcut row centers on, see repShortcuts */
   shortcutCenter: number;
   pendingReps: number | undefined;
   updateRepCount: (reps: number | undefined) => void;
