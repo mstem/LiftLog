@@ -286,6 +286,22 @@ describe('rehabWeights', () => {
     ).toEqual([7, 9, 9]);
   });
 
+  it('never loads a set done with no added weight', () => {
+    const a = perSet('2026-11-06', [0, 5, 5], [1, 1, 1]);
+    const b = perSet('2026-11-11', [0, 5, 5], [1, 1, 1]);
+    expect(values(rehabWeights({ ...rehab, history: [a, b] }))).toEqual([
+      0, 6, 6,
+    ]);
+  });
+
+  it('does not step up an extra set that was never done', () => {
+    const a = perSet('2026-11-06', [4, 5], [1, 1]);
+    const b = perSet('2026-11-11', [4, 5], [1, 1]);
+    expect(values(rehabWeights({ ...rehab, history: [a, b] }))).toEqual([
+      5, 6, 5,
+    ]);
+  });
+
   it('repeats the last set when today has more sets than last time', () => {
     const e = perSet('2026-11-11', [4, 5], [1, 1]);
     expect(values(rehabWeights({ ...rehab, history: [e] }))).toEqual([4, 5, 5]);

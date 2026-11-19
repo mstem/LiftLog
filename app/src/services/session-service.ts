@@ -329,7 +329,10 @@ export class SessionService {
           trackedFrom: injuryEraStart(injury),
         };
         if (e.group === REHAB_GROUP) {
-          const weights = rehabWeights({ ...loadArgs, sets: e.sets });
+          const weights = rehabWeights({
+            ...loadArgs,
+            sets: newExercise.potentialSets.length,
+          });
           newExercise = newExercise.with({
             potentialSets: newExercise.potentialSets.map((s, i) =>
               s.with({ weight: weights[i]! }),
