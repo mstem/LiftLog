@@ -1,4 +1,4 @@
-import { DayOfWeek, Duration, LocalDate } from '@js-joda/core';
+import { DayOfWeek, Duration, LocalDate, OffsetDateTime } from '@js-joda/core';
 import { match } from 'ts-pattern';
 
 export function getDateOnDay(dayOfWeek: DayOfWeek) {
@@ -36,6 +36,39 @@ export function formatDuration(
     .otherwise(() => `${duration.toMillis() / 1000} secs`);
 
   return str;
+}
+
+/**
+ * The start to show for a workout done on `date`. A workout logged later from
+ * History stamps its sets with the time they were typed in, so a start on
+ * another day says nothing about when the workout happened.
+ */
+export function startTimeOnDay(
+  start: OffsetDateTime | undefined,
+  date: LocalDate,
+): OffsetDateTime | undefined {
+  return start && start.toLocalDate().equals(date) ? start : undefined;
+}
+
+/**
+ * The time of day a workout started, as the clock read where it was done. It
+ * drops the offset rather than converting it, so a workout done abroad keeps
+ * its local time.
+ */
+export function formatStartTime(
+  start: OffsetDateTime,
+  locale: string | undefined,
+  uses24HourClock: boolean,
+): string {
+  if (uses24HourClock) {
+    // Some Intl engines turn hour12: false into 24:05, so this builds HH:mm itself.
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(start.hour())}:${pad(start.minute())}`;
+  }
+  return new Date(2000, 0, 1, start.hour(), start.minute()).toLocaleTimeString(
+    locale,
+    { hour: 'numeric', minute: '2-digit', hour12: true },
+  );
 }
 
 /**

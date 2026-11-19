@@ -32,8 +32,10 @@ import Button from '@/components/presentation/foundation/gesture-wrappers/button
 import { useDispatch } from 'react-redux';
 import { useFormatDate } from '@/hooks/useFormatDate';
 import { SharedSession } from '@/models/feed-models';
+import { useCalendars } from 'expo-localization';
 
 export default function History() {
+  const uses24HourClock = useCalendars()[0]?.uses24hourClock ?? true;
   const { t } = useTranslate();
   const dispatch = useDispatch();
   const formatDate = useFormatDate();
@@ -145,6 +147,8 @@ export default function History() {
                   <SessionSummaryTitle
                     isFilled
                     showDuration
+                    showStartTime
+                    uses24HourClock={uses24HourClock}
                     session={session}
                   />
                 }

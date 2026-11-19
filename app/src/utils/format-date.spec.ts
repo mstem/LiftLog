@@ -1,7 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { DayOfWeek, Duration } from '@js-joda/core';
-import { getDateOnDay, parseDuration } from './format-date';
-import { formatDuration } from './format-date';
+import { DayOfWeek, Duration, LocalDate, OffsetDateTime } from '@js-joda/core';
+import {
+  formatDuration,
+  formatStartTime,
+  getDateOnDay,
+  parseDuration,
+  startTimeOnDay,
+} from './format-date';
 
 describe('format-date utilities', () => {
   describe('getDateOnDay', () => {
@@ -343,5 +348,52 @@ describe('parseDuration', () => {
         'Invalid duration format: 02:30:45:12',
       );
     });
+  });
+});
+
+describe('formatStartTime', () => {
+  const at = (s: string) => OffsetDateTime.parse(s);
+
+  it('gives the wall-clock time the workout started, in 24 h', () => {
+    expect(formatStartTime(at('2026-11-17T18:02:00+00:00'), 'en', true)).toBe(
+      '18:02',
+    );
+  });
+
+  it('gives the 12 h form when the phone uses it', () => {
+    expect(
+      formatStartTime(at('2026-11-17T18:02:00+00:00'), 'en', false),
+    ).toMatch(/^6:02\sPM$/);
+  });
+
+  it('shows a minute past midnight as 00, never 24', () => {
+    expect(formatStartTime(at('2026-11-17T00:05:00+00:00'), 'en', true)).toBe(
+      '00:05',
+    );
+  });
+
+  it('keeps the clock time of the recorded offset', () => {
+    expect(formatStartTime(at('2026-11-17T07:05:00+09:00'), 'en', true)).toBe(
+      '07:05',
+    );
+  });
+});
+
+describe('startTimeOnDay', () => {
+  const day = LocalDate.parse('2026-11-03');
+
+  it('gives the start when the first set was done on the workout day', () => {
+    const start = OffsetDateTime.parse('2026-11-03T08:15:00+00:00');
+    expect(startTimeOnDay(start, day)).toBe(start);
+  });
+
+  it('gives nothing when the sets were typed in on a later day', () => {
+    expect(
+      startTimeOnDay(OffsetDateTime.parse('2026-11-19T22:41:00+00:00'), day),
+    ).toBeUndefined();
+  });
+
+  it('gives nothing when there is no start', () => {
+    expect(startTimeOnDay(undefined, day)).toBeUndefined();
   });
 });
