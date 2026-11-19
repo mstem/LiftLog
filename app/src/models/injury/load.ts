@@ -33,7 +33,7 @@ function allTickedFrom(e: InjuryHistoryEntry, from: OffsetDateTime): boolean {
   );
 }
 
-export function injuryWeight(args: {
+interface InjuryWeightArgs {
   /** recordings of this lift, any order; filtered to on/after onset inside */
   history: InjuryHistoryEntry[];
   onsetDate: LocalDate;
@@ -50,13 +50,19 @@ export function injuryWeight(args: {
    * gets the first cut.
    */
   trackedFrom?: OffsetDateTime;
-}): Weight {
-  const { increment, painLimit, nextDayAnswers } = args;
-  const era = args.history
+}
+
+function injuryEra(args: InjuryWeightArgs): InjuryHistoryEntry[] {
+  return args.history
     .filter((x) => !x.date.isBefore(args.onsetDate))
     .filter((x) => x.exercise.potentialSets.some((set) => set.set))
     .filter((x) => !args.trackedFrom || allTickedFrom(x, args.trackedFrom))
     .sort((a, b) => a.date.compareTo(b.date));
+}
+
+export function injuryWeight(args: InjuryWeightArgs): Weight {
+  const { increment, painLimit, nextDayAnswers } = args;
+  const era = injuryEra(args);
   const last = era[era.length - 1];
   if (!last) {
     const cut = args.carried.value.multipliedBy(args.firstCut);
@@ -87,4 +93,45 @@ export function injuryWeight(args: {
     return base.plus(increment);
   }
   return base;
+}
+
+/**
+ * Weights for each set of a Rehab block lift. They start from the sets of the
+ * last workout where the lift was ticked, each moved by the step the load
+ * rule gives, so a lighter first set stays lighter. A step up moves only the
+ * sets that were done with added weight. The rule leaves out the next-day answer, which rates
+ * the whole workout: rehab lifts are the ones meant to keep going on a bad
+ * day. A pain stop in the lift itself still drops a step.
+ */
+export function rehabWeights(
+  args: Omit<InjuryWeightArgs, 'nextDayAnswers'> & { sets: number },
+): Weight[] {
+  const ruleArgs = { ...args, nextDayAnswers: {} };
+  const step = injuryWeight(ruleArgs);
+  const era = injuryEra(ruleArgs);
+  const last = era[era.length - 1];
+  if (!last) {
+    return Array.from({ length: args.sets }, () => step);
+  }
+  const lastSets = last.exercise.potentialSets;
+  const prevSets = era[era.length - 2]?.exercise.potentialSets ?? [];
+  const unit = args.carried.unit;
+  const delta = step.value.minus(heaviest(last, unit).value);
+  const moved = lastSets.map((source, i) => {
+    const w = source.weight.convertTo(unit);
+    // A set steps up only when it was done with added weight in each of the
+    // last two workouts at this same weight, the rule's two-pass test per set.
+    const prev = prevSets[i];
+    const steppedUp =
+      !!source.set &&
+      !w.value.isZero() &&
+      !!prev?.set &&
+      prev.weight.convertTo(unit).equals(w);
+    const move = steppedUp ? delta : BigNumber.min(delta, 0);
+    return w.with({ value: BigNumber.max(w.value.plus(move), 0) });
+  });
+  return Array.from(
+    { length: args.sets },
+    (_, i) => moved[i] ?? moved[moved.length - 1]!,
+  );
 }

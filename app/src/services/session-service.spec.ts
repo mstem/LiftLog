@@ -552,6 +552,46 @@ describe('injury mode', () => {
       next.potentialSets[0]!.weight.equals(new Weight(4, 'kilograms')),
     ).toBe(true);
   });
+  it('keeps a rehab lift at last workout weights, set by set, after a worse next day', () => {
+    const punch = blueprint('Supine punch', 3, 15).with({
+      group: REHAB_GROUP,
+    });
+    const doneAt = OffsetDateTime.parse('2026-05-12T18:00:00Z');
+    const past = new Session(
+      'worse-day',
+      new SessionBlueprint('Push', [press, punch], ''),
+      [
+        new RecordedWeightedExercise(
+          punch,
+          [6, 9, 9].map(
+            (kg, i) =>
+              new PotentialSet(
+                new RecordedSet(15, doneAt.plusMinutes(i), 1),
+                new Weight(kg, 'kilograms'),
+              ),
+          ),
+          undefined,
+        ),
+      ],
+      LocalDate.parse('2026-05-12'),
+      undefined,
+      undefined,
+    );
+    const service = makeInjuryService({
+      sessions: [past],
+      answers: { 'worse-day': 'worse' },
+    });
+    const session = service.hydrateSessionFromBlueprint(
+      new SessionBlueprint('Push', [press], ''),
+      {},
+    );
+    const next = session.recordedExercises.find(
+      (x) => x.blueprint.name === 'Supine punch',
+    ) as RecordedWeightedExercise;
+    expect(next.potentialSets.map((s) => s.weight.value.toNumber())).toEqual([
+      6, 9, 9,
+    ]);
+  });
   it('leaves a bodyweight rehab lift where it is after two passed sessions', () => {
     const slide = blueprint('Wall slide', 3, 15).with({ group: REHAB_GROUP });
     const day = (id: string, date: string) =>
