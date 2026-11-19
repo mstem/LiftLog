@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { DayOfWeek, Duration } from '@js-joda/core';
-import { getDateOnDay, parseDuration } from './format-date';
+import { DayOfWeek, Duration, OffsetDateTime } from '@js-joda/core';
+import { formatStartTime, getDateOnDay, parseDuration } from './format-date';
 import { formatDuration } from './format-date';
 
 describe('format-date utilities', () => {
@@ -343,5 +343,27 @@ describe('parseDuration', () => {
         'Invalid duration format: 02:30:45:12',
       );
     });
+  });
+});
+
+describe('formatStartTime', () => {
+  const at = (s: string) => OffsetDateTime.parse(s);
+
+  it('gives the wall-clock time the workout started, in 24 h', () => {
+    expect(formatStartTime(at('2026-11-17T18:02:00+00:00'), 'en', true)).toBe(
+      '18:02',
+    );
+  });
+
+  it('gives the 12 h form when the phone uses it', () => {
+    expect(
+      formatStartTime(at('2026-11-17T18:02:00+00:00'), 'en', false),
+    ).toMatch(/^6:02\sPM$/);
+  });
+
+  it('keeps the time as recorded, whatever zone the phone is in now', () => {
+    expect(formatStartTime(at('2026-11-17T07:05:00+09:00'), 'en', true)).toBe(
+      '07:05',
+    );
   });
 });
