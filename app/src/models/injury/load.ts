@@ -98,12 +98,13 @@ export function injuryWeight(args: InjuryWeightArgs): Weight {
 /**
  * Weights for each set of a Rehab block lift. They start from the sets of the
  * last workout where the lift was ticked, each moved by the step the load
- * rule gives, so a lighter first set stays lighter. The next-day answer is
- * left out: it rates the whole workout, and rehab lifts are the ones meant to
- * keep going on a bad day. A pain stop in the lift itself still drops a step.
+ * rule gives, so a lighter first set stays lighter. A step up moves only the
+ * sets that were done. The rule leaves out the next-day answer, which rates
+ * the whole workout: rehab lifts are the ones meant to keep going on a bad
+ * day. A pain stop in the lift itself still drops a step.
  */
 export function rehabWeights(
-  args: InjuryWeightArgs & { sets: number },
+  args: Omit<InjuryWeightArgs, 'nextDayAnswers'> & { sets: number },
 ): Weight[] {
   const ruleArgs = { ...args, nextDayAnswers: {} };
   const step = injuryWeight(ruleArgs);
@@ -116,9 +117,9 @@ export function rehabWeights(
   const unit = args.carried.unit;
   const delta = step.value.minus(heaviest(last, unit).value);
   return Array.from({ length: args.sets }, (_, i) => {
-    const w = (lastSets[i] ?? lastSets[lastSets.length - 1]!).weight.convertTo(
-      unit,
-    );
-    return w.with({ value: BigNumber.max(w.value.plus(delta), 0) });
+    const source = lastSets[i] ?? lastSets[lastSets.length - 1]!;
+    const w = source.weight.convertTo(unit);
+    const move = source.set ? delta : BigNumber.min(delta, 0);
+    return w.with({ value: BigNumber.max(w.value.plus(move), 0) });
   });
 }

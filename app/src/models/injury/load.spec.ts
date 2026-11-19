@@ -209,14 +209,13 @@ describe('rehabWeights', () => {
   }
   const values = (ws: Weight[]) => ws.map((w) => w.value.toNumber());
 
-  it('keeps last workout weights when the next day was worse', () => {
+  it('keeps last workout weights after a passing workout', () => {
     const e = perSet('2026-11-11', [5, 5, 5], [2, 1, 1]);
     expect(
       values(
         rehabWeights({
           ...rehab,
           history: [e],
-          nextDayAnswers: { [e.sessionId]: 'worse' },
         }),
       ),
     ).toEqual([5, 5, 5]);
@@ -234,7 +233,7 @@ describe('rehabWeights', () => {
     expect(values(rehabWeights({ ...rehab, history: [e] }))).toEqual([5, 8, 8]);
   });
 
-  it('adds a step after two passing workouts even if both were answered worse', () => {
+  it('adds a step after two passing workouts', () => {
     const a = perSet('2026-11-06', [5, 5, 5], [2, 1, 1]);
     const b = perSet('2026-11-11', [5, 5, 5], [2, 1, 1]);
     expect(
@@ -242,7 +241,6 @@ describe('rehabWeights', () => {
         rehabWeights({
           ...rehab,
           history: [a, b],
-          nextDayAnswers: { [a.sessionId]: 'worse', [b.sessionId]: 'worse' },
         }),
       ),
     ).toEqual([6, 6, 6]);
@@ -262,6 +260,30 @@ describe('rehabWeights', () => {
     expect(
       values(rehabWeights({ ...rehab, history: [done, untouched] })),
     ).toEqual([5, 5, 5]);
+  });
+
+  it('steps up only the sets that were done; skipped sets stay put', () => {
+    const half = (date: string): InjuryHistoryEntry => ({
+      sessionId: `h${n++}`,
+      date: LocalDate.parse(date),
+      exercise: new RecordedWeightedExercise(
+        bp,
+        [
+          new PotentialSet(new RecordedSet(15, OffsetDateTime.now(), 1), kg(6)),
+          new PotentialSet(undefined, kg(9)),
+          new PotentialSet(undefined, kg(9)),
+        ],
+        undefined,
+      ),
+    });
+    expect(
+      values(
+        rehabWeights({
+          ...rehab,
+          history: [half('2026-11-06'), half('2026-11-11')],
+        }),
+      ),
+    ).toEqual([7, 9, 9]);
   });
 
   it('repeats the last set when today has more sets than last time', () => {

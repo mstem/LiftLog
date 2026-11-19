@@ -326,18 +326,20 @@ export class SessionService {
               : e.progressiveOverload.weightIncrement,
           painLimit: injury.painLimit,
           firstCut: injury.firstCut,
-          nextDayAnswers: $this.getState().injury?.nextDayAnswers ?? {},
           trackedFrom: injuryEraStart(injury),
         };
         if (e.group === REHAB_GROUP) {
           const weights = rehabWeights({ ...loadArgs, sets: e.sets });
           newExercise = newExercise.with({
             potentialSets: newExercise.potentialSets.map((s, i) =>
-              s.with({ weight: weights[i] ?? s.weight }),
+              s.with({ weight: weights[i]! }),
             ),
           });
         } else {
-          const weight = injuryWeight(loadArgs);
+          const weight = injuryWeight({
+            ...loadArgs,
+            nextDayAnswers: $this.getState().injury?.nextDayAnswers ?? {},
+          });
           newExercise = newExercise.withAllSets((s) => s.with({ weight }));
         }
       }
