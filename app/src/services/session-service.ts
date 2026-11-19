@@ -30,7 +30,11 @@ import { uuid } from '@/utils/uuid';
 import { LocalDate } from '@js-joda/core';
 import { selectActiveInjury } from '@/store/injury';
 import { isShoulderLoaded } from '@/models/injury/flags';
-import { injuryWeight, InjuryHistoryEntry } from '@/models/injury/load';
+import {
+  injuryWeight,
+  InjuryHistoryEntry,
+  rehabWeights,
+} from '@/models/injury/load';
 import { injuryEraStart } from '@/models/injury/injury';
 import { isPullDay, returnedLiftCount } from '@/models/injury/return';
 import {
@@ -311,8 +315,8 @@ export class SessionService {
         onsetDate &&
         (e.group === REHAB_GROUP || isShoulderLoaded(e.name, overrides))
       ) {
-        const weight = injuryWeight({
-          // historyFor is newest first; injuryWeight wants oldest first.
+        const loadArgs = {
+          // historyFor is newest first; the load rule wants oldest first.
           history: [...historyFor(e)].reverse(),
           onsetDate,
           carried: seededWeight,
@@ -324,8 +328,18 @@ export class SessionService {
           firstCut: injury.firstCut,
           nextDayAnswers: $this.getState().injury?.nextDayAnswers ?? {},
           trackedFrom: injuryEraStart(injury),
-        });
-        newExercise = newExercise.withAllSets((s) => s.with({ weight }));
+        };
+        if (e.group === REHAB_GROUP) {
+          const weights = rehabWeights({ ...loadArgs, sets: e.sets });
+          newExercise = newExercise.with({
+            potentialSets: newExercise.potentialSets.map((s, i) =>
+              s.with({ weight: weights[i] ?? s.weight }),
+            ),
+          });
+        } else {
+          const weight = injuryWeight(loadArgs);
+          newExercise = newExercise.withAllSets((s) => s.with({ weight }));
+        }
       }
 
       return newExercise;

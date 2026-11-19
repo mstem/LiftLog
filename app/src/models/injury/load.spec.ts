@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import BigNumber from 'bignumber.js';
 import { LocalDate, OffsetDateTime } from '@js-joda/core';
-import { injuryWeight, InjuryHistoryEntry } from '@/models/injury/load';
+import {
+  injuryWeight,
+  InjuryHistoryEntry,
+  rehabWeights,
+} from '@/models/injury/load';
 import {
   IncreaseAllEvenlyProgressiveOverload,
   Rest,
@@ -177,5 +181,95 @@ describe('injuryWeight', () => {
       .convertTo('kilograms')
       .plus(BigNumber(2.5));
     expect(w.equals(expected)).toBe(true);
+  });
+});
+
+describe('rehabWeights', () => {
+  const rehab = { ...base, increment: BigNumber(1), carried: kg(4), sets: 3 };
+  function perSet(
+    date: string,
+    weights: number[],
+    pains: (number | undefined)[],
+  ): InjuryHistoryEntry {
+    return {
+      sessionId: `r${n++}`,
+      date: LocalDate.parse(date),
+      exercise: new RecordedWeightedExercise(
+        bp,
+        weights.map(
+          (w, i) =>
+            new PotentialSet(
+              new RecordedSet(15, OffsetDateTime.now(), pains[i]),
+              kg(w),
+            ),
+        ),
+        undefined,
+      ),
+    };
+  }
+  const values = (ws: Weight[]) => ws.map((w) => w.value.toNumber());
+
+  it('keeps last workout weights when the next day was worse', () => {
+    const e = perSet('2026-11-11', [5, 5, 5], [2, 1, 1]);
+    expect(
+      values(
+        rehabWeights({
+          ...rehab,
+          history: [e],
+          nextDayAnswers: { [e.sessionId]: 'worse' },
+        }),
+      ),
+    ).toEqual([5, 5, 5]);
+  });
+
+  it('keeps each set at its own weight', () => {
+    const e = perSet('2026-11-11', [6, 9, 9, 9], [1, 0, 0, 0]);
+    expect(values(rehabWeights({ ...rehab, sets: 4, history: [e] }))).toEqual([
+      6, 9, 9, 9,
+    ]);
+  });
+
+  it('still drops a step after a pain stop, keeping the set shape', () => {
+    const e = perSet('2026-11-11', [6, 9, 9], [1, 6, 2]);
+    expect(values(rehabWeights({ ...rehab, history: [e] }))).toEqual([5, 8, 8]);
+  });
+
+  it('adds a step after two passing workouts even if both were answered worse', () => {
+    const a = perSet('2026-11-06', [5, 5, 5], [2, 1, 1]);
+    const b = perSet('2026-11-11', [5, 5, 5], [2, 1, 1]);
+    expect(
+      values(
+        rehabWeights({
+          ...rehab,
+          history: [a, b],
+          nextDayAnswers: { [a.sessionId]: 'worse', [b.sessionId]: 'worse' },
+        }),
+      ),
+    ).toEqual([6, 6, 6]);
+  });
+
+  it('reads the last workout with ticked sets, not a later untouched one', () => {
+    const done = perSet('2026-11-11', [5, 5, 5], [2, 1, 1]);
+    const untouched: InjuryHistoryEntry = {
+      sessionId: 'untouched',
+      date: LocalDate.parse('2026-11-13'),
+      exercise: new RecordedWeightedExercise(
+        bp,
+        [4, 4, 4].map((w) => new PotentialSet(undefined, kg(w))),
+        undefined,
+      ),
+    };
+    expect(
+      values(rehabWeights({ ...rehab, history: [done, untouched] })),
+    ).toEqual([5, 5, 5]);
+  });
+
+  it('repeats the last set when today has more sets than last time', () => {
+    const e = perSet('2026-11-11', [4, 5], [1, 1]);
+    expect(values(rehabWeights({ ...rehab, history: [e] }))).toEqual([4, 5, 5]);
+  });
+
+  it('falls back to the first-workout cut when there is no history', () => {
+    expect(values(rehabWeights({ ...rehab, history: [] }))).toEqual([2, 2, 2]);
   });
 });
