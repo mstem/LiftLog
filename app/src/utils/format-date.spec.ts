@@ -1,12 +1,12 @@
-import { afterEach, describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { DayOfWeek, Duration, LocalDate, OffsetDateTime } from '@js-joda/core';
 import {
+  formatDuration,
   formatStartTime,
   getDateOnDay,
   parseDuration,
   startTimeOnDay,
 } from './format-date';
-import { formatDuration } from './format-date';
 
 describe('format-date utilities', () => {
   describe('getDateOnDay', () => {
@@ -352,7 +352,6 @@ describe('parseDuration', () => {
 });
 
 describe('formatStartTime', () => {
-  afterEach(() => vi.unstubAllEnvs());
   const at = (s: string) => OffsetDateTime.parse(s);
 
   it('gives the wall-clock time the workout started, in 24 h', () => {
@@ -367,8 +366,13 @@ describe('formatStartTime', () => {
     ).toMatch(/^6:02\sPM$/);
   });
 
-  it('keeps the time as recorded, whatever zone the phone is in now', () => {
-    vi.stubEnv('TZ', 'America/New_York');
+  it('shows a minute past midnight as 00, never 24', () => {
+    expect(formatStartTime(at('2026-11-17T00:05:00+00:00'), 'en', true)).toBe(
+      '00:05',
+    );
+  });
+
+  it('keeps the clock time of the recorded offset', () => {
     expect(formatStartTime(at('2026-11-17T07:05:00+09:00'), 'en', true)).toBe(
       '07:05',
     );

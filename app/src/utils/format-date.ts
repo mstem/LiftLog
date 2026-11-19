@@ -60,13 +60,14 @@ export function formatStartTime(
   locale: string | undefined,
   uses24HourClock: boolean,
 ): string {
+  if (uses24HourClock) {
+    // Written by hand: some Intl engines turn hour12: false into 24:05.
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(start.hour())}:${pad(start.minute())}`;
+  }
   return new Date(2000, 0, 1, start.hour(), start.minute()).toLocaleTimeString(
     locale,
-    {
-      hour: uses24HourClock ? '2-digit' : 'numeric',
-      minute: '2-digit',
-      hour12: !uses24HourClock,
-    },
+    { hour: 'numeric', minute: '2-digit', hour12: true },
   );
 }
 

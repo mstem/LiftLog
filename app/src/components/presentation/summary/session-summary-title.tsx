@@ -10,28 +10,21 @@ import {
   startTimeOnDay,
 } from '@/utils/format-date';
 import { useAppSelector } from '@/store';
-import { useCalendars } from 'expo-localization';
-
-/** The phone's 12/24 h setting; 24 h when it can't be read. */
-function usePhone24HourClock(): boolean {
-  try {
-    return useCalendars()[0]?.uses24hourClock ?? true;
-  } catch {
-    return true;
-  }
-}
 
 interface SessionSummaryTitleProps {
   session: Session;
   isFilled?: boolean;
   showDuration?: boolean;
+  /** Shows the start time, on a 24 h clock unless this says otherwise. */
   showStartTime?: boolean;
+  uses24HourClock?: boolean;
 }
 export default function SessionSummaryTitle({
   session,
   isFilled,
   showDuration,
   showStartTime,
+  uses24HourClock = true,
 }: SessionSummaryTitleProps) {
   const formatDate = useFormatDate();
   const formattedDate = formatDate(session.date, {
@@ -42,7 +35,6 @@ export default function SessionSummaryTitle({
     month: 'long',
   });
   const locale = useAppSelector((x) => x.settings.preferredLanguage);
-  const uses24HourClock = usePhone24HourClock();
   const duration = showDuration ? session.duration : undefined;
   const start = showStartTime
     ? startTimeOnDay(session.workoutClockStart, session.date)
