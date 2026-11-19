@@ -51,9 +51,9 @@ export function startTimeOnDay(
 }
 
 /**
- * The time of day a workout started, as the clock read where it was done. The
- * offset is dropped rather than converted, so a workout done abroad keeps its
- * local time.
+ * The time of day a workout started, as the clock read where it was done. It
+ * drops the offset rather than converting it, so a workout done abroad keeps
+ * its local time.
  */
 export function formatStartTime(
   start: OffsetDateTime,
@@ -61,7 +61,7 @@ export function formatStartTime(
   uses24HourClock: boolean,
 ): string {
   if (uses24HourClock) {
-    // Written by hand: some Intl engines turn hour12: false into 24:05.
+    // Some Intl engines turn hour12: false into 24:05, so this builds HH:mm itself.
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${pad(start.hour())}:${pad(start.minute())}`;
   }
