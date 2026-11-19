@@ -1,6 +1,11 @@
-import { describe, it, expect } from 'vitest';
-import { DayOfWeek, Duration, OffsetDateTime } from '@js-joda/core';
-import { formatStartTime, getDateOnDay, parseDuration } from './format-date';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { DayOfWeek, Duration, LocalDate, OffsetDateTime } from '@js-joda/core';
+import {
+  formatStartTime,
+  getDateOnDay,
+  parseDuration,
+  startTimeOnDay,
+} from './format-date';
 import { formatDuration } from './format-date';
 
 describe('format-date utilities', () => {
@@ -347,6 +352,7 @@ describe('parseDuration', () => {
 });
 
 describe('formatStartTime', () => {
+  afterEach(() => vi.unstubAllEnvs());
   const at = (s: string) => OffsetDateTime.parse(s);
 
   it('gives the wall-clock time the workout started, in 24 h', () => {
@@ -362,8 +368,28 @@ describe('formatStartTime', () => {
   });
 
   it('keeps the time as recorded, whatever zone the phone is in now', () => {
+    vi.stubEnv('TZ', 'America/New_York');
     expect(formatStartTime(at('2026-11-17T07:05:00+09:00'), 'en', true)).toBe(
       '07:05',
     );
+  });
+});
+
+describe('startTimeOnDay', () => {
+  const day = LocalDate.parse('2026-11-03');
+
+  it('gives the start when the first set was done on the workout day', () => {
+    const start = OffsetDateTime.parse('2026-11-03T08:15:00+00:00');
+    expect(startTimeOnDay(start, day)).toBe(start);
+  });
+
+  it('gives nothing when the sets were typed in on a later day', () => {
+    expect(
+      startTimeOnDay(OffsetDateTime.parse('2026-11-19T22:41:00+00:00'), day),
+    ).toBeUndefined();
+  });
+
+  it('gives nothing when there is no start', () => {
+    expect(startTimeOnDay(undefined, day)).toBeUndefined();
   });
 });

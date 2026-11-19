@@ -39,6 +39,18 @@ export function formatDuration(
 }
 
 /**
+ * The start to show for a workout done on `date`. A workout logged later from
+ * History stamps its sets with the time they were typed in, so a start on
+ * another day says nothing about when the workout happened.
+ */
+export function startTimeOnDay(
+  start: OffsetDateTime | undefined,
+  date: LocalDate,
+): OffsetDateTime | undefined {
+  return start && start.toLocalDate().equals(date) ? start : undefined;
+}
+
+/**
  * The time of day a workout started, as the clock read where it was done. The
  * offset is dropped rather than converted, so a workout done abroad keeps its
  * local time.
@@ -53,7 +65,7 @@ export function formatStartTime(
     {
       hour: uses24HourClock ? '2-digit' : 'numeric',
       minute: '2-digit',
-      hourCycle: uses24HourClock ? 'h23' : 'h12',
+      hour12: !uses24HourClock,
     },
   );
 }

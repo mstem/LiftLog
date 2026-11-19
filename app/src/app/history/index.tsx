@@ -145,6 +145,7 @@ export default function History() {
                   <SessionSummaryTitle
                     isFilled
                     showDuration
+                    showStartTime
                     session={session}
                   />
                 }

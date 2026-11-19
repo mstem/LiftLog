@@ -4,14 +4,18 @@ import { Session } from '@/models/session-models';
 import { LocalDate } from '@js-joda/core';
 import { View } from 'react-native';
 import { useFormatDate } from '@/hooks/useFormatDate';
-import { formatDuration, formatStartTime } from '@/utils/format-date';
+import {
+  formatDuration,
+  formatStartTime,
+  startTimeOnDay,
+} from '@/utils/format-date';
 import { useAppSelector } from '@/store';
-import { getCalendars } from 'expo-localization';
+import { useCalendars } from 'expo-localization';
 
 /** The phone's 12/24 h setting; 24 h when it can't be read. */
-function phoneUses24HourClock(): boolean {
+function usePhone24HourClock(): boolean {
   try {
-    return getCalendars()[0]?.uses24hourClock ?? true;
+    return useCalendars()[0]?.uses24hourClock ?? true;
   } catch {
     return true;
   }
@@ -21,11 +25,13 @@ interface SessionSummaryTitleProps {
   session: Session;
   isFilled?: boolean;
   showDuration?: boolean;
+  showStartTime?: boolean;
 }
 export default function SessionSummaryTitle({
   session,
   isFilled,
   showDuration,
+  showStartTime,
 }: SessionSummaryTitleProps) {
   const formatDate = useFormatDate();
   const formattedDate = formatDate(session.date, {
@@ -36,8 +42,11 @@ export default function SessionSummaryTitle({
     month: 'long',
   });
   const locale = useAppSelector((x) => x.settings.preferredLanguage);
+  const uses24HourClock = usePhone24HourClock();
   const duration = showDuration ? session.duration : undefined;
-  const start = showDuration ? session.workoutClockStart : undefined;
+  const start = showStartTime
+    ? startTimeOnDay(session.workoutClockStart, session.date)
+    : undefined;
   return (
     <View
       style={{ flexShrink: 1, alignItems: 'flex-start', overflow: 'hidden' }}
@@ -47,9 +56,7 @@ export default function SessionSummaryTitle({
       {isFilled ? (
         <SurfaceText font="text-sm">
           {formattedDate}
-          {start
-            ? ` · ${formatStartTime(start, locale, phoneUses24HourClock())}`
-            : ''}
+          {start ? ` · ${formatStartTime(start, locale, uses24HourClock)}` : ''}
           {duration ? ` · ${formatDuration(duration, 'hours-mins')}` : ''}
         </SurfaceText>
       ) : undefined}
