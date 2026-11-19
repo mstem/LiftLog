@@ -294,11 +294,19 @@ describe('rehabWeights', () => {
     ]);
   });
 
-  it('does not step up an extra set that was never done', () => {
+  it('gives an extra set the same weight as the set before it', () => {
     const a = perSet('2026-11-06', [4, 5], [1, 1]);
     const b = perSet('2026-11-11', [4, 5], [1, 1]);
     expect(values(rehabWeights({ ...rehab, history: [a, b] }))).toEqual([
-      5, 6, 5,
+      5, 6, 6,
+    ]);
+  });
+
+  it('steps up a set only after two passing workouts at its own weight', () => {
+    const a = perSet('2026-11-06', [4, 9, 9], [1, 1, 1]);
+    const b = perSet('2026-11-11', [6, 9, 9], [1, 1, 1]);
+    expect(values(rehabWeights({ ...rehab, history: [a, b] }))).toEqual([
+      6, 10, 10,
     ]);
   });
 

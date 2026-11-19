@@ -114,14 +114,24 @@ export function rehabWeights(
     return Array.from({ length: args.sets }, () => step);
   }
   const lastSets = last.exercise.potentialSets;
+  const prevSets = era[era.length - 2]?.exercise.potentialSets ?? [];
   const unit = args.carried.unit;
   const delta = step.value.minus(heaviest(last, unit).value);
-  return Array.from({ length: args.sets }, (_, i) => {
-    const source = lastSets[i] ?? lastSets[lastSets.length - 1]!;
+  const moved = lastSets.map((source, i) => {
     const w = source.weight.convertTo(unit);
-    // A step up lands only on sets done last time with added weight.
-    const steppedUp = !!lastSets[i]?.set && !w.value.isZero();
+    // A set steps up only when it was done with added weight in each of the
+    // last two workouts at this same weight, the rule's two-pass test per set.
+    const prev = prevSets[i];
+    const steppedUp =
+      !!source.set &&
+      !w.value.isZero() &&
+      !!prev?.set &&
+      prev.weight.convertTo(unit).equals(w);
     const move = steppedUp ? delta : BigNumber.min(delta, 0);
     return w.with({ value: BigNumber.max(w.value.plus(move), 0) });
   });
+  return Array.from(
+    { length: args.sets },
+    (_, i) => moved[i] ?? moved[moved.length - 1]!,
+  );
 }
